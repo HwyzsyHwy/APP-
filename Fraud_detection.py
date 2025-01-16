@@ -22,7 +22,7 @@ st.markdown(
     <style>
     .main-title {
         text-align: center;
-        font-size: 30px;
+        font-size: 32px;
         font-weight: bold;
         color: white;
     }
@@ -33,14 +33,11 @@ st.markdown(
     }
     .red-text {
         color: #ff5c5c;
-        font-size: 18px;
+        font-size: 20px;
         font-weight: bold;
     }
     .input-section {
-        margin-bottom: 10px;
-    }
-    .stSlider > div > div > div {
-        height: 40px;
+        margin-bottom: 20px;
     }
     </style>
     """,
@@ -53,7 +50,7 @@ st.markdown("<div class='header-background'><h1 class='main-title'>Biomass Pyrol
 # 模型选择放置在顶部
 st.header("Select a Model")
 model_name = st.selectbox(
-    "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"], key="model_select"
+    "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
 )
 st.write(f"Current selected model: **{model_name}**")
 
