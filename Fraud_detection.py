@@ -7,7 +7,9 @@ Created on Wed Aug 10 11:02:43 2022
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib  # 使用joblib进行模型加载与保存
+import joblib
+import shap
+import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_squared_error
 
 st.set_page_config(
@@ -95,9 +97,18 @@ if st.button("预测"):
                 # Perform prediction
                 y_pred = model.predict(input_data)[0]
                 
-                # Generate synthetic test data for evaluation
-                test_data = np.random.rand(100, 14)  # Use actual test data if available
-                test_target = np.random.rand(100)
+                # 使用真实测试数据
+                # 这里需要加载或生成真实测试数据
+                # 假设 test_data 和 test_target 是从实际数据集中加载的：
+                # test_data = ... (加载实际测试数据)
+                # test_target = ... (加载实际目标值)
+                
+                # 如果没有真实数据，则抛出警告
+                st.warning("未加载真实测试数据，请确认是否正确提供测试集！")
+                
+                # 模拟生成测试数据
+                test_data = np.random.rand(100, len(feature_names)) * 10  # 假设特征范围是 [0, 10]
+                test_target = np.random.rand(100) * 10  # 假设目标值范围是 [0, 10]
                 y_test_pred = model.predict(test_data)
                 
                 # Evaluate model
@@ -109,5 +120,21 @@ if st.button("预测"):
                 st.write(f"预测值 (Y): {y_pred:.2f}")
                 st.write(f"R² (判定系数): {r2:.4f}")
                 st.write(f"RMSE (均方根误差): {rmse:.4f}")
+                
+                # SHAP analysis
+                st.subheader("SHAP分析")
+                explainer = shap.Explainer(model, test_data)
+                shap_values = explainer(test_data)
+
+                # SHAP summary plot
+                st.write("特征的重要性 (Summary Plot):")
+                shap.summary_plot(shap_values, test_data, plot_type="bar", show=False)
+                st.pyplot(bbox_inches='tight')
+                
+                # SHAP dependence plot
+                selected_feature = st.selectbox("选择一个特征查看依赖图:", feature_names)
+                st.write(f"特征 {selected_feature} 的依赖图:")
+                shap.dependence_plot(selected_feature, shap_values.values, test_data, show=False)
+                st.pyplot(bbox_inches='tight')
     except Exception as e:
         st.error(f"预测过程中出现错误: {e}")
