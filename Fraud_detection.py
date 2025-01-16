@@ -48,7 +48,7 @@ def user_input_features():
 outputdf = user_input_features()
 
 # Dataset loading
-df = pd.read_excel(r'C:\Users\HWY\Downloads\fraud.xlsx')
+df = pd.read_excel('fraud.xlsx')
 
 st.title('Dataset')
 if st.button('View some random data'):
@@ -92,10 +92,10 @@ with placeholder.container():
 
 # SHAP values visualization
 st.title('SHAP Value Analysis')
-image_path = r'C:\Users\HWY\Downloads\summary.png'
+image_path = 'summary.png'
 image4 = Image.open(image_path)
-shapdatadf = pd.read_excel(r'C:\Users\HWY\Downloads\shapdatadf.xlsx')
-shapvaluedf = pd.read_excel(r'C:\Users\HWY\Downloads\shapvaluedf.xlsx')
+shapdatadf = pd.read_excel('shapdatadf.xlsx')
+shapvaluedf = pd.read_excel('shapvaluedf.xlsx')
 
 placeholder5 = st.empty()
 with placeholder5.container():
@@ -115,7 +115,7 @@ with placeholder5.container():
 
 # Model prediction
 catmodel = CatBoostClassifier()
-catmodel.load_model(r'C:\Users\HWY\Downloads\fraud')
+catmodel.load_model('fraud')
 outputdf = pd.DataFrame([outputdf], columns=shapdatadf.columns)
 
 predicted_class = catmodel.predict(outputdf)[0]
