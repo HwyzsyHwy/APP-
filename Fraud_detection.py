@@ -48,7 +48,7 @@ def user_input_features():
 outputdf = user_input_features()
 
 # Dataset loading
-df = pd.read_excel('fraud.xlsx')
+df = pd.read_excel('fraud.xlsx', engine='openpyxl')
 
 st.title('Dataset')
 if st.button('View some random data'):
@@ -94,8 +94,8 @@ with placeholder.container():
 st.title('SHAP Value Analysis')
 image_path = 'summary.png'
 image4 = Image.open(image_path)
-shapdatadf = pd.read_excel('shapdatadf.xlsx')
-shapvaluedf = pd.read_excel('shapvaluedf.xlsx')
+shapdatadf = pd.read_excel('shapdatadf.xlsx', engine='openpyxl')
+shapvaluedf = pd.read_excel('shapvaluedf.xlsx', engine='openpyxl')
 
 placeholder5 = st.empty()
 with placeholder5.container():
