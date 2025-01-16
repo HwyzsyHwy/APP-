@@ -4,22 +4,15 @@ Created on Wed Aug 10 11:02:43 2022
 
 @author: Kevin Boss
 """
-from PIL import Image
-import warnings
 import streamlit as st
 import pandas as pd
-import shap
-from catboost import CatBoostClassifier
-import matplotlib.pyplot as plt
 import numpy as np
-
-warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
-
-plt.style.use('default')
+import pickle
+from sklearn.metrics import r2_score, mean_squared_error
 
 st.set_page_config(
-    page_title='Real-Time Fraud Detection',
-    page_icon='🕵️‍♀️',
+    page_title='Model Selection for Regression Analysis',
+    page_icon='📊',
     layout='wide'
 )
 
@@ -33,12 +26,6 @@ st.markdown(
         font-weight: bold;
         color: white;
     }
-    .sub-title {
-        text-align: center;
-        font-size: 28px;
-        font-weight: bold;
-        color: white;
-    }
     .header-background {
         background-color: #1e1e1e;
         padding: 10px;
@@ -49,72 +36,66 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Dashboard title with styles
-st.markdown("<div class='header-background'><h1 class='main-title'>机器学习： 实时识别出虚假销售</h1><h2 class='sub-title'>实时欺诈检测</h2></div>", unsafe_allow_html=True)
+# Dashboard title
+st.markdown("<div class='header-background'><h1 class='main-title'>回归模型选择与预测</h1></div>", unsafe_allow_html=True)
 
-# Sidebar input function
-def user_input_features():
-    st.sidebar.header('Make a prediction')
-    st.sidebar.write('User input parameters below ⬇️')
-    a1 = st.sidebar.slider('Action1', -31.0, 3.0, 0.0)
-    a2 = st.sidebar.slider('Action2', -5.0, 13.0, 0.0)
-    a3 = st.sidebar.slider('Action3', -20.0, 6.0, 0.0)
-    a4 = st.sidebar.slider('Action4', -26.0, 7.0, 0.0)
-    a5 = st.sidebar.slider('Action5', -4.0, 5.0, 0.0)
-    a6 = st.sidebar.slider('Action6', -8.0, 4.0, 0.0)
-    a7 = st.sidebar.slider('Sales Amount', 1.0, 5000.0, 1000.0)
-    a8 = st.sidebar.selectbox("Gender?", ('Male', 'Female'))
-    a9 = st.sidebar.selectbox("Agent Status?", ('Happy', 'Sad', 'Normal'))
-    
-    return [a1, a2, a3, a4, a5, a6, a7, a8, a9]
+# Load models
+MODEL_PATHS = {
+    "GBDT-Char": "GBDT-Char-1.15.pkl",
+    "GBDT-Oil": "GBDT-Oil-1.15.pkl",
+    "GBDT-Gas": "GBDT-Gas-1.15.pkl"
+}
 
-# 获取用户输入
-outputdf = user_input_features()
+# Function to load the selected model
+def load_model(model_name):
+    with open(MODEL_PATHS[model_name], "rb") as file:
+        return pickle.load(file)
 
-# 将用户输入的特征转换为 DataFrame
-outputdf = pd.DataFrame([outputdf], columns=[
-    'Action1', 'Action2', 'Action3', 'Action4', 'Action5', 
-    'Action6', 'Sales Amount', 'Gender', 'Agent Status'
-])
+# Sidebar for model selection
+st.sidebar.header("选择一个模型")
+model_name = st.sidebar.selectbox(
+    "可用模型", list(MODEL_PATHS.keys())
+)
+st.sidebar.write(f"当前选择的模型: **{model_name}**")
 
-# 如果 Gender 和 Agent Status 是分类特征，需要转换为数值
-outputdf['Gender'] = outputdf['Gender'].map({'Male': 0, 'Female': 1})
-outputdf['Agent Status'] = outputdf['Agent Status'].map({'Happy': 0, 'Sad': 1, 'Normal': 2})
+# Input features
+st.sidebar.header("输入特征值")
+features = {}
+feature_names = [
+    "M (wt%)", "Ash (wt%)", "VM (wt%)", "FC (wt%)", "C (wt%)", 
+    "H (wt%)", "N (wt%)", "O (wt%)", "PS (mm)", "SM (g)", 
+    "FT (°C)", "HR (°C/min)", "FR (mL/min)", "RT (min)"
+]
 
-# 加载模型
-catmodel = CatBoostClassifier()
-try:
-    catmodel.load_model('fraud')  # 加载已训练模型
-except FileNotFoundError:
-    st.error("The model file 'fraud' is not found. Please check the file path.")
-    st.stop()
+for feature in feature_names:
+    features[feature] = st.sidebar.number_input(f"{feature}", value=0.0)
 
-# 添加预测按钮
-if st.button("Predict Now"):
-    # 模型预测
+# Convert to DataFrame
+input_data = pd.DataFrame([features])
+
+# Predict and evaluate
+if st.button("预测"):
     try:
-        predicted_class = catmodel.predict(outputdf)[0]
-        predicted_proba = catmodel.predict_proba(outputdf)
-        st.title('Real-Time Predictions')
-        st.write(f'Predicted Class: {predicted_class}')
-        st.write(f'Prediction Probability: {predicted_proba}')
+        # Load the selected model
+        model = load_model(model_name)
+        
+        # Perform prediction
+        y_pred = model.predict(input_data)[0]
+        
+        # Generate synthetic test data for evaluation
+        # (Replace with actual data if available)
+        test_data = np.random.rand(100, 14)
+        test_target = np.random.rand(100)
+        y_test_pred = model.predict(test_data)
+        
+        # Evaluate model
+        r2 = r2_score(test_target, y_test_pred)
+        rmse = np.sqrt(mean_squared_error(test_target, y_test_pred))
+        
+        # Display results
+        st.subheader("预测结果")
+        st.write(f"预测值 (Y): {y_pred:.2f}")
+        st.write(f"R² (判定系数): {r2:.4f}")
+        st.write(f"RMSE (均方根误差): {rmse:.4f}")
     except Exception as e:
-        st.error(f"Error in model prediction: {e}")
-
-# SHAP 图像可视化
-st.title('SHAP Value Analysis')
-image_path = 'summary.png'
-try:
-    image4 = Image.open(image_path)
-    st.image(image4, caption='SHAP Summary Plot')
-except FileNotFoundError:
-    st.warning(f"Image {image_path} not found. Please check the file path.")
-
-# SHAP 值解释
-try:
-    explainer = shap.Explainer(catmodel)
-    shap_values = explainer(outputdf)
-    shap.plots.waterfall(shap_values[0])
-    st.pyplot(bbox_inches='tight')
-except Exception as e:
-    st.error(f"Error in SHAP visualization: {e}")
+        st.error(f"预测过程中出现错误: {e}")
