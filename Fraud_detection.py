@@ -7,7 +7,7 @@ Created on Wed Aug 10 11:02:43 2022
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
+import joblib  # 使用joblib进行模型加载与保存
 from sklearn.metrics import r2_score, mean_squared_error
 
 st.set_page_config(
@@ -41,15 +41,21 @@ st.markdown("<div class='header-background'><h1 class='main-title'>回归模型�
 
 # Load models
 MODEL_PATHS = {
-    "GBDT-Char": "GBDT-Char-1.15.pkl",
-    "GBDT-Oil": "GBDT-Oil-1.15.pkl",
-    "GBDT-Gas": "GBDT-Gas-1.15.pkl"
+    "GBDT-Char": "GBDT-Char-1.15.joblib",
+    "GBDT-Oil": "GBDT-Oil-1.15.joblib",
+    "GBDT-Gas": "GBDT-Gas-1.15.joblib"
 }
 
 # Function to load the selected model
 def load_model(model_name):
-    with open(MODEL_PATHS[model_name], "rb") as file:
-        return pickle.load(file)
+    try:
+        return joblib.load(MODEL_PATHS[model_name])
+    except FileNotFoundError:
+        st.error(f"模型文件 {MODEL_PATHS[model_name]} 未找到，请检查路径和文件名！")
+        return None
+    except Exception as e:
+        st.error(f"加载模型时出现错误: {e}")
+        return None
 
 # Sidebar for model selection
 st.sidebar.header("选择一个模型")
@@ -79,23 +85,29 @@ if st.button("预测"):
         # Load the selected model
         model = load_model(model_name)
         
-        # Perform prediction
-        y_pred = model.predict(input_data)[0]
-        
-        # Generate synthetic test data for evaluation
-        # (Replace with actual data if available)
-        test_data = np.random.rand(100, 14)
-        test_target = np.random.rand(100)
-        y_test_pred = model.predict(test_data)
-        
-        # Evaluate model
-        r2 = r2_score(test_target, y_test_pred)
-        rmse = np.sqrt(mean_squared_error(test_target, y_test_pred))
-        
-        # Display results
-        st.subheader("预测结果")
-        st.write(f"预测值 (Y): {y_pred:.2f}")
-        st.write(f"R² (判定系数): {r2:.4f}")
-        st.write(f"RMSE (均方根误差): {rmse:.4f}")
+        if model is None:
+            st.error("无法加载模型，请检查模型路径或文件！")
+        else:
+            # Ensure input_data matches model's expected format
+            if input_data.shape[1] != len(feature_names):
+                st.error(f"输入数据列数 ({input_data.shape[1]}) 与模型特征数 ({len(feature_names)}) 不匹配！")
+            else:
+                # Perform prediction
+                y_pred = model.predict(input_data)[0]
+                
+                # Generate synthetic test data for evaluation
+                test_data = np.random.rand(100, 14)  # Use actual test data if available
+                test_target = np.random.rand(100)
+                y_test_pred = model.predict(test_data)
+                
+                # Evaluate model
+                r2 = r2_score(test_target, y_test_pred)
+                rmse = np.sqrt(mean_squared_error(test_target, y_test_pred))
+                
+                # Display results
+                st.subheader("预测结果")
+                st.write(f"预测值 (Y): {y_pred:.2f}")
+                st.write(f"R² (判定系数): {r2:.4f}")
+                st.write(f"RMSE (均方根误差): {rmse:.4f}")
     except Exception as e:
         st.error(f"预测过程中出现错误: {e}")
