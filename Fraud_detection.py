@@ -7,7 +7,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score, mean_squared_error
 
 # Page setup
@@ -46,15 +45,19 @@ MODEL_PATHS = {
     "GBDT-Oil": "GBDT-Oil-1.15.joblib",
     "GBDT-Gas": "GBDT-Gas-1.15.joblib"
 }
-SCALER_PATH = "scaler.joblib"
+SCALER_PATHS = {
+    "GBDT-Char": "scaler-Char-1.15.joblib",
+    "GBDT-Oil": "scaler-Oil-1.15.joblib",
+    "GBDT-Gas": "scaler-Gas-1.15.joblib"
+}
 
 # Function to load the selected model
 def load_model(model_name):
     return joblib.load(MODEL_PATHS[model_name])
 
 # Function to load scaler
-def load_scaler():
-    return joblib.load(SCALER_PATH)
+def load_scaler(model_name):
+    return joblib.load(SCALER_PATHS[model_name])
 
 # Sidebar for model selection
 st.sidebar.header("Select a Model")
@@ -87,12 +90,7 @@ if st.button("Predict"):
     try:
         # Load the selected model and scaler
         model = load_model(model_name)
-        scaler = load_scaler()
-
-        # Verify feature names match
-        if not all(f in model.feature_names_in_ for f in input_data.columns):
-            st.error("Feature mismatch: Ensure input features match model training features.")
-            st.stop()
+        scaler = load_scaler(model_name)
 
         # Scale the input data
         input_data_scaled = scaler.transform(input_data)
@@ -103,12 +101,6 @@ if st.button("Predict"):
         # Display prediction result
         st.subheader("Prediction Results")
         st.write(f"Predicted Yield: **{y_pred:.2f}**")
-
-        # Validate prediction range with training data
-        st.markdown(
-            f"<div style='color: green; font-size: 20px;'>Prediction complete. Verify prediction falls within expected training range.</div>",
-            unsafe_allow_html=True
-        )
 
     except Exception as e:
         st.error(f"An error occurred during prediction: {e}")
