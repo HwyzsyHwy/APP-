@@ -90,27 +90,6 @@ with placeholder.container():
         fig.update_layout(title_text='Action 3')
         st.plotly_chart(fig, use_container_width=True)
 
-# Second set of visualizations
-df2 = df[['Class', 'Gender']].value_counts().reset_index(name='Count')
-df3 = df[['Class', 'Agent status']].value_counts().reset_index(name='Count')
-
-with placeholder3.container():
-    f1, f2, f3 = st.columns(3)
-
-    with f1:
-        fraud_sales = df[df['Class'] == 1]['Sales Amount']
-        real_sales = df[df['Class'] == 0]['Sales Amount']
-        hist_data = [fraud_sales, real_sales]
-        fig = ff.create_distplot(hist_data, group_labels=['Fraud', 'Real'])
-        fig.update_layout(title_text='Sales Amount')
-        st.plotly_chart(fig, use_container_width=True)
-    with f2:
-        fig = px.bar(df2, x='Class', y='Count', color='Gender', title="Gender Distribution")
-        st.plotly_chart(fig)
-    with f3:
-        fig = px.bar(df3, x='Class', y='Count', color='Agent status', title="Agent Status Distribution")
-        st.plotly_chart(fig)
-
 # SHAP values visualization
 st.title('SHAP Value Analysis')
 image_path = r'C:\Users\HWY\Downloads\summary.png'
@@ -145,3 +124,9 @@ predicted_proba = catmodel.predict_proba(outputdf)
 st.title('Real-Time Predictions')
 st.write(f'Predicted Class: {predicted_class}')
 st.write(f'Prediction Probability: {predicted_proba}')
+
+# Removed st.set_option
+explainer = shap.Explainer(catmodel)
+shap_values = explainer(outputdf)
+shap.plots.waterfall(shap_values[0])
+st.pyplot(bbox_inches='tight')
