@@ -36,6 +36,9 @@ st.markdown(
         font-size: 20px;
         font-weight: bold;
     }
+    .input-section {
+        margin-bottom: 20px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -63,50 +66,46 @@ def load_model(model_name):
 def load_scaler(model_name):
     return joblib.load(SCALER_PATHS[model_name])
 
-# 特征分类
+# 布局调整
+st.markdown("<h3 style='color: orange;'>Input Features</h3>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns(3)
+
+# 特征分类和布局
 feature_categories = {
-    "Biomass Compositions": ["C_biomass(wt%)", "H_biomass(wt%)", "N_biomass(wt%)", "O_biomass(wt%)", "Ash_biomass(wt%)"],
-    "Pyrolysis Conditions": ["T_py(°C)", "Rt_py(min)"],
-    "Adsorption Conditions": ["T_ad(°C)", "pH_ad", "C0(mmol/L)"],
-    "Heavy Metal Properties": ["X", "r", "Ncharge"]
+    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
+    "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
+    "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
 }
 
-# 布局设置
-col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-
-# 输入特征值
 input_features = {}
-for category, features in feature_categories.items():
-    with st.container():
-        if category in ["Biomass Compositions"]:
-            with col1:
-                st.subheader(category)
-                for feature in features:
-                    input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
-        elif category in ["Pyrolysis Conditions"]:
-            with col2:
-                st.subheader(category)
-                for feature in features:
-                    input_features[feature] = st.slider(feature, min_value=1.0, max_value=850.0 if "T_py" in feature else 600.0, value=325.0)
-        elif category in ["Adsorption Conditions"]:
-            with col3:
-                st.subheader(category)
-                for feature in features:
-                    input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0 if "C0" in feature else 9.0, value=6.0)
-        elif category in ["Heavy Metal Properties"]:
-            with col4:
-                st.subheader(category)
-                for feature in features:
-                    input_features[feature] = st.slider(feature, min_value=0.0, max_value=120.0 if "r" in feature else 3.0, value=1.0)
+
+# 左列：Proximate Analysis
+with col1:
+    st.subheader("Proximate Analysis")
+    for feature in feature_categories["Proximate Analysis"]:
+        input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+
+# 中列：Ultimate Analysis
+with col2:
+    st.subheader("Ultimate Analysis")
+    for feature in feature_categories["Ultimate Analysis"]:
+        input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+
+# 右列：Pyrolysis Conditions
+with col3:
+    st.subheader("Pyrolysis Conditions")
+    for feature in feature_categories["Pyrolysis Conditions"]:
+        input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0 if "PS" in feature else 600.0, value=50.0)
 
 # 转换为DataFrame
 input_data = pd.DataFrame([input_features])
 
-# 预测按钮
+# 预测按钮和结果
+st.markdown("<h3 style='color: orange;'>Prediction Results</h3>", unsafe_allow_html=True)
 if st.button("Predict"):
     try:
         # 加载模型和Scaler
-        model = load_model("GBDT-Char")  # 这里可以根据需求切换模型
+        model = load_model("GBDT-Char")  # 默认使用GBDT-Char模型，可根据需求切换
         scaler = load_scaler("GBDT-Char")
 
         # 数据标准化
@@ -116,7 +115,7 @@ if st.button("Predict"):
         y_pred = model.predict(input_data_scaled)[0]
 
         # 显示预测结果
-        st.markdown("<div class='red-text'>Heavy metal adsorption capacity of biochar (mmol/g): {:.2f}</div>".format(y_pred), unsafe_allow_html=True)
+        st.markdown(f"<div class='red-text'>Predicted Yield: {y_pred:.2f}</div>", unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"An error occurred during prediction: {e}")
