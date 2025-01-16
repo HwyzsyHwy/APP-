@@ -69,7 +69,7 @@ if st.sidebar.button("Generate SHAP Summary"):
         scaler = load_scaler(model_name)
         
         # Generate synthetic data (replace with real data if available)
-        synthetic_data = pd.DataFrame(np.random.rand(100, len(model.feature_names_in_)), columns=model.feature_names_in_)
+        synthetic_data = pd.DataFrame(np.random.rand(100, len(model.feature_importances_)), columns=[f'Feature_{i}' for i in range(len(model.feature_importances_))])
         scaled_data = scaler.transform(synthetic_data)
 
         explainer = shap.Explainer(model, scaled_data)
