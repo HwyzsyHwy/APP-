@@ -39,6 +39,9 @@ st.markdown(
     .input-section {
         margin-bottom: 20px;
     }
+    .prediction-section {
+        margin-top: -20px;  /* 将预测结果部分竖直向上移动 */
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -89,50 +92,27 @@ with col1:
     st.subheader("Proximate Analysis")
     features = {}
     for feature in feature_categories["Proximate Analysis"]:
-        if feature == "M(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=15.0, value=50.0)
-        elif feature == "Ash(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=20.0, value=50.0)
-        elif feature == "VM(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
-        elif feature == "FC(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
 
 # 中列：Ultimate Analysis
 with col2:
     st.subheader("Ultimate Analysis")
     for feature in feature_categories["Ultimate Analysis"]:
-        if feature == "C(wt%)":
-            features[feature] = st.slider(feature, min_value=35.0, max_value=100.0, value=60.0)
-        elif feature == "H(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=10.0, value=5.0)
-        elif feature == "N(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=2.0, value=1.0)
-        elif feature == "O(wt%)":
-            features[feature] = st.slider(feature, min_value=30.0, max_value=45.0, value=38.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
 
 # 右列：Pyrolysis Conditions
 with col3:
     st.subheader("Pyrolysis Conditions")
     for feature in feature_categories["Pyrolysis Conditions"]:
-        if feature == "PS(mm)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=12.0, value=6.0)
-        elif feature == "SM(g)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=150.0, value=75.0)
-        elif feature == "FT(℃)":
-            features[feature] = st.slider(feature, min_value=300.0, max_value=1000.0, value=600.0)
-        elif feature == "HR(℃/min)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=150.0, value=50.0)
-        elif feature == "FR(mL/min)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
-        elif feature == "RT(min)":
-            features[feature] = st.slider(feature, min_value=10.0, max_value=60.0, value=30.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=600.0 if "PS" not in feature else 100.0, value=50.0)
 
 # 转换为DataFrame
 input_data = pd.DataFrame([features])
 
-# 预测按钮和结果
+# 预测结果部分
 st.markdown("<h3 style='color: orange;'>Prediction Results</h3>", unsafe_allow_html=True)
+st.markdown("<div class='prediction-section'></div>", unsafe_allow_html=True)  # 调整了位置
+
 if st.button("Predict"):
     try:
         # 加载所选模型和Scaler
