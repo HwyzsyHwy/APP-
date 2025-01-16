@@ -47,6 +47,13 @@ st.markdown(
 # 主标题
 st.markdown("<div class='header-background'><h1 class='main-title'>Biomass Pyrolysis Yield Forecast</h1></div>", unsafe_allow_html=True)
 
+# 模型选择放置在顶部
+st.header("Select a Model")
+model_name = st.selectbox(
+    "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
+)
+st.write(f"Current selected model: **{model_name}**")
+
 # 加载模型和Scaler
 MODEL_PATHS = {
     "GBDT-Char": "GBDT-Char-1.15.joblib",
@@ -66,47 +73,46 @@ def load_model(model_name):
 def load_scaler(model_name):
     return joblib.load(SCALER_PATHS[model_name])
 
-# 布局调整
-st.markdown("<h3 style='color: orange;'>Input Features</h3>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns(3)
-
-# 特征分类和布局
+# 特征分类
 feature_categories = {
     "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
     "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
     "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
 }
 
-input_features = {}
+# 输入特征部分
+st.markdown("<h3 style='color: orange;'>Input Features</h3>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns(3)
 
 # 左列：Proximate Analysis
 with col1:
     st.subheader("Proximate Analysis")
+    features = {}
     for feature in feature_categories["Proximate Analysis"]:
-        input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
 
 # 中列：Ultimate Analysis
 with col2:
     st.subheader("Ultimate Analysis")
     for feature in feature_categories["Ultimate Analysis"]:
-        input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
 
 # 右列：Pyrolysis Conditions
 with col3:
     st.subheader("Pyrolysis Conditions")
     for feature in feature_categories["Pyrolysis Conditions"]:
-        input_features[feature] = st.slider(feature, min_value=0.0, max_value=100.0 if "PS" in feature else 600.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=600.0 if "PS" not in feature else 100.0, value=50.0)
 
 # 转换为DataFrame
-input_data = pd.DataFrame([input_features])
+input_data = pd.DataFrame([features])
 
 # 预测按钮和结果
 st.markdown("<h3 style='color: orange;'>Prediction Results</h3>", unsafe_allow_html=True)
 if st.button("Predict"):
     try:
-        # 加载模型和Scaler
-        model = load_model("GBDT-Char")  # 默认使用GBDT-Char模型，可根据需求切换
-        scaler = load_scaler("GBDT-Char")
+        # 加载所选模型和Scaler
+        model = load_model(model_name)
+        scaler = load_scaler(model_name)
 
         # 数据标准化
         input_data_scaled = scaler.transform(input_data)
