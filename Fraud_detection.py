@@ -12,6 +12,7 @@ import plotly.express as px
 import shap
 from catboost import CatBoostClassifier
 import matplotlib.pyplot as plt
+import numpy as np
 
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
@@ -46,45 +47,83 @@ def user_input_features():
 # 获取用户输入
 outputdf = user_input_features()
 
-# SHAP values visualization
-st.title('SHAP Value Analysis')
-image_path = 'summary.png'
-image4 = Image.open(image_path)
-shapdatadf = pd.read_excel('shapdatadf.xlsx', engine='openpyxl')
-shapvaluedf = pd.read_excel('shapvaluedf.xlsx', engine='openpyxl')
+# 模拟 SHAP 数据，确保列数与用户输入一致
+shapdatadf = pd.DataFrame({
+    'Action1': np.random.rand(100),
+    'Action2': np.random.rand(100),
+    'Action3': np.random.rand(100),
+    'Action4': np.random.rand(100),
+    'Action5': np.random.rand(100),
+    'Action6': np.random.rand(100),
+    'Sales Amount': np.random.rand(100),
+    'Gender': np.random.choice(['Male', 'Female'], size=100),
+    'Agent Status': np.random.choice(['Happy', 'Sad', 'Normal'], size=100),
+})
+shapvaluedf = pd.DataFrame({
+    'Action1': np.random.rand(100) - 0.5,
+    'Action2': np.random.rand(100) - 0.5,
+    'Action3': np.random.rand(100) - 0.5,
+    'Action4': np.random.rand(100) - 0.5,
+    'Action5': np.random.rand(100) - 0.5,
+    'Action6': np.random.rand(100) - 0.5,
+    'Sales Amount': np.random.rand(100) - 0.5,
+    'Gender': np.random.rand(100) - 0.5,  # 转换为数值
+    'Agent Status': np.random.rand(100) - 0.5,  # 转换为数值
+})
 
-placeholder5 = st.empty()
-with placeholder5.container():
-    f1, f2 = st.columns(2)
+# 将用户输入的特征转换为 DataFrame
+outputdf = pd.DataFrame([outputdf], columns=[
+    'Action1', 'Action2', 'Action3', 'Action4', 'Action5', 
+    'Action6', 'Sales Amount', 'Gender', 'Agent Status'
+])
 
-    with f1:
-        st.subheader('Summary plot')
-        st.image(image4)
-    with f2:
-        st.subheader('Dependence plot for features')
-        selected_feature = st.selectbox("Choose a feature", shapdatadf.columns)
-        fig = px.scatter(x=shapdatadf[selected_feature], 
-                         y=shapvaluedf[selected_feature], 
-                         color=shapdatadf[selected_feature],
-                         color_continuous_scale=['blue', 'red'])
-        st.plotly_chart(fig)
+# 如果 Gender 和 Agent Status 是分类特征，需要转换为数值
+outputdf['Gender'] = outputdf['Gender'].map({'Male': 0, 'Female': 1})
+outputdf['Agent Status'] = outputdf['Agent Status'].map({'Happy': 0, 'Sad': 1, 'Normal': 2})
 
-# Model prediction
+# 加载模型
 catmodel = CatBoostClassifier()
-catmodel.load_model('fraud')  # 加载已训练的模型
-outputdf = pd.DataFrame([outputdf], columns=shapdatadf.columns)  # 使用 SHAP 数据集的列名
+try:
+    catmodel.load_model('fraud')  # 加载已训练模型
+except FileNotFoundError:
+    st.error("The model file 'fraud' is not found. Please check the file path.")
+    st.stop()
 
 # 模型预测
-predicted_class = catmodel.predict(outputdf)[0]
-predicted_proba = catmodel.predict_proba(outputdf)
+try:
+    predicted_class = catmodel.predict(outputdf)[0]
+    predicted_proba = catmodel.predict_proba(outputdf)
+    st.title('Real-Time Predictions')
+    st.write(f'Predicted Class: {predicted_class}')
+    st.write(f'Prediction Probability: {predicted_proba}')
+except Exception as e:
+    st.error(f"Error in model prediction: {e}")
 
-# 显示预测结果
-st.title('Real-Time Predictions')
-st.write(f'Predicted Class: {predicted_class}')
-st.write(f'Prediction Probability: {predicted_proba}')
+# SHAP 图像可视化
+st.title('SHAP Value Analysis')
+image_path = 'summary.png'
+try:
+    image4 = Image.open(image_path)
+    st.image(image4, caption='SHAP Summary Plot')
+except FileNotFoundError:
+    st.warning(f"Image {image_path} not found. Please check the file path.")
 
-# 显示 SHAP 值解释
-explainer = shap.Explainer(catmodel)
-shap_values = explainer(outputdf)
-shap.plots.waterfall(shap_values[0])
-st.pyplot(bbox_inches='tight')
+# 依赖关系图
+st.subheader('Dependence plot for features')
+selected_feature = st.selectbox("Choose a feature", shapdatadf.columns)
+fig = px.scatter(
+    x=shapdatadf[selected_feature],
+    y=shapvaluedf[selected_feature],
+    color=shapdatadf[selected_feature],
+    color_continuous_scale=['blue', 'red']
+)
+st.plotly_chart(fig)
+
+# SHAP 值解释
+try:
+    explainer = shap.Explainer(catmodel)
+    shap_values = explainer(outputdf)
+    shap.plots.waterfall(shap_values[0])
+    st.pyplot(bbox_inches='tight')
+except Exception as e:
+    st.error(f"Error in SHAP visualization: {e}")
