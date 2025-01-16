@@ -8,7 +8,6 @@ from PIL import Image
 import warnings
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import shap
 from catboost import CatBoostClassifier
 import matplotlib.pyplot as plt
@@ -24,9 +23,34 @@ st.set_page_config(
     layout='wide'
 )
 
-# Dashboard title
-st.markdown("<h1 style='text-align: center; color: black;'>机器学习： 实时识别出虚假销售</h1>", unsafe_allow_html=True)
-st.markdown("<h1 style='text-align: center; color: black;'>Real-Time Fraud Detection</h1>", unsafe_allow_html=True)
+# Custom styles for title
+st.markdown(
+    """
+    <style>
+    .main-title {
+        text-align: center;
+        font-size: 32px;
+        font-weight: bold;
+        color: white;
+    }
+    .sub-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+        color: white;
+    }
+    .header-background {
+        background-color: #1e1e1e;
+        padding: 10px;
+        border-radius: 8px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Dashboard title with styles
+st.markdown("<div class='header-background'><h1 class='main-title'>机器学习： 实时识别出虚假销售</h1><h2 class='sub-title'>实时欺诈检测</h2></div>", unsafe_allow_html=True)
 
 # Sidebar input function
 def user_input_features():
@@ -47,30 +71,6 @@ def user_input_features():
 # 获取用户输入
 outputdf = user_input_features()
 
-# 模拟 SHAP 数据，确保列数与用户输入一致
-shapdatadf = pd.DataFrame({
-    'Action1': np.random.rand(100),
-    'Action2': np.random.rand(100),
-    'Action3': np.random.rand(100),
-    'Action4': np.random.rand(100),
-    'Action5': np.random.rand(100),
-    'Action6': np.random.rand(100),
-    'Sales Amount': np.random.rand(100),
-    'Gender': np.random.choice(['Male', 'Female'], size=100),
-    'Agent Status': np.random.choice(['Happy', 'Sad', 'Normal'], size=100),
-})
-shapvaluedf = pd.DataFrame({
-    'Action1': np.random.rand(100) - 0.5,
-    'Action2': np.random.rand(100) - 0.5,
-    'Action3': np.random.rand(100) - 0.5,
-    'Action4': np.random.rand(100) - 0.5,
-    'Action5': np.random.rand(100) - 0.5,
-    'Action6': np.random.rand(100) - 0.5,
-    'Sales Amount': np.random.rand(100) - 0.5,
-    'Gender': np.random.rand(100) - 0.5,  # 转换为数值
-    'Agent Status': np.random.rand(100) - 0.5,  # 转换为数值
-})
-
 # 将用户输入的特征转换为 DataFrame
 outputdf = pd.DataFrame([outputdf], columns=[
     'Action1', 'Action2', 'Action3', 'Action4', 'Action5', 
@@ -89,15 +89,17 @@ except FileNotFoundError:
     st.error("The model file 'fraud' is not found. Please check the file path.")
     st.stop()
 
-# 模型预测
-try:
-    predicted_class = catmodel.predict(outputdf)[0]
-    predicted_proba = catmodel.predict_proba(outputdf)
-    st.title('Real-Time Predictions')
-    st.write(f'Predicted Class: {predicted_class}')
-    st.write(f'Prediction Probability: {predicted_proba}')
-except Exception as e:
-    st.error(f"Error in model prediction: {e}")
+# 添加预测按钮
+if st.button("Predict Now"):
+    # 模型预测
+    try:
+        predicted_class = catmodel.predict(outputdf)[0]
+        predicted_proba = catmodel.predict_proba(outputdf)
+        st.title('Real-Time Predictions')
+        st.write(f'Predicted Class: {predicted_class}')
+        st.write(f'Prediction Probability: {predicted_proba}')
+    except Exception as e:
+        st.error(f"Error in model prediction: {e}")
 
 # SHAP 图像可视化
 st.title('SHAP Value Analysis')
@@ -107,17 +109,6 @@ try:
     st.image(image4, caption='SHAP Summary Plot')
 except FileNotFoundError:
     st.warning(f"Image {image_path} not found. Please check the file path.")
-
-# 依赖关系图
-st.subheader('Dependence plot for features')
-selected_feature = st.selectbox("Choose a feature", shapdatadf.columns)
-fig = px.scatter(
-    x=shapdatadf[selected_feature],
-    y=shapvaluedf[selected_feature],
-    color=shapdatadf[selected_feature],
-    color_continuous_scale=['blue', 'red']
-)
-st.plotly_chart(fig)
 
 # SHAP 值解释
 try:
