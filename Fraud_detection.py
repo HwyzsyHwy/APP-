@@ -39,9 +39,6 @@ st.markdown(
     .input-section {
         margin-bottom: 20px;
     }
-    .prediction-section {
-        margin-top: -20px;  /* 将预测结果部分竖直向上移动 */
-    }
     </style>
     """,
     unsafe_allow_html=True
@@ -92,27 +89,25 @@ with col1:
     st.subheader("Proximate Analysis")
     features = {}
     for feature in feature_categories["Proximate Analysis"]:
-        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0, step=0.01)  # 设置step为0.01
 
 # 中列：Ultimate Analysis
 with col2:
     st.subheader("Ultimate Analysis")
     for feature in feature_categories["Ultimate Analysis"]:
-        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=100.0, value=50.0, step=0.01)  # 设置step为0.01
 
 # 右列：Pyrolysis Conditions
 with col3:
     st.subheader("Pyrolysis Conditions")
     for feature in feature_categories["Pyrolysis Conditions"]:
-        features[feature] = st.slider(feature, min_value=0.0, max_value=600.0 if "PS" not in feature else 100.0, value=50.0)
+        features[feature] = st.slider(feature, min_value=0.0, max_value=600.0 if "PS" not in feature else 100.0, value=50.0, step=0.01)  # 设置step为0.01
 
 # 转换为DataFrame
 input_data = pd.DataFrame([features])
 
-# 预测结果部分
+# 预测按钮和结果
 st.markdown("<h3 style='color: orange;'>Prediction Results</h3>", unsafe_allow_html=True)
-st.markdown("<div class='prediction-section'></div>", unsafe_allow_html=True)  # 调整了位置
-
 if st.button("Predict"):
     try:
         # 加载所选模型和Scaler
