@@ -5,63 +5,137 @@ Biomass Pyrolysis Yield Forecast
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
+from sklearn.metrics import r2_score, mean_squared_error
 
 # 页面设置
 st.set_page_config(
     page_title='Biomass Pyrolysis Yield Forecast',
-    page_icon='📊',
-    layout='wide'
+    page_icon='🔥',
+    layout='wide',
+    initial_sidebar_state='collapsed'
 )
 
-# 自定义样式 - 针对近似分析部分的整个数字输入控件
+# 自定义样式
 st.markdown(
     """
     <style>
-    /* 全局字体设置 */
-    html, body, [class*="css"] {
-        font-size: 16px !important;
-    }
-    
-    /* 标题 */
     .main-title {
         text-align: center;
-        font-size: 32px !important;
+        font-size: 36px;
         font-weight: bold;
+        color: white;
+        text-shadow: 2px 2px 4px #000000;
         margin-bottom: 20px;
-        color: white !important;
     }
-    
-    /* 区域样式 */
+    .header-background {
+        background: linear-gradient(90deg, #1E3A8A, #3B82F6);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .header-subtitle {
+        text-align: center;
+        color: #E0E7FF;
+        font-size: 18px;
+        margin-top: -15px;
+    }
     .section-header {
+        color: #3B82F6;
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #3B82F6;
+    }
+    .card {
+        background-color: #F8FAFC;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+    .prediction-card {
+        background: linear-gradient(135deg, #1E3A8A, #2563EB);
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        margin-top: 30px;
+    }
+    .prediction-value {
+        color: white;
+        font-size: 48px;
+        font-weight: bold;
+        margin: 20px 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    .prediction-label {
+        color: #E0E7FF;
+        font-size: 22px;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+    .feature-label {
+        font-weight: bold;
+        color: #334155;
+    }
+    .stButton>button {
+        background-color: #2563EB;
         color: white;
         font-weight: bold;
-        font-size: 22px;
-        text-align: center;
-        padding: 10px;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        font-size: 18px;
+        margin-top: 20px;
+        transition: all 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #1E40AF;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+    .category-title {
+        color: #1E3A8A;
+        font-size: 20px;
+        font-weight: bold;
+        padding: 8px 15px;
+        background-color: #EFF6FF;
         border-radius: 8px;
         margin-bottom: 15px;
     }
-    
-    /* 输入标签样式 */
-    .input-label {
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        font-size: 18px;
-        color: white;
-    }
-    
-    /* 结果显示样式 */
-    .yield-result {
-        background-color: #1E1E1E;
-        color: white;
-        font-size: 36px;
-        font-weight: bold;
-        text-align: center;
+    .model-selector {
         padding: 15px;
-        border-radius: 8px;
-        margin-top: 20px;
+        background-color: #F1F5F9;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 2px solid #CBD5E1;
+    }
+    /* 美化滑块样式 */
+    .stSlider {
+        padding-top: 10px;
+        padding-bottom: 20px;
+    }
+    /* 分割线 */
+    hr {
+        margin: 30px 0;
+        border: 0;
+        height: 1px;
+        background: #E2E8F0;
+    }
+    /* 美化选择框 */
+    div[data-baseweb="select"] {
+        margin-top: 5px;
+    }
+    /* 提高滑块辨识度 */
+    .stSlider div[data-baseweb="slider"] div[role="slider"] {
+        background-color: #3B82F6 !important;
     }
     
     /* 修改第一列数字输入控件的整个背景色为绿色 */
@@ -71,39 +145,54 @@ st.markdown(
     }
     
     /* 确保输入控件内部所有元素（加减按钮等）也使用绿色背景 */
-    .proximate-inputs [data-testid="stNumberInput"] > div {
+    .proximate-inputs [data-testid="stNumberInput"] > div,
+    .proximate-inputs [data-testid="stNumberInput"] div[data-baseweb="input"],
+    .proximate-inputs [data-testid="stNumberInput"] div[data-baseweb="base-input"] {
         background-color: #32CD32 !important;
     }
     
-    /* 增大模型选择和按钮的字体 */
-    .stSelectbox, .stButton button {
-        font-size: 18px !important;
+    /* 确保输入框内的文本颜色可见 */
+    .proximate-inputs [data-testid="stNumberInput"] input {
+        color: black !important;
+        background-color: #32CD32 !important;
     }
     
-    /* 增大展开器标题字体 */
-    [data-testid="stExpander"] div[role="button"] p {
-        font-size: 20px !important;
+    /* 确保加减按钮的样式一致 */
+    .proximate-inputs [data-testid="stNumberInput"] button,
+    .proximate-inputs [data-testid="stNumberInput"] button:hover {
+        background-color: #32CD32 !important;
+        color: black !important;
+    }
+    
+    /* 强制覆盖任何其他的样式 */
+    .proximate-inputs [data-testid="stNumberInput"] * {
+        background-color: #32CD32 !important;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 主标题
-st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
+# 主标题和副标题
+st.markdown("<div class='header-background'><h1 class='main-title'>Biomass Pyrolysis Yield Forecast</h1><p class='header-subtitle'>Advanced prediction model for biomass pyrolysis products</p></div>", unsafe_allow_html=True)
 
-# 初始化会话状态
-if 'clear_pressed' not in st.session_state:
-    st.session_state.clear_pressed = False
-
-# 模型选择
-with st.expander("Model Selection", expanded=False):
+# 模型选择卡片
+st.markdown("<h2 class='section-header'>Model Selection</h2>", unsafe_allow_html=True)
+with st.container():
+    st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
     model_name = st.selectbox(
-        "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
+        "Select prediction model",
+        ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"],
+        format_func=lambda x: {
+            "GBDT-Char": "🔷 GBDT-Char (Biochar yield prediction)",
+            "GBDT-Oil": "🔶 GBDT-Oil (Bio-oil yield prediction)",
+            "GBDT-Gas": "🔴 GBDT-Gas (Syngas yield prediction)"
+        }[x]
     )
-    st.write(f"Current selected model: **{model_name}**")
+    st.write(f"You've selected: **{model_name}** model")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# 模型路径
+# 加载模型和Scaler
 MODEL_PATHS = {
     "GBDT-Char": "GBDT-Char-1.15.joblib",
     "GBDT-Oil": "GBDT-Oil-1.15.joblib",
@@ -122,24 +211,6 @@ def load_model(model_name):
 def load_scaler(model_name):
     return joblib.load(SCALER_PATHS[model_name])
 
-# 定义默认值
-default_values = {
-    "M(wt%)": 5.0,
-    "Ash(wt%)": 8.0,
-    "VM(wt%)": 75.0,
-    "FC(wt%)": 15.0,
-    "C(wt%)": 60.0,
-    "H(wt%)": 5.0,
-    "N(wt%)": 1.0,
-    "O(wt%)": 38.0,
-    "PS(mm)": 6.0,
-    "SM(g)": 75.0,
-    "FT(℃)": 600.0,
-    "HR(℃/min)": 50.0,
-    "FR(mL/min)": 50.0,
-    "RT(min)": 30.0
-}
-
 # 特征分类
 feature_categories = {
     "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
@@ -147,145 +218,104 @@ feature_categories = {
     "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
 }
 
+# 输入特征部分
+st.markdown("<h2 class='section-header'>Input Parameters</h2>", unsafe_allow_html=True)
+st.markdown("<p>Adjust the sliders below to set the biomass characteristics and pyrolysis conditions.</p>", unsafe_allow_html=True)
+
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# 使用字典来存储所有输入值
-features = {}
-
-# Proximate Analysis (绿色区域)
+# 左列：Proximate Analysis
 with col1:
-    st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
-    # 添加proximate-inputs类以便CSS选择器可以定位
     st.markdown("<div class='proximate-inputs'>", unsafe_allow_html=True)
-    
+    st.markdown("<div style='background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold;'>Proximate Analysis</div>", unsafe_allow_html=True)
+    features = {}
     for feature in feature_categories["Proximate Analysis"]:
-        # 重置值或使用现有值
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-        
-        # 简单的两列布局
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)  # 绿色背景
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=0.0, 
-                max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
-                value=value, 
-                key=f"proximate_{feature}", 
-                format="%.2f",
-                label_visibility="collapsed"
-            )
-    
-    st.markdown("</div>", unsafe_allow_html=True)  # 结束proximate-inputs div
+        if feature == "M(wt%)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=20.0, value=5.0, step=0.1, format="%.2f")
+        elif feature == "Ash(wt%)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=25.0, value=8.0, step=0.1, format="%.2f")
+        elif feature == "VM(wt%)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=110.0, value=75.0, step=0.1, format="%.2f")
+        elif feature == "FC(wt%)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=120.0, value=15.0, step=0.1, format="%.2f")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# Ultimate Analysis (黄色区域)
+# 中列：Ultimate Analysis
 with col2:
-    st.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
-    
+    st.markdown("<div style='background-color: #E0C34A; color: white; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold;'>Ultimate Analysis</div>", unsafe_allow_html=True)
     for feature in feature_categories["Ultimate Analysis"]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)  # 黄色背景
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
-                max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
-                value=value, 
-                key=f"ultimate_{feature}", 
-                format="%.2f",
-                label_visibility="collapsed"
-            )
+        if feature == "C(wt%)":
+            features[feature] = st.number_input(feature, min_value=30.0, max_value=110.0, value=60.0, step=0.1, format="%.2f")
+        elif feature == "H(wt%)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=15.0, value=5.0, step=0.1, format="%.2f")
+        elif feature == "N(wt%)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=5.0, value=1.0, step=0.1, format="%.2f")
+        elif feature == "O(wt%)":
+            features[feature] = st.number_input(feature, min_value=30.0, max_value=60.0, value=38.0, step=0.1, format="%.2f")
 
-# Pyrolysis Conditions (橙色区域)
+# 右列：Pyrolysis Conditions
 with col3:
-    st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
-    
+    st.markdown("<div style='background-color: #F27854; color: white; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     for feature in feature_categories["Pyrolysis Conditions"]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-        
-        min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
-        max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
-        
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)  # 橙色背景
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=min_val, 
-                max_value=max_val, 
-                value=value, 
-                key=f"pyrolysis_{feature}", 
-                format="%.2f",
-                label_visibility="collapsed"
-            )
-
-# 重置session_state中的clear_pressed状态
-if st.session_state.clear_pressed:
-    st.session_state.clear_pressed = False
+        if feature == "PS(mm)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=20.0, value=6.0, step=0.1, format="%.2f")
+        elif feature == "SM(g)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=200.0, value=75.0, step=0.1, format="%.2f")
+        elif feature == "FT(℃)":
+            features[feature] = st.number_input(feature, min_value=250.0, max_value=1100.0, value=600.0, step=0.1, format="%.2f")
+        elif feature == "HR(℃/min)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=200.0, value=50.0, step=0.1, format="%.2f")
+        elif feature == "FR(mL/min)":
+            features[feature] = st.number_input(feature, min_value=0.0, max_value=120.0, value=50.0, step=0.1, format="%.2f")
+        elif feature == "RT(min)":
+            features[feature] = st.number_input(feature, min_value=5.0, max_value=100.0, value=30.0, step=0.1, format="%.2f")
 
 # 转换为DataFrame
 input_data = pd.DataFrame([features])
 
-# 预测结果显示区域和按钮
-result_col, button_col = st.columns([3, 1])
+# 预测按钮和结果
+st.markdown("<h2 class='section-header'>Prediction</h2>", unsafe_allow_html=True)
+predict_col1, predict_col2, predict_col3 = st.columns([1, 2, 1])
 
-with result_col:
-    prediction_placeholder = st.empty()
+with predict_col2:
+    prediction_button = st.button("Run Prediction", help="Click to predict the pyrolysis yield based on your input parameters")
     
-with button_col:
-    predict_button = st.button("PUSH", key="predict")
-    
-    # 定义Clear按钮的回调函数
-    def clear_values():
-        st.session_state.clear_pressed = True
-        # 清除显示
-        if 'prediction_result' in st.session_state:
-            st.session_state.prediction_result = None
-    
-    clear_button = st.button("CLEAR", key="clear", on_click=clear_values)
+    # 预测结果显示区域
+    if prediction_button:
+        try:
+            # 显示加载状态
+            with st.spinner("Calculating prediction..."):
+                # 加载所选模型和Scaler
+                model = load_model(model_name)
+                scaler = load_scaler(model_name)
 
-# 处理预测逻辑
-if predict_button:
-    try:
-        # 加载所选模型和Scaler
-        model = load_model(model_name)
-        scaler = load_scaler(model_name)
+                # 数据标准化
+                input_data_scaled = scaler.transform(input_data)
 
-        # 数据标准化
-        input_data_scaled = scaler.transform(input_data)
+                # 预测
+                y_pred = model.predict(input_data_scaled)[0]
 
-        # 预测
-        y_pred = model.predict(input_data_scaled)[0]
-        
-        # 保存预测结果到session_state
-        st.session_state.prediction_result = y_pred
+            # 显示预测结果
+            yield_labels = {
+                "GBDT-Char": "Biochar Yield",
+                "GBDT-Oil": "Bio-oil Yield",
+                "GBDT-Gas": "Syngas Yield"
+            }
+            
+            st.markdown("<div class='prediction-card'>", unsafe_allow_html=True)
+            st.markdown(f"<div class='prediction-label'>{yield_labels[model_name]} Prediction</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='prediction-value'>{y_pred:.2f}%</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # 添加一些预测解释
+            st.success("Prediction successfully completed!")
+            st.info(f"Based on the input parameters, the model predicts a {yield_labels[model_name].lower()} of {y_pred:.2f}%.")
 
-        # 显示预测结果
-        prediction_placeholder.markdown(
-            f"<div class='yield-result'>Yield (wt%) <br> {y_pred:.2f}</div>",
-            unsafe_allow_html=True
-        )
-    except Exception as e:
-        st.error(f"预测过程中出现错误: {e}")
+        except Exception as e:
+            st.error(f"预测过程中出现错误: {e}")
+            st.markdown("请确保已经正确安装所有依赖并且模型文件位于正确的路径。")
 
-# 如果有保存的预测结果，显示它
-if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
-    prediction_placeholder.markdown(
-        f"<div class='yield-result'>Yield (wt%) <br> {st.session_state.prediction_result:.2f}</div>",
-        unsafe_allow_html=True
-    )
+# 页脚
+st.markdown("<hr>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94A3B8;'>© 2023 Biomass Pyrolysis Research Team. All rights reserved.</p>", unsafe_allow_html=True) 
