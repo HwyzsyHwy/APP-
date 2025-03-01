@@ -51,27 +51,25 @@ st.markdown(
     .pyrolysis-header {
         background-color: #FF7F50;
     }
-    .data-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
+    .data-block {
+        margin-bottom: 20px;
     }
-    .label-block {
+    .data-label {
         background-color: #DAA520;
         color: white;
         font-weight: bold;
         padding: 8px 15px;
         border-radius: 4px;
-        width: 40%;
+        margin-bottom: 5px;
         text-align: center;
     }
-    .value-block {
+    .data-value {
         background-color: #DAA520;
         color: white;
         font-weight: bold;
         padding: 8px 15px;
         border-radius: 4px;
-        width: 58%;
+        margin-bottom: 15px;
         text-align: center;
     }
     .ultimate-label {
@@ -112,24 +110,18 @@ st.markdown(
         color: white;
         font-weight: bold;
     }
-    .number-input-container {
-        margin-bottom: 5px;
+    /* 隐藏number input */
+    div[data-testid="stNumberInput"] {
+        position: relative;
     }
-    .number-input-container div {
-        display: flex;
-        justify-content: space-between;
-    }
-    .number-input-container div div:first-child {
+    div[data-testid="stNumberInput"] label {
         display: none;
     }
-    /* 隐藏输入框标签 */
-    div.stNumberInput label {
-        display: none;
-    }
-    /* 移除Streamlit的默认填充 */
-    div.block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
+    div[data-testid="stNumberInput"] div[data-testid="stVerticalBlock"] {
+        position: absolute;
+        bottom: -10px;
+        right: 0;
+        width: 80px;
     }
     </style>
     """,
@@ -188,112 +180,103 @@ if 'initialized' not in st.session_state:
     st.session_state['SM(g)'] = 75.0
     st.session_state['RT(min)'] = 30.0
 
-# 创建列布局
-col1, col2 = st.columns(2)
+# 创建三列布局
+col1, col2, col3 = st.columns(3)
 
-# Ultimate Analysis (黄色区域)
+# Ultimate Analysis (黄色区域) - 第一列
 with col1:
     st.markdown("<div class='section-header ultimate-header'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     # C(wt%)
-    st.markdown(
-        f"<div class='data-row'><div class='label-block ultimate-label'>C(wt%)</div><div class='value-block ultimate-value'>{st.session_state['C(wt%)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='data-label ultimate-label'>C(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value ultimate-value'>{st.session_state['C(wt%)']}</div>", unsafe_allow_html=True)
     c_value = st.number_input("C input", value=st.session_state['C(wt%)'], min_value=30.0, max_value=110.0, step=0.01, key="c_input")
     st.session_state['C(wt%)'] = c_value
     
     # H(wt%)
-    st.markdown(
-        f"<div class='data-row'><div class='label-block ultimate-label'>H(wt%)</div><div class='value-block ultimate-value'>{st.session_state['H(wt%)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='data-label ultimate-label'>H(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value ultimate-value'>{st.session_state['H(wt%)']}</div>", unsafe_allow_html=True)
     h_value = st.number_input("H input", value=st.session_state['H(wt%)'], min_value=0.0, max_value=15.0, step=0.01, key="h_input")
     st.session_state['H(wt%)'] = h_value
     
     # N(wt%)
-    st.markdown(
-        f"<div class='data-row'><div class='label-block ultimate-label'>N(wt%)</div><div class='value-block ultimate-value'>{st.session_state['N(wt%)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='data-label ultimate-label'>N(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value ultimate-value'>{st.session_state['N(wt%)']}</div>", unsafe_allow_html=True)
     n_value = st.number_input("N input", value=st.session_state['N(wt%)'], min_value=0.0, max_value=5.0, step=0.01, key="n_input")
     st.session_state['N(wt%)'] = n_value
     
     # O(wt%)
-    st.markdown(
-        f"<div class='data-row'><div class='label-block ultimate-label'>O(wt%)</div><div class='value-block ultimate-value'>{st.session_state['O(wt%)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='data-label ultimate-label'>O(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value ultimate-value'>{st.session_state['O(wt%)']}</div>", unsafe_allow_html=True)
     o_value = st.number_input("O input", value=st.session_state['O(wt%)'], min_value=30.0, max_value=60.0, step=0.01, key="o_input")
     st.session_state['O(wt%)'] = o_value
 
-# Proximate Analysis (绿色区域)
+# Proximate Analysis (绿色区域) - 第二列
 with col2:
     st.markdown("<div class='section-header proximate-header'>Proximate Analysis</div>", unsafe_allow_html=True)
     
     # VM(wt%)
-    st.markdown(
-        f"<div class='data-row'><div class='label-block proximate-label'>VM(wt%)</div><div class='value-block proximate-value'>{st.session_state['VM(wt%)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='data-label proximate-label'>VM(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value proximate-value'>{st.session_state['VM(wt%)']}</div>", unsafe_allow_html=True)
     vm_value = st.number_input("VM input", value=st.session_state['VM(wt%)'], min_value=0.0, max_value=110.0, step=0.01, key="vm_input")
     st.session_state['VM(wt%)'] = vm_value
     
     # FC(wt%)
-    st.markdown(
-        f"<div class='data-row'><div class='label-block proximate-label'>FC(wt%)</div><div class='value-block proximate-value'>{st.session_state['FC(wt%)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<div class='data-label proximate-label'>FC(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value proximate-value'>{st.session_state['FC(wt%)']}</div>", unsafe_allow_html=True)
     fc_value = st.number_input("FC input", value=st.session_state['FC(wt%)'], min_value=0.0, max_value=120.0, step=0.01, key="fc_input")
     st.session_state['FC(wt%)'] = fc_value
     
-    # 只展示两个数据块以匹配Ultimate Analysis的样式
-    # 其他数据放在session state中但不显示
+    # Ash(wt%)
+    st.markdown("<div class='data-label proximate-label'>Ash(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value proximate-value'>{st.session_state['Ash(wt%)']}</div>", unsafe_allow_html=True)
+    ash_value = st.number_input("Ash input", value=st.session_state['Ash(wt%)'], min_value=0.0, max_value=25.0, step=0.01, key="ash_input")
+    st.session_state['Ash(wt%)'] = ash_value
+    
+    # M(wt%)
+    st.markdown("<div class='data-label proximate-label'>M(wt%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value proximate-value'>{st.session_state['M(wt%)']}</div>", unsafe_allow_html=True)
+    m_value = st.number_input("M input", value=st.session_state['M(wt%)'], min_value=0.0, max_value=20.0, step=0.01, key="m_input")
+    st.session_state['M(wt%)'] = m_value
 
-# Pyrolysis Condition (橙色区域)
-st.markdown("<div class='section-header pyrolysis-header'>Pyrolysis Condition</div>", unsafe_allow_html=True)
-
-pyro_cols = st.columns(4)
-
-with pyro_cols[0]:
-    st.markdown(
-        f"<div class='data-row'><div class='label-block pyrolysis-label'>Temperature (℃)</div><div class='value-block pyrolysis-value'>{st.session_state['FT(℃)']}</div></div>",
-        unsafe_allow_html=True
-    )
+# Pyrolysis Conditions (橙色区域) - 第三列
+with col3:
+    st.markdown("<div class='section-header pyrolysis-header'>Pyrolysis Condition</div>", unsafe_allow_html=True)
+    
+    # Temperature (℃)
+    st.markdown("<div class='data-label pyrolysis-label'>Temperature (℃)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value pyrolysis-value'>{st.session_state['FT(℃)']}</div>", unsafe_allow_html=True)
     temp_value = st.number_input("Temp input", value=st.session_state['FT(℃)'], min_value=250.0, max_value=1100.0, step=10.0, key="temp_input")
     st.session_state['FT(℃)'] = temp_value
-
-with pyro_cols[1]:
-    st.markdown(
-        f"<div class='data-row'><div class='label-block pyrolysis-label'>Heating Rate (℃/min)</div><div class='value-block pyrolysis-value'>{st.session_state['HR(℃/min)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    
+    # Heating Rate (℃/min)
+    st.markdown("<div class='data-label pyrolysis-label'>Heating Rate (℃/min)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value pyrolysis-value'>{st.session_state['HR(℃/min)']}</div>", unsafe_allow_html=True)
     hr_value = st.number_input("HR input", value=st.session_state['HR(℃/min)'], min_value=0.0, max_value=200.0, step=1.0, key="hr_input")
     st.session_state['HR(℃/min)'] = hr_value
-
-with pyro_cols[2]:
-    st.markdown(
-        f"<div class='data-row'><div class='label-block pyrolysis-label'>Particle Size (mm)</div><div class='value-block pyrolysis-value'>{st.session_state['PS(mm)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    
+    # Particle Size (mm)
+    st.markdown("<div class='data-label pyrolysis-label'>Particle Size (mm)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value pyrolysis-value'>{st.session_state['PS(mm)']}</div>", unsafe_allow_html=True)
     ps_value = st.number_input("PS input", value=st.session_state['PS(mm)'], min_value=0.0, max_value=20.0, step=0.1, key="ps_input")
     st.session_state['PS(mm)'] = ps_value
-
-with pyro_cols[3]:
-    st.markdown(
-        f"<div class='data-row'><div class='label-block pyrolysis-label'>N2 Flow (L/min)</div><div class='value-block pyrolysis-value'>{st.session_state['FR(mL/min)']}</div></div>",
-        unsafe_allow_html=True
-    )
+    
+    # N2 Flow (L/min)
+    st.markdown("<div class='data-label pyrolysis-label'>N2 Flow (L/min)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='data-value pyrolysis-value'>{st.session_state['FR(mL/min)']}</div>", unsafe_allow_html=True)
     fr_value = st.number_input("FR input", value=st.session_state['FR(mL/min)'], min_value=0.0, max_value=120.0, step=0.1, key="fr_input")
     st.session_state['FR(mL/min)'] = fr_value
 
 # 预测结果显示区域和按钮
-result_col, button_col = st.columns([3, 1])
+result_col, button_col1, button_col2 = st.columns([3, 1, 1])
 
 with result_col:
     prediction_placeholder = st.empty()
     
-with button_col:
+with button_col1:
+    predict_button = st.button("PUSH")
+    
+with button_col2:
     # 定义Clear按钮的回调函数
     def clear_values():
         # 重置为默认值
@@ -316,13 +299,7 @@ with button_col:
         if 'prediction_result' in st.session_state:
             del st.session_state['prediction_result']
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        predict_button = st.button("PUSH")
-    
-    with col2:
-        clear_button = st.button("CLEAR", on_click=clear_values)
+    clear_button = st.button("CLEAR", on_click=clear_values)
 
 # 处理预测逻辑
 if predict_button:
