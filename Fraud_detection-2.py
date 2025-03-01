@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用多种方法隐藏加减按钮
+# 自定义样式 - 针对数字输入框背景色的精确选择器
 st.markdown(
     """
     <style>
@@ -25,7 +25,7 @@ st.markdown(
         margin-bottom: 20px;
     }
     .section {
-        padding: 10px;  /* 缩小内边距 */
+        padding: 10px;
         border-radius: 8px;
         margin-bottom: 10px;
         color: black;
@@ -60,58 +60,48 @@ st.markdown(
         margin-bottom: 5px;
     }
     
-    /* 为Proximate Analysis部分的输入框添加绿色背景 */
-    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
-        background-color: #32CD32 !important;
-        color: black !important;
-    }
-    
-    /* 为Ultimate Analysis部分的输入框添加黄色背景 */
-    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
-        background-color: #DAA520 !important;
-        color: black !important;
-    }
-    
-    /* 为Pyrolysis Conditions部分的输入框添加橙色背景 */
-    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
-        background-color: #FF7F50 !important;
-        color: black !important;
-    }
-    
-    /* 多种选择器尝试隐藏加减按钮 */
-    /* 方法1：直接隐藏带有加减按钮的容器 */
+    /* 隐藏加减按钮 */
+    button[aria-label="Decrease value"],
+    button[aria-label="Increase value"],
+    [data-testid="stNumberInput"] button,
     [data-testid="stNumberInput"] > div > div:nth-child(2) {
         display: none !important;
     }
     
-    /* 方法2：隐藏减号按钮 */
-    button[aria-label="Decrease value"] {
-        display: none !important;
+    /* 为Proximate Analysis部分的输入框添加绿色背景 */
+    .proximate-section [data-testid="stNumberInput"] input {
+        background-color: #32CD32 !important;
+        color: black !important;
+        border: none !important;
     }
     
-    /* 方法3：隐藏加号按钮 */
-    button[aria-label="Increase value"] {
-        display: none !important;
+    /* 为Ultimate Analysis部分的输入框添加黄色背景 */
+    .ultimate-section [data-testid="stNumberInput"] input {
+        background-color: #DAA520 !important;
+        color: black !important;
+        border: none !important;
     }
     
-    /* 方法4：尝试更广泛的按钮选择器 */
-    [data-testid="stNumberInput"] button {
-        display: none !important;
+    /* 为Pyrolysis Conditions部分的输入框添加橙色背景 */
+    .pyrolysis-section [data-testid="stNumberInput"] input {
+        background-color: #FF7F50 !important;
+        color: black !important;
+        border: none !important;
     }
     
-    /* 方法5：针对具体按钮的SVG图标 */
-    [data-testid="stNumberInput"] svg {
-        display: none !important;
+    /* 通用的输入框样式增强 */
+    input[type="number"] {
+        opacity: 1 !important;
+        border: none !important;
+        border-radius: 4px !important;
+        padding: 8px !important;
+        width: 100% !important;
     }
     
-    /* 方法6：针对减少按钮的容器 */
-    .css-1hynsf2, .css-12jzoqx {
-        display: none !important;
-    }
-    
-    /* 方法7：针对增加按钮的容器 */
-    .css-1x8cf1d, .css-91z34k {
-        display: none !important;
+    /* 添加更多针对性的选择器，确保覆盖Streamlit默认样式 */
+    [data-testid="stNumberInput"] > div:first-child > div:first-child > input,
+    .stNumberInput > div:first-child > div:first-child > input {
+        opacity: 1 !important;
     }
     </style>
     """,
@@ -321,22 +311,40 @@ if 'prediction_result' in st.session_state and st.session_state.prediction_resul
         unsafe_allow_html=True
     )
 
-# 添加JavaScript来尝试隐藏按钮
+# 添加JavaScript来动态设置输入框背景色
 st.markdown("""
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // 等待Streamlit完全加载
     setTimeout(function() {
-        // 尝试找到并隐藏所有加减按钮
+        // 为Proximate Analysis部分设置绿色背景
+        var proximateInputs = document.querySelectorAll('.proximate-section [data-testid="stNumberInput"] input');
+        proximateInputs.forEach(function(input) {
+            input.style.backgroundColor = '#32CD32';
+            input.style.color = 'black';
+            input.style.border = 'none';
+        });
+        
+        // 为Ultimate Analysis部分设置黄色背景
+        var ultimateInputs = document.querySelectorAll('.ultimate-section [data-testid="stNumberInput"] input');
+        ultimateInputs.forEach(function(input) {
+            input.style.backgroundColor = '#DAA520';
+            input.style.color = 'black';
+            input.style.border = 'none';
+        });
+        
+        // 为Pyrolysis Conditions部分设置橙色背景
+        var pyrolysisInputs = document.querySelectorAll('.pyrolysis-section [data-testid="stNumberInput"] input');
+        pyrolysisInputs.forEach(function(input) {
+            input.style.backgroundColor = '#FF7F50';
+            input.style.color = 'black';
+            input.style.border = 'none';
+        });
+        
+        // 隐藏加减按钮
         var buttons = document.querySelectorAll('[data-testid="stNumberInput"] button');
         buttons.forEach(function(button) {
             button.style.display = 'none';
-        });
-        
-        // 尝试找到加减按钮的容器并隐藏
-        var containers = document.querySelectorAll('[data-testid="stNumberInput"] > div > div:nth-child(2)');
-        containers.forEach(function(container) {
-            container.style.display = 'none';
         });
     }, 1000);
 });
