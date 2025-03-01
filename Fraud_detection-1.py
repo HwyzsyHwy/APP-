@@ -64,14 +64,6 @@ st.markdown(
         border-radius: 5px;
         color: white;
     }
-    .custom-input {
-        background-color: #32CD32;  /* 绿色背景 */
-        color: black;  /* 输入文本颜色 */
-        border: none;
-        border-radius: 5px;
-        padding: 5px;
-        width: 100%;
-    }
     </style>
     """,
     unsafe_allow_html=True
@@ -157,15 +149,14 @@ with col1:
         with col_a:
             st.markdown(f"<div class='input-row' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)  # 绿色背景
         with col_b:
-            # 使用 HTML 创建自定义输入框
-            features[feature] = st.text_input(
+            features[feature] = st.number_input(
                 "", 
+                min_value=0.0, 
+                max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
                 value=value, 
                 key=f"proximate_{feature}", 
-                placeholder="输入值",
-                max_chars=5,
-                help="请输入数值",
-                css_class="custom-input"  # 使用自定义输入框样式
+                format="%.2f",
+                label_visibility="collapsed"
             )
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -184,14 +175,14 @@ with col2:
         with col_a:
             st.markdown(f"<div class='input-row' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)  # 黄色背景
         with col_b:
-            features[feature] = st.text_input(
+            features[feature] = st.number_input(
                 "", 
+                min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
+                max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
                 value=value, 
                 key=f"ultimate_{feature}", 
-                placeholder="输入值",
-                max_chars=5,
-                help="请输入数值",
-                css_class="custom-input"  # 使用自定义输入框样式
+                format="%.2f",
+                label_visibility="collapsed"
             )
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -213,14 +204,14 @@ with col3:
         with col_a:
             st.markdown(f"<div class='input-row' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)  # 橙色背景
         with col_b:
-            features[feature] = st.text_input(
+            features[feature] = st.number_input(
                 "", 
+                min_value=min_val, 
+                max_value=max_val, 
                 value=value, 
                 key=f"pyrolysis_{feature}", 
-                placeholder="输入值",
-                max_chars=5,
-                help="请输入数值",
-                css_class="custom-input"  # 使用自定义输入框样式
+                format="%.2f",
+                label_visibility="collapsed"
             )
     
     st.markdown("</div>", unsafe_allow_html=True)
