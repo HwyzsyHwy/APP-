@@ -14,8 +14,100 @@ st.set_page_config(
     layout='wide'
 )
 
+# 自定义样式 - 使用多种选择器确保覆盖Streamlit默认样式
+st.markdown(
+    """
+    <style>
+    /* 全局字体设置 */
+    html, body, [class*="css"] {
+        font-size: 16px !important;
+    }
+    
+    /* 标题 */
+    .main-title {
+        text-align: center;
+        font-size: 32px !important;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: white !important;
+    }
+    
+    /* 区域样式 */
+    .section-header {
+        color: white;
+        font-weight: bold;
+        font-size: 22px;
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+    
+    /* 输入标签样式 */
+    .input-label {
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        font-size: 18px;
+        color: white;
+    }
+    
+    /* 结果显示样式 */
+    .yield-result {
+        background-color: #1E1E1E;
+        color: white;
+        font-size: 36px;
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    
+    /* 强制应用白色背景到输入框 - 使用多种选择器和!important */
+    [data-testid="stNumberInput"] input {
+        background-color: white !important;
+        color: black !important;
+    }
+    
+    /* 额外的选择器，确保覆盖到所有可能的输入框元素 */
+    input[type="number"] {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* 尝试更具体的选择器 */
+    div[data-baseweb="input"] input {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* 针对输入框容器的选择器 */
+    div[data-baseweb="input"] {
+        background-color: white !important;
+    }
+
+    /* 最后的终极方法 - 应用给所有可能的输入元素 */
+    [data-testid="stNumberInput"] * {
+        background-color: white !important;
+    }
+    
+    /* 增大模型选择和按钮的字体 */
+    .stSelectbox, .stButton button {
+        font-size: 18px !important;
+    }
+    
+    /* 增大展开器标题字体 */
+    [data-testid="stExpander"] div[role="button"] p {
+        font-size: 20px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # 主标题
-st.markdown("<h1 style='text-align:center;font-size:32px;font-weight:bold;margin-bottom:20px;color:white;'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -71,48 +163,6 @@ feature_categories = {
     "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
     "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
 }
-
-# 创建自定义CSS - 只设置区域标题和结果样式，不修改输入框
-st.markdown("""
-    <style>
-    /* 全局字体设置 */
-    html, body, [class*="css"] {
-        font-size: 16px !important;
-    }
-    
-    /* 区域标题样式 */
-    .section-header {
-        color: white;
-        font-weight: bold;
-        font-size: 22px;
-        text-align: center;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-    
-    /* 结果显示样式 */
-    .yield-result {
-        background-color: #1E1E1E;
-        color: white;
-        font-size: 36px;
-        font-weight: bold;
-        text-align: center;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 20px;
-    }
-    
-    /* 输入标签样式 */
-    .input-label {
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        font-size: 18px;
-        color: white;
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
