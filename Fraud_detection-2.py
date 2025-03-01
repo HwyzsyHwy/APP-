@@ -17,42 +17,33 @@ st.markdown("""
     color: white;
 }
 
-/* 隐藏加减按钮 */
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none !important;
-    margin: 0 !important;
+/* 隐藏Streamlit原生输入框样式 */
+div.stNumberInput {
+    position: absolute;
+    left: -9999px;
 }
 
-input[type=number] {
-    -moz-appearance: textfield !important;
-}
-
-/* 标签和输入框的共享容器 */
+/* 标签行样式 */
 .input-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 15px;
     border-radius: 4px;
     margin-bottom: 15px;
     box-sizing: border-box;
 }
 
-/* 标签样式 */
-.label-text {
-    flex: 1;
-    font-weight: normal;
-}
-
 /* 输入框样式 */
-.input-value {
-    text-align: right;
-    width: auto;
-    background: transparent;
+.custom-input {
+    width: 60px;
+    padding: 2px 4px;
+    background-color: rgba(0, 0, 0, 0.2);
     border: none;
+    border-radius: 3px;
     color: inherit;
+    text-align: center;
 }
 
 /* 颜色设置 */
@@ -116,28 +107,6 @@ input[type=number] {
     border-radius: 4px;
 }
 
-/* 隐藏Streamlit元素 */
-div.stNumberInput > div {
-    display: none;
-}
-
-/* 自定义输入容器 */
-.custom-input-container {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.custom-input-container input {
-    background: transparent !important;
-    border: none !important;
-    color: inherit !important;
-    text-align: right;
-    padding: 0 !important;
-    width: 70px !important;
-}
-
 /* 预测结果 */
 .result-container {
     background-color: #333;
@@ -156,37 +125,57 @@ st.markdown("<div class='title-container'><h1>生物质热解产率预测</h1></
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# 初始化会话状态（如果尚未初始化）
+# 初始化session_state
+if 'input_values' not in st.session_state:
+    st.session_state.input_values = {
+        'M': 5.0, 'Ash': 8.0, 'VM': 75.0, 'FC': 15.0,
+        'C': 45.0, 'H': 5.5, 'O': 45.0, 'N': 0.5, 'S': 0.1,
+        'Temperature': 500.0, 'Heating_Rate': 10.0, 'Holding_Time': 30.0
+    }
+
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
 
-# 默认值字典
+# 默认值字典（用于重置）
 default_values = {
     'M': 5.0, 'Ash': 8.0, 'VM': 75.0, 'FC': 15.0,
     'C': 45.0, 'H': 5.5, 'O': 45.0, 'N': 0.5, 'S': 0.1,
     'Temperature': 500.0, 'Heating_Rate': 10.0, 'Holding_Time': 30.0
 }
 
+# 更新输入值的函数
+def update_value(key, value):
+    try:
+        # 尝试将输入转换为浮点数
+        st.session_state.input_values[key] = float(value)
+    except:
+        # 如果转换失败，保持原值不变
+        pass
+
 # 清除函数
 def clear_inputs():
-    for key in default_values:
-        st.session_state[key] = default_values[key]
+    st.session_state.input_values = default_values.copy()
     st.session_state.prediction_result = None
 
 # 第一列: 近似分析
 with col1:
     st.markdown("<div class='section-title proximate-title'>Proximate Analysis</div>", unsafe_allow_html=True)
     
-    # 创建行布局，标签和输入框在同一行
+    # 使用自定义HTML和JavaScript创建带输入框的彩色标签
     for label, key in [("M(wt%)", "M"), ("Ash(wt%)", "Ash"), ("VM(wt%)", "VM"), ("FC(wt%)", "FC")]:
-        # 开始输入行
-        st.markdown(f"<div class='input-row proximate-row'><div class='label-text'>{label}</div><div class='input-value'></div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='input-row proximate-row'>
+            <span>{label}</span>
+            <input type='number' class='custom-input' id='{key}_input' value='{st.session_state.input_values[key]}' 
+                   onchange="updateStreamlit(this.id, this.value)" step="0.1" min="0" max="100">
+        </div>
+        """, unsafe_allow_html=True)
         
-        # 添加输入框（隐藏）
+        # 隐藏的Streamlit输入用于存储值（但不在UI中显示）
         st.number_input("", 
                       min_value=0.0, 
                       max_value=100.0, 
-                      value=default_values[key], 
+                      value=st.session_state.input_values[key], 
                       step=0.1, 
                       key=key,
                       label_visibility="collapsed")
@@ -196,14 +185,19 @@ with col2:
     st.markdown("<div class='section-title ultimate-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for label, key in [("C(wt%)", "C"), ("H(wt%)", "H"), ("O(wt%)", "O"), ("N(wt%)", "N"), ("S(wt%)", "S")]:
-        # 开始输入行
-        st.markdown(f"<div class='input-row ultimate-row'><div class='label-text'>{label}</div><div class='input-value'></div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='input-row ultimate-row'>
+            <span>{label}</span>
+            <input type='number' class='custom-input' id='{key}_input' value='{st.session_state.input_values[key]}' 
+                   onchange="updateStreamlit(this.id, this.value)" step="0.1" min="0" max="100">
+        </div>
+        """, unsafe_allow_html=True)
         
-        # 添加输入框（隐藏）
+        # 隐藏的Streamlit输入用于存储值
         st.number_input("", 
                       min_value=0.0, 
                       max_value=100.0, 
-                      value=default_values[key], 
+                      value=st.session_state.input_values[key], 
                       step=0.1, 
                       key=key,
                       label_visibility="collapsed")
@@ -217,14 +211,19 @@ with col3:
         ("Heating Rate(°C/min)", "Heating_Rate", 100.0), 
         ("Holding Time(min)", "Holding_Time", 120.0)
     ]:
-        # 开始输入行
-        st.markdown(f"<div class='input-row pyrolysis-row'><div class='label-text'>{label}</div><div class='input-value'></div></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class='input-row pyrolysis-row'>
+            <span>{label}</span>
+            <input type='number' class='custom-input' id='{key}_input' value='{st.session_state.input_values[key]}' 
+                   onchange="updateStreamlit(this.id, this.value)" step="0.1" min="0" max="{max_val}">
+        </div>
+        """, unsafe_allow_html=True)
         
-        # 添加输入框（隐藏）
+        # 隐藏的Streamlit输入用于存储值
         st.number_input("", 
                       min_value=0.0, 
                       max_value=max_val, 
-                      value=default_values[key], 
+                      value=st.session_state.input_values[key], 
                       step=0.1, 
                       key=key,
                       label_visibility="collapsed")
@@ -238,9 +237,18 @@ with col1:
         try:
             # 收集所有输入并创建一个特征向量
             features = [
-                st.session_state.M, st.session_state.Ash, st.session_state.VM, st.session_state.FC,
-                st.session_state.C, st.session_state.H, st.session_state.O, st.session_state.N, st.session_state.S,
-                st.session_state.Temperature, st.session_state.Heating_Rate, st.session_state.Holding_Time
+                st.session_state.input_values['M'], 
+                st.session_state.input_values['Ash'], 
+                st.session_state.input_values['VM'], 
+                st.session_state.input_values['FC'],
+                st.session_state.input_values['C'], 
+                st.session_state.input_values['H'], 
+                st.session_state.input_values['O'], 
+                st.session_state.input_values['N'], 
+                st.session_state.input_values['S'],
+                st.session_state.input_values['Temperature'], 
+                st.session_state.input_values['Heating_Rate'], 
+                st.session_state.input_values['Holding_Time']
             ]
             
             # 这里应该有模型加载和预测的逻辑
@@ -264,33 +272,52 @@ if st.session_state.prediction_result is not None:
         unsafe_allow_html=True
     )
 
-# 注入自定义JavaScript以移动输入框到正确位置
+# 添加JavaScript以实现自定义输入框与Streamlit的交互
 st.markdown("""
 <script>
-// 在页面加载完成后执行
-document.addEventListener('DOMContentLoaded', function() {
-    // 等待Streamlit完全加载
-    setTimeout(function() {
-        // 获取所有输入框
-        const inputs = document.querySelectorAll('input[type="number"]');
-        // 获取所有准备放置输入框的容器
-        const containers = document.querySelectorAll('.input-value');
-        
-        // 确保数量匹配
-        if(inputs.length === containers.length) {
-            for(let i = 0; i < inputs.length; i++) {
-                // 移动输入框到目标容器
-                containers[i].appendChild(inputs[i]);
-                // 设置样式
-                inputs[i].style.background = 'transparent';
-                inputs[i].style.border = 'none';
-                inputs[i].style.color = 'inherit';
-                inputs[i].style.textAlign = 'right';
-                inputs[i].style.width = '70px';
-                inputs[i].style.padding = '0';
-            }
+// 函数：当自定义输入框值改变时更新Streamlit
+function updateStreamlit(id, value) {
+    // 从输入框ID中提取键名
+    const key = id.split('_')[0];
+    
+    // 找到对应的隐藏Streamlit输入框
+    const streamlitInputs = document.querySelectorAll('.stNumberInput input');
+    for (let input of streamlitInputs) {
+        const inputKey = input.getAttribute('aria-label') || '';
+        if (inputKey === key || inputKey.includes(key)) {
+            // 更新Streamlit输入框的值
+            input.value = value;
+            
+            // 触发change事件，通知Streamlit值已更改
+            const event = new Event('change', { bubbles: true });
+            input.dispatchEvent(event);
+            
+            // 模拟按下Enter键，提交更改
+            const keyEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true
+            });
+            input.dispatchEvent(keyEvent);
+            
+            break;
         }
-    }, 1000); // 延迟1秒，确保Streamlit元素已加载
-}, false);
+    }
+}
+
+// 监听Streamlit重新渲染
+const observer = new MutationObserver(function(mutations) {
+    // 当页面内容变化时，重新绑定自定义输入框的值
+    const customInputs = document.querySelectorAll('.custom-input');
+    customInputs.forEach(input => {
+        const key = input.id.split('_')[0];
+        // 在这里可以添加代码来同步Streamlit的值到自定义输入框
+    });
+});
+
+// 开始观察页面变化
+observer.observe(document.body, { childList: true, subtree: true });
 </script>
 """, unsafe_allow_html=True)
