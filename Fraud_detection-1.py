@@ -66,6 +66,7 @@ st.markdown(
     }
     input {
         background-color: #32CD32;  /* 默认绿色背景 */
+        color: black;  /* 输入文本颜色 */
     }
     </style>
     """,
