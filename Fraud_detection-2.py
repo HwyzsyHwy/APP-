@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用更具针对性的CSS选择器并增大字体
+# 自定义样式 - 设置文字为白色
 st.markdown(
     """
     <style>
@@ -28,12 +28,13 @@ st.markdown(
         font-size: 32px !important;  /* 从28px增大到32px */
         font-weight: bold;
         margin-bottom: 20px;
+        color: white !important;  /* 设置为白色 */
     }
     .section {
         padding: 10px;  /* 缩小内边距 */
         border-radius: 8px;
         margin-bottom: 10px;
-        color: black;
+        color: white !important;  /* 设置为白色 */
     }
     .ultimate-section {
         background-color: #DAA520;  /* 黄色 */
@@ -49,6 +50,7 @@ st.markdown(
         text-align: center;
         margin-bottom: 10px;
         font-size: 22px !important;  /* 增大分析区域标题 */
+        color: white !important;  /* 设置为白色 */
     }
     .yield-result {
         background-color: #1E1E1E;
@@ -65,6 +67,7 @@ st.markdown(
         border-radius: 5px;
         margin-bottom: 5px;
         font-size: 18px !important;  /* 增大输入标签字体 */
+        color: white !important;  /* 设置为白色 */
     }
     
     /* 增大输入框中的字体 */
