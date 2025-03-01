@@ -8,7 +8,7 @@ import os
 # 设置页面配置
 st.set_page_config(page_title="生物质热解产率预测", layout="wide")
 
-# 自定义CSS样式 - 完全重写
+# 自定义CSS样式
 st.markdown("""
 <style>
 /* 整体背景颜色 */
@@ -28,34 +28,47 @@ input[type=number] {
     -moz-appearance: textfield !important;
 }
 
-/* 直接复制截图中的布局样式 */
-.label-box {
+/* 标签和输入框的共享容器 */
+.input-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     width: 100%;
-    background-color: #4CAF50;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    margin-bottom: 5px;
-}
-
-.input-box {
-    width: 100%;
-    background-color: #202123;
-    color: white;
     padding: 8px 12px;
     border-radius: 4px;
     margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+/* 标签样式 */
+.label-text {
+    flex: 1;
+    font-weight: normal;
+}
+
+/* 输入框样式 */
+.input-value {
+    text-align: right;
+    width: auto;
+    background: transparent;
     border: none;
+    color: inherit;
 }
 
-.ultimate-label {
-    background-color: #FFEB3B !important;
-    color: black !important;
+/* 颜色设置 */
+.proximate-row {
+    background-color: #4CAF50;
+    color: white;
 }
 
-.pyrolysis-label {
-    background-color: #FF9800 !important;
-    color: black !important;
+.ultimate-row {
+    background-color: #FFEB3B;
+    color: black;
+}
+
+.pyrolysis-row {
+    background-color: #FF9800;
+    color: black;
 }
 
 /* 标题样式 */
@@ -93,28 +106,36 @@ input[type=number] {
 }
 
 /* 按钮样式 */
-.push-button {
+.stButton > button {
     background-color: #4CAF50;
     color: white;
     border: none;
     width: 100%;
     padding: 12px;
-    text-align: center;
     font-weight: bold;
     border-radius: 4px;
-    cursor: pointer;
 }
 
-.clear-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    width: 100%;
-    padding: 12px;
-    text-align: center;
-    font-weight: bold;
-    border-radius: 4px;
-    cursor: pointer;
+/* 隐藏Streamlit元素 */
+div.stNumberInput > div {
+    display: none;
+}
+
+/* 自定义输入容器 */
+.custom-input-container {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.custom-input-container input {
+    background: transparent !important;
+    border: none !important;
+    color: inherit !important;
+    text-align: right;
+    padding: 0 !important;
+    width: 70px !important;
 }
 
 /* 预测结果 */
@@ -126,34 +147,6 @@ input[type=number] {
     text-align: center;
     color: white;
 }
-
-/* 隐藏Streamlit默认元素 */
-.block-container {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-}
-
-/* 移除输入框的边框和轮廓 */
-input[type=number] {
-    border: none !important;
-    outline: none !important;
-    width: 100% !important;
-}
-
-/* 确保输入框能够继承背景色 */
-.stNumberInput {
-    background-color: transparent !important;
-}
-
-.stNumberInput div {
-    background-color: transparent !important;
-}
-
-/* 隐藏所有+-按钮 */
-.stNumberInput button {
-    display: none !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,11 +177,12 @@ def clear_inputs():
 with col1:
     st.markdown("<div class='section-title proximate-title'>Proximate Analysis</div>", unsafe_allow_html=True)
     
-    # 直接使用HTML创建标签
+    # 创建行布局，标签和输入框在同一行
     for label, key in [("M(wt%)", "M"), ("Ash(wt%)", "Ash"), ("VM(wt%)", "VM"), ("FC(wt%)", "FC")]:
-        st.markdown(f"<div class='label-box'>{label}</div>", unsafe_allow_html=True)
+        # 开始输入行
+        st.markdown(f"<div class='input-row proximate-row'><div class='label-text'>{label}</div><div class='input-value'></div></div>", unsafe_allow_html=True)
         
-        # 隐藏标签的输入框
+        # 添加输入框（隐藏）
         st.number_input("", 
                       min_value=0.0, 
                       max_value=100.0, 
@@ -202,8 +196,10 @@ with col2:
     st.markdown("<div class='section-title ultimate-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for label, key in [("C(wt%)", "C"), ("H(wt%)", "H"), ("O(wt%)", "O"), ("N(wt%)", "N"), ("S(wt%)", "S")]:
-        st.markdown(f"<div class='label-box ultimate-label'>{label}</div>", unsafe_allow_html=True)
+        # 开始输入行
+        st.markdown(f"<div class='input-row ultimate-row'><div class='label-text'>{label}</div><div class='input-value'></div></div>", unsafe_allow_html=True)
         
+        # 添加输入框（隐藏）
         st.number_input("", 
                       min_value=0.0, 
                       max_value=100.0, 
@@ -221,8 +217,10 @@ with col3:
         ("Heating Rate(°C/min)", "Heating_Rate", 100.0), 
         ("Holding Time(min)", "Holding_Time", 120.0)
     ]:
-        st.markdown(f"<div class='label-box pyrolysis-label'>{label}</div>", unsafe_allow_html=True)
+        # 开始输入行
+        st.markdown(f"<div class='input-row pyrolysis-row'><div class='label-text'>{label}</div><div class='input-value'></div></div>", unsafe_allow_html=True)
         
+        # 添加输入框（隐藏）
         st.number_input("", 
                       min_value=0.0, 
                       max_value=max_val, 
@@ -266,29 +264,33 @@ if st.session_state.prediction_result is not None:
         unsafe_allow_html=True
     )
 
-# 注入自定义JavaScript以隐藏加减按钮和调整输入样式
+# 注入自定义JavaScript以移动输入框到正确位置
 st.markdown("""
 <script>
-// 等待页面加载完成
+// 在页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
-    // 获取所有数字输入框
-    const inputs = document.querySelectorAll('input[type="number"]');
-    
-    // 修改每个输入框
-    inputs.forEach(input => {
-        // 隐藏spinners
-        input.style.appearance = 'textfield';
-        input.style.MozAppearance = 'textfield';
-        input.style.webkitAppearance = 'none';
+    // 等待Streamlit完全加载
+    setTimeout(function() {
+        // 获取所有输入框
+        const inputs = document.querySelectorAll('input[type="number"]');
+        // 获取所有准备放置输入框的容器
+        const containers = document.querySelectorAll('.input-value');
         
-        // 设置背景颜色
-        let parentDiv = input.closest('.stNumberInput');
-        if (parentDiv) {
-            parentDiv.style.backgroundColor = '#202123';
-            parentDiv.style.borderRadius = '4px';
-            parentDiv.style.padding = '8px';
+        // 确保数量匹配
+        if(inputs.length === containers.length) {
+            for(let i = 0; i < inputs.length; i++) {
+                // 移动输入框到目标容器
+                containers[i].appendChild(inputs[i]);
+                // 设置样式
+                inputs[i].style.background = 'transparent';
+                inputs[i].style.border = 'none';
+                inputs[i].style.color = 'inherit';
+                inputs[i].style.textAlign = 'right';
+                inputs[i].style.width = '70px';
+                inputs[i].style.padding = '0';
+            }
         }
-    });
+    }, 1000); // 延迟1秒，确保Streamlit元素已加载
 }, false);
 </script>
 """, unsafe_allow_html=True)
