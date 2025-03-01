@@ -5,9 +5,7 @@ Biomass Pyrolysis Yield Forecast
 
 import streamlit as st
 import pandas as pd
-import numpy as np
 import joblib
-from sklearn.metrics import r2_score, mean_squared_error
 
 # 页面设置
 st.set_page_config(
@@ -70,31 +68,6 @@ st.markdown(
         border-radius: 8px;
         margin-top: 20px;
     }
-    .button-container {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-    }
-    .predict-button {
-        background-color: #ff4b4b;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .clear-button {
-        background-color: #ff4b4b;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-    }
     .input-row {
         display: flex;
         align-items: center;
@@ -106,7 +79,7 @@ st.markdown(
         margin-right: 10px;
     }
     .input-field {
-        flex: 0.5; /* 控制输入框的宽度 */
+        flex: 0.3; /* 控制输入框的宽度 */
     }
     </style>
     """,
@@ -187,7 +160,7 @@ with col1:
         # 创建输入行
         st.markdown("<div class='input-row'>", unsafe_allow_html=True)
         st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
-        features[feature] = st.number_input("", min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}", format="%.2f", help="Enter value")
+        features[feature] = st.number_input("", min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}", format="%.2f", help="Enter value", width=100)
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -203,7 +176,7 @@ with col2:
         # 创建输入行
         st.markdown("<div class='input-row'>", unsafe_allow_html=True)
         st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
-        features[feature] = st.number_input("", min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}", format="%.2f", help="Enter value")
+        features[feature] = st.number_input("", min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}", format="%.2f", help="Enter value", width=100)
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -222,7 +195,7 @@ with col3:
         # 创建输入行
         st.markdown("<div class='input-row'>", unsafe_allow_html=True)
         st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
-        features[feature] = st.number_input("", min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}", format="%.2f", help="Enter value")
+        features[feature] = st.number_input("", min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}", format="%.2f", help="Enter value", width=100)
         st.markdown("</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
