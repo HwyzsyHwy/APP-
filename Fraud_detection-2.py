@@ -17,49 +17,60 @@ st.markdown("""
     color: white;
 }
 
-/* 第一列(Proximate Analysis)的颜色 */
-.proximate-section .stMarkdown {
+/* 设置共享样式 */
+.label-container {
+    padding: 8px 10px;
+    border-radius: 4px 0 0 4px;
+    display: flex;
+    align-items: center;
+    height: 38px; /* 匹配输入框高度 */
+    margin-right: 0;
+}
+
+.input-container {
+    padding: 0;
+    margin-left: 0;
+}
+
+.input-container > div {
+    margin-bottom: 0 !important;
+}
+
+/* 设置每个分析类别的颜色 */
+.proximate-label {
     background-color: #4CAF50 !important; /* 绿色 */
     color: white !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    margin-bottom: 5px !important;
 }
 
-.proximate-section .stNumberInput > div > div > input {
+.proximate-input input[type="number"] {
     background-color: #4CAF50 !important; /* 绿色 */
     color: white !important;
-    border-radius: 4px !important;
+    border-radius: 0 4px 4px 0 !important;
+    border: none !important;
 }
 
-/* 第二列(Ultimate Analysis)的颜色 */
-.ultimate-section .stMarkdown {
+.ultimate-label {
     background-color: #FFEB3B !important; /* 黄色 */
     color: black !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    margin-bottom: 5px !important;
 }
 
-.ultimate-section .stNumberInput > div > div > input {
+.ultimate-input input[type="number"] {
     background-color: #FFEB3B !important; /* 黄色 */
     color: black !important;
-    border-radius: 4px !important;
+    border-radius: 0 4px 4px 0 !important;
+    border: none !important;
 }
 
-/* 第三列(Pyrolysis Conditions)的颜色 */
-.pyrolysis-section .stMarkdown {
+.pyrolysis-label {
     background-color: #FF9800 !important; /* 橙色 */
     color: black !important;
-    padding: 8px !important;
-    border-radius: 4px !important;
-    margin-bottom: 5px !important;
 }
 
-.pyrolysis-section .stNumberInput > div > div > input {
+.pyrolysis-input input[type="number"] {
     background-color: #FF9800 !important; /* 橙色 */
     color: black !important;
-    border-radius: 4px !important;
+    border-radius: 0 4px 4px 0 !important;
+    border: none !important;
 }
 
 /* 设置标题样式 */
@@ -102,14 +113,15 @@ st.markdown("""
     background-color: #d32f2f;
 }
 
-/* 减少行间距 */
-.row-container {
-    margin-bottom: -15px;
+/* 消除列之间的间距 */
+div.row-widget.stHorizontal > div {
+    margin-right: 0 !important;
+    padding: 0 !important;
 }
 
-/* 移除输入字段的上边距 */
-.stNumberInput {
-    margin-top: -15px;
+/* 行间距 */
+.data-row {
+    margin-bottom: 10px;
 }
 
 </style>
@@ -142,23 +154,25 @@ def clear_inputs():
 with col1:
     st.markdown("<div class='analysis-container' style='background-color: rgba(76, 175, 80, 0.2);'><h3 style='color: #4CAF50;'>Proximate Analysis</h3>", unsafe_allow_html=True)
     
-    with st.container():
-        st.markdown("<div class='proximate-section'>", unsafe_allow_html=True)
-        # 为每个输入字段创建行，使用两列同一行显示标签和输入
-        for label, key in [("M(wt%)", "M"), ("Ash(wt%)", "Ash"), ("VM(wt%)", "VM"), ("FC(wt%)", "FC")]:
-            row = st.container()
-            with row:
-                label_col, input_col = st.columns(2)
-                with label_col:
-                    st.markdown(f"<div>{label}</div>", unsafe_allow_html=True)
-                with input_col:
-                    st.number_input("", 
-                                   min_value=0.0, 
-                                   max_value=100.0, 
-                                   value=default_values[key], 
-                                   step=0.1, 
-                                   key=key,
-                                   label_visibility="collapsed")
+    # 为每个输入字段创建行
+    for label, key in [("M(wt%)", "M"), ("Ash(wt%)", "Ash"), ("VM(wt%)", "VM"), ("FC(wt%)", "FC")]:
+        st.markdown("<div class='data-row'>", unsafe_allow_html=True)
+        label_col, input_col = st.columns([0.4, 0.6])
+        
+        with label_col:
+            st.markdown(f"<div class='label-container proximate-label'>{label}</div>", unsafe_allow_html=True)
+        
+        with input_col:
+            st.markdown("<div class='input-container proximate-input'>", unsafe_allow_html=True)
+            st.number_input("", 
+                          min_value=0.0, 
+                          max_value=100.0, 
+                          value=default_values[key], 
+                          step=0.1, 
+                          key=key,
+                          label_visibility="collapsed")
+            st.markdown("</div>", unsafe_allow_html=True)
+        
         st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -167,23 +181,24 @@ with col1:
 with col2:
     st.markdown("<div class='analysis-container' style='background-color: rgba(255, 235, 59, 0.2);'><h3 style='color: #FFEB3B;'>Ultimate Analysis</h3>", unsafe_allow_html=True)
     
-    with st.container():
-        st.markdown("<div class='ultimate-section'>", unsafe_allow_html=True)
-        # 为每个输入字段创建行，使用两列同一行显示标签和输入
-        for label, key in [("C(wt%)", "C"), ("H(wt%)", "H"), ("O(wt%)", "O"), ("N(wt%)", "N"), ("S(wt%)", "S")]:
-            row = st.container()
-            with row:
-                label_col, input_col = st.columns(2)
-                with label_col:
-                    st.markdown(f"<div>{label}</div>", unsafe_allow_html=True)
-                with input_col:
-                    st.number_input("", 
-                                   min_value=0.0, 
-                                   max_value=100.0, 
-                                   value=default_values[key], 
-                                   step=0.1, 
-                                   key=key,
-                                   label_visibility="collapsed")
+    for label, key in [("C(wt%)", "C"), ("H(wt%)", "H"), ("O(wt%)", "O"), ("N(wt%)", "N"), ("S(wt%)", "S")]:
+        st.markdown("<div class='data-row'>", unsafe_allow_html=True)
+        label_col, input_col = st.columns([0.4, 0.6])
+        
+        with label_col:
+            st.markdown(f"<div class='label-container ultimate-label'>{label}</div>", unsafe_allow_html=True)
+        
+        with input_col:
+            st.markdown("<div class='input-container ultimate-input'>", unsafe_allow_html=True)
+            st.number_input("", 
+                          min_value=0.0, 
+                          max_value=100.0, 
+                          value=default_values[key], 
+                          step=0.1, 
+                          key=key,
+                          label_visibility="collapsed")
+            st.markdown("</div>", unsafe_allow_html=True)
+        
         st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -192,27 +207,28 @@ with col2:
 with col3:
     st.markdown("<div class='analysis-container' style='background-color: rgba(255, 152, 0, 0.2);'><h3 style='color: #FF9800;'>Pyrolysis Conditions</h3>", unsafe_allow_html=True)
     
-    with st.container():
-        st.markdown("<div class='pyrolysis-section'>", unsafe_allow_html=True)
-        # 为每个输入字段创建行，使用两列同一行显示标签和输入
-        for label, key, max_val in [
-            ("Temperature(°C)", "Temperature", 1000.0), 
-            ("Heating Rate(°C/min)", "Heating_Rate", 100.0), 
-            ("Holding Time(min)", "Holding_Time", 120.0)
-        ]:
-            row = st.container()
-            with row:
-                label_col, input_col = st.columns(2)
-                with label_col:
-                    st.markdown(f"<div>{label}</div>", unsafe_allow_html=True)
-                with input_col:
-                    st.number_input("", 
-                                   min_value=0.0, 
-                                   max_value=max_val, 
-                                   value=default_values[key], 
-                                   step=0.1, 
-                                   key=key,
-                                   label_visibility="collapsed")
+    for label, key, max_val in [
+        ("Temperature(°C)", "Temperature", 1000.0), 
+        ("Heating Rate(°C/min)", "Heating_Rate", 100.0), 
+        ("Holding Time(min)", "Holding_Time", 120.0)
+    ]:
+        st.markdown("<div class='data-row'>", unsafe_allow_html=True)
+        label_col, input_col = st.columns([0.4, 0.6])
+        
+        with label_col:
+            st.markdown(f"<div class='label-container pyrolysis-label'>{label}</div>", unsafe_allow_html=True)
+        
+        with input_col:
+            st.markdown("<div class='input-container pyrolysis-input'>", unsafe_allow_html=True)
+            st.number_input("", 
+                          min_value=0.0, 
+                          max_value=max_val, 
+                          value=default_values[key], 
+                          step=0.1, 
+                          key=key,
+                          label_visibility="collapsed")
+            st.markdown("</div>", unsafe_allow_html=True)
+        
         st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
