@@ -11,19 +11,19 @@ import joblib
 st.set_page_config(
     page_title='Biomass Pyrolysis Yield Forecast',
     page_icon='📊',
-    layout='wide',
-    # 使用内置的主题设置来帮助设置输入框背景
-    initial_sidebar_state="collapsed"
+    layout='wide'
 )
 
-# 使用Streamlit的主题定制功能
-st.markdown("""
+# 自定义样式 - 使用多种选择器确保覆盖Streamlit默认样式
+st.markdown(
+    """
     <style>
-    /* 基本样式定义 */
+    /* 全局字体设置 */
     html, body, [class*="css"] {
         font-size: 16px !important;
     }
     
+    /* 标题 */
     .main-title {
         text-align: center;
         font-size: 32px !important;
@@ -32,6 +32,7 @@ st.markdown("""
         color: white !important;
     }
     
+    /* 区域样式 */
     .section-header {
         color: white;
         font-weight: bold;
@@ -42,6 +43,7 @@ st.markdown("""
         margin-bottom: 15px;
     }
     
+    /* 输入标签样式 */
     .input-label {
         padding: 5px;
         border-radius: 5px;
@@ -50,6 +52,7 @@ st.markdown("""
         color: white;
     }
     
+    /* 结果显示样式 */
     .yield-result {
         background-color: #1E1E1E;
         color: white;
@@ -61,18 +64,47 @@ st.markdown("""
         margin-top: 20px;
     }
     
-    /* 温和的输入框样式修改 - 只修改背景色 */
-    input {
-        background-color: white;
-        color: black;
+    /* 强制应用白色背景到输入框 - 使用多种选择器和!important */
+    [data-testid="stNumberInput"] input {
+        background-color: white !important;
+        color: black !important;
     }
     
-    /* 干净的按钮样式 */
-    .stButton>button {
-        font-size: 18px;
+    /* 额外的选择器，确保覆盖到所有可能的输入框元素 */
+    input[type="number"] {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* 尝试更具体的选择器 */
+    div[data-baseweb="input"] input {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* 针对输入框容器的选择器 */
+    div[data-baseweb="input"] {
+        background-color: white !important;
+    }
+
+    /* 最后的终极方法 - 应用给所有可能的输入元素 */
+    [data-testid="stNumberInput"] * {
+        background-color: white !important;
+    }
+    
+    /* 增大模型选择和按钮的字体 */
+    .stSelectbox, .stButton button {
+        font-size: 18px !important;
+    }
+    
+    /* 增大展开器标题字体 */
+    [data-testid="stExpander"] div[role="button"] p {
+        font-size: 20px !important;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # 主标题
 st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
