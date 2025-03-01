@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 只包含必要的样式
+# 自定义样式 - 缩小边框宽度
 st.markdown(
     """
     <style>
@@ -25,12 +25,10 @@ st.markdown(
         margin-bottom: 20px;
     }
     .section {
-        padding: 10px;
+        padding: 10px;  /* 缩小内边距 */
         border-radius: 8px;
         margin-bottom: 10px;
         color: black;
-        display: inline-block; /* 使其成为行内块元素 */
-        width: 30%; /* 设置宽度 */
     }
     .ultimate-section {
         background-color: #DAA520;
