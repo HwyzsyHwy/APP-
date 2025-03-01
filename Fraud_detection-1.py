@@ -140,12 +140,11 @@ with col1:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 简单的两列布局
-        col_a, col_b = st.columns([1.5, 1])
+        # 简单的两列布局，缩小间隔
+        col_a, col_b = st.columns([1.2, 1])
         with col_a:
             st.write(feature)
         with col_b:
-            # 移除width参数
             features[feature] = st.number_input(
                 "", 
                 min_value=0.0, 
@@ -168,7 +167,7 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        col_a, col_b = st.columns([1.5, 1])
+        col_a, col_b = st.columns([1.2, 1])
         with col_a:
             st.write(feature)
         with col_b:
@@ -197,7 +196,7 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        col_a, col_b = st.columns([1.5, 1])
+        col_a, col_b = st.columns([1.2, 1])
         with col_a:
             st.write(feature)
         with col_b:
