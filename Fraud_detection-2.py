@@ -2,17 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
-import matplotlib.pyplot as plt
-import io
-import joblib
-import traceback
-from PIL import Image
+import time
+import os
+import warnings
+warnings.filterwarnings('ignore')
 
-# Set page configuration
-st.set_page_config(
-    page_title="Biomass Pyrolysis Yield Forecasting",
-    layout="wide"
-)
+st.set_page_config(page_title="Biomass Pyrolysis Yield Forecaster", layout="wide")
 
 # CSS for styling
 st.markdown("""
@@ -20,28 +15,22 @@ st.markdown("""
     .main-title {
         color: white !important;
         text-align: center;
-        font-size: 2.5rem;
+        font-size: 35px;
+        font-weight: bold;
         margin-bottom: 20px;
     }
     .section {
         color: white !important;
-        padding: 10px;
+        padding: 5px;
         border-radius: 5px;
         margin-bottom: 10px;
     }
     .section-title {
         color: white !important;
+        text-align: center;
         font-weight: bold;
+        font-size: 18px;
         margin-bottom: 10px;
-    }
-    .proximate-section {
-        background-color: #2e7d32;
-    }
-    .ultimate-section {
-        background-color: #f9a825;
-    }
-    .pyrolysis-section {
-        background-color: #e65100;
     }
     .input-row {
         color: white !important;
@@ -49,238 +38,183 @@ st.markdown("""
         align-items: center;
         margin-bottom: 5px;
     }
-    .input-label {
-        flex: 1;
+    .proximate-section {
+        background-color: #4CAF50;
     }
-    .input-field {
-        flex: 1;
+    .ultimate-section {
+        background-color: #FFEB3B;
     }
-    /* Target the input boxes to change their background colors */
-    .proximate-section .stNumberInput input {
-        background-color: #4caf50 !important;
-    }
-    .ultimate-section .stNumberInput input {
-        background-color: #fbc02d !important;
-    }
-    .pyrolysis-section .stNumberInput input {
-        background-color: #ff9800 !important;
-    }
-    /* Ensure text inside input boxes is black for readability */
-    .stNumberInput input {
-        color: black !important;
-    }
-    .buttons-container {
-        display: flex;
-        justify-content: space-around;
-        margin-top: 20px;
+    .pyrolysis-section {
+        background-color: #FF9800;
     }
     .result-container {
-        margin-top: 20px;
-        padding: 20px;
-        background-color: #212121;
-        border-radius: 5px;
         text-align: center;
+        margin-top: 20px;
     }
-    .result-value {
-        color: white;
-        font-size: 2rem;
-        font-weight: bold;
+    .stNumberInput input {
+        background-color: inherit !important;
+    }
+    .proximate-section .stNumberInput input {
+        background-color: #4CAF50 !important;
+    }
+    .ultimate-section .stNumberInput input {
+        background-color: #FFEB3B !important;
+    }
+    .pyrolysis-section .stNumberInput input {
+        background-color: #FF9800 !important;
+    }
+    div[data-testid="column"] {
+        padding: 0 !important;
+        margin: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Title
-st.markdown("<h1 class='main-title'>Biomass Pyrolysis Yield Forecasting</h1>", unsafe_allow_html=True)
+# App title
+st.markdown('<div class="main-title">Biomass Pyrolysis Yield Forecaster</div>', unsafe_allow_html=True)
 
-# Define the default values for the inputs
+# Default values dictionary
 defaults = {
-    'M': 5.0, 'Ash': 8.0, 'VM': 75.0, 'FC': 15.0,
-    'C': 45.0, 'H': 5.5, 'O': 40.0, 'N': 0.6, 'S': 0.1,
-    'Temperature': 550.0, 'Heating_rate': 10.0, 'Holding_time': 30.0
+    'M': 5.0,
+    'Ash': 8.0,
+    'VM': 75.0,
+    'FC': 15.0,
+    'C': 47.0,
+    'H': 6.0,
+    'O': 45.0,
+    'N': 0.4,
+    'S': 0.1,
+    'Temperature': 500.0,
+    'Heating_Rate': 10.0,
+    'Holding_Time': 10.0
 }
 
-# Initialize session state
-if 'input_values' not in st.session_state:
-    st.session_state.input_values = defaults.copy()
-if 'prediction_result' not in st.session_state:
-    st.session_state.prediction_result = None
+# Initialize session state for clear functionality
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
 
-# Function to clear inputs
-def clear_inputs():
-    st.session_state.input_values = defaults.copy()
+if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
+
+# Function to handle clear button click
+def clear_inputs():
     st.session_state.clear_pressed = True
 
-# Create three columns layout
+# Layout - Three columns for inputs
 col1, col2, col3 = st.columns(3)
 
-# Column 1: Proximate Analysis
+# First column: Proximate Analysis
 with col1:
-    st.markdown("<div class='section proximate-section'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
+    st.markdown('<div class="section proximate-section">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Proximate Analysis</div>', unsafe_allow_html=True)
     
-    # M(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>M(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    M = st.number_input("M", min_value=0.0, max_value=100.0, value=st.session_state.input_values['M'], key="M", label_visibility="collapsed")
-    st.session_state.input_values['M'] = M
+    # Get inputs
+    M = st.number_input('M(wt%)', min_value=0.0, max_value=90.0, value=defaults['M'] if not st.session_state.clear_pressed else defaults['M'], step=0.1, format="%.1f")
+    Ash = st.number_input('Ash(wt%)', min_value=0.0, max_value=50.0, value=defaults['Ash'] if not st.session_state.clear_pressed else defaults['Ash'], step=0.1, format="%.1f")
+    VM = st.number_input('VM(wt%)', min_value=0.0, max_value=95.0, value=defaults['VM'] if not st.session_state.clear_pressed else defaults['VM'], step=0.1, format="%.1f")
+    FC = st.number_input('FC(wt%)', min_value=0.0, max_value=95.0, value=defaults['FC'] if not st.session_state.clear_pressed else defaults['FC'], step=0.1, format="%.1f")
     
-    # Ash(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>Ash(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    Ash = st.number_input("Ash", min_value=0.0, max_value=100.0, value=st.session_state.input_values['Ash'], key="Ash", label_visibility="collapsed")
-    st.session_state.input_values['Ash'] = Ash
-    
-    # VM(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>VM(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    VM = st.number_input("VM", min_value=0.0, max_value=100.0, value=st.session_state.input_values['VM'], key="VM", label_visibility="collapsed")
-    st.session_state.input_values['VM'] = VM
-    
-    # FC(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>FC(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    FC = st.number_input("FC", min_value=0.0, max_value=100.0, value=st.session_state.input_values['FC'], key="FC", label_visibility="collapsed")
-    st.session_state.input_values['FC'] = FC
-    
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Column 2: Ultimate Analysis
+# Second column: Ultimate Analysis
 with col2:
-    st.markdown("<div class='section ultimate-section'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
+    st.markdown('<div class="section ultimate-section">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Ultimate Analysis</div>', unsafe_allow_html=True)
     
-    # C(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>C(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    C = st.number_input("C", min_value=0.0, max_value=100.0, value=st.session_state.input_values['C'], key="C", label_visibility="collapsed")
-    st.session_state.input_values['C'] = C
+    # Get inputs
+    C = st.number_input('C(wt%)', min_value=0.0, max_value=95.0, value=defaults['C'] if not st.session_state.clear_pressed else defaults['C'], step=0.1, format="%.1f")
+    H = st.number_input('H(wt%)', min_value=0.0, max_value=15.0, value=defaults['H'] if not st.session_state.clear_pressed else defaults['H'], step=0.1, format="%.1f")
+    O = st.number_input('O(wt%)', min_value=0.0, max_value=95.0, value=defaults['O'] if not st.session_state.clear_pressed else defaults['O'], step=0.1, format="%.1f")
+    N = st.number_input('N(wt%)', min_value=0.0, max_value=15.0, value=defaults['N'] if not st.session_state.clear_pressed else defaults['N'], step=0.1, format="%.1f")
+    S = st.number_input('S(wt%)', min_value=0.0, max_value=15.0, value=defaults['S'] if not st.session_state.clear_pressed else defaults['S'], step=0.1, format="%.1f")
     
-    # H(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>H(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    H = st.number_input("H", min_value=0.0, max_value=100.0, value=st.session_state.input_values['H'], key="H", label_visibility="collapsed")
-    st.session_state.input_values['H'] = H
-    
-    # O(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>O(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    O = st.number_input("O", min_value=0.0, max_value=100.0, value=st.session_state.input_values['O'], key="O", label_visibility="collapsed")
-    st.session_state.input_values['O'] = O
-    
-    # N(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>N(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    N = st.number_input("N", min_value=0.0, max_value=100.0, value=st.session_state.input_values['N'], key="N", label_visibility="collapsed")
-    st.session_state.input_values['N'] = N
-    
-    # S(wt%)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>S(wt%)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    S = st.number_input("S", min_value=0.0, max_value=100.0, value=st.session_state.input_values['S'], key="S", label_visibility="collapsed")
-    st.session_state.input_values['S'] = S
-    
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Column 3: Pyrolysis Conditions
+# Third column: Pyrolysis Conditions
 with col3:
-    st.markdown("<div class='section pyrolysis-section'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    st.markdown('<div class="section pyrolysis-section">', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Pyrolysis Conditions</div>', unsafe_allow_html=True)
     
-    # Temperature(°C)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>Temperature(°C)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    Temperature = st.number_input("Temperature", min_value=0.0, max_value=1000.0, value=st.session_state.input_values['Temperature'], key="Temperature", label_visibility="collapsed")
-    st.session_state.input_values['Temperature'] = Temperature
+    # Get inputs
+    Temperature = st.number_input('Temperature(°C)', min_value=200.0, max_value=1000.0, value=defaults['Temperature'] if not st.session_state.clear_pressed else defaults['Temperature'], step=1.0, format="%.1f")
+    Heating_Rate = st.number_input('Heating Rate(°C/min)', min_value=1.0, max_value=1000.0, value=defaults['Heating_Rate'] if not st.session_state.clear_pressed else defaults['Heating_Rate'], step=1.0, format="%.1f")
+    Holding_Time = st.number_input('Holding Time(min)', min_value=0.0, max_value=120.0, value=defaults['Holding_Time'] if not st.session_state.clear_pressed else defaults['Holding_Time'], step=1.0, format="%.1f")
     
-    # Heating rate(°C/min)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>Heating rate(°C/min)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    Heating_rate = st.number_input("Heating_rate", min_value=0.0, max_value=100.0, value=st.session_state.input_values['Heating_rate'], key="Heating_rate", label_visibility="collapsed")
-    st.session_state.input_values['Heating_rate'] = Heating_rate
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# If clear is pressed, reset it
+if st.session_state.clear_pressed:
+    st.session_state.clear_pressed = False
+
+# Button columns
+col1, col2, col3 = st.columns([1, 1, 1])
+
+with col1:
+    pass
+
+with col2:
+    # Predict button
+    if st.button('PREDICT'):
+        try:
+            # Create input dataframe
+            input_data = pd.DataFrame({
+                'M': [M],
+                'Ash': [Ash],
+                'VM': [VM],
+                'FC': [FC],
+                'C': [C],
+                'H': [H],
+                'O': [O],
+                'N': [N],
+                'S': [S],
+                'Temperature': [Temperature],
+                'Heating_Rate': [Heating_Rate],
+                'Holding_Time': [Holding_Time]
+            })
+            
+            # Load the model
+            model = pickle.load(open('RF_biochar.pkl', 'rb'))
+            
+            # Make prediction
+            prediction = model.predict(input_data)[0]
+            
+            # Store prediction in session state
+            st.session_state.prediction_result = prediction
+            
+            # Display prediction
+            st.markdown(f"""
+            <div class="result-container">
+                <h2 style="color: white; background-color: black; padding: 10px;">Yield(wt%) {prediction:.2f}</h2>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
     
-    # Holding time(min)
-    st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-    st.markdown("<div class='input-label'>Holding time(min)</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    Holding_time = st.number_input("Holding_time", min_value=0.0, max_value=120.0, value=st.session_state.input_values['Holding_time'], key="Holding_time", label_visibility="collapsed")
-    st.session_state.input_values['Holding_time'] = Holding_time
-    
-    st.markdown("</div>", unsafe_allow_html=True)
+with col3:
+    # Clear button
+    if st.button('CLEAR', on_click=clear_inputs):
+        pass
 
-# Buttons container
-st.markdown("<div class='buttons-container'>", unsafe_allow_html=True)
-predict_button = st.button("PREDICT")
-clear_button = st.button("CLEAR", on_click=clear_inputs)
-st.markdown("</div>", unsafe_allow_html=True)
+# Display prediction result if it exists in session state
+if st.session_state.prediction_result is not None and not st.session_state.clear_pressed:
+    st.markdown(f"""
+    <div class="result-container">
+        <h2 style="color: white; background-color: black; padding: 10px;">Yield(wt%) {st.session_state.prediction_result:.2f}</h2>
+    </div>
+    """, unsafe_allow_html=True)
 
-# Function to load and use the model
-def predict_yield():
-    try:
-        # For demonstration, let's pretend we're loading a model and making prediction
-        # In a real app, you'd load your model and use it
-        # model = joblib.load('yield_prediction_model.pkl')
-        
-        # Create input features
-        features = np.array([[
-            st.session_state.input_values['M'],
-            st.session_state.input_values['Ash'],
-            st.session_state.input_values['VM'],
-            st.session_state.input_values['FC'],
-            st.session_state.input_values['C'],
-            st.session_state.input_values['H'],
-            st.session_state.input_values['O'],
-            st.session_state.input_values['N'],
-            st.session_state.input_values['S'],
-            st.session_state.input_values['Temperature'],
-            st.session_state.input_values['Heating_rate'],
-            st.session_state.input_values['Holding_time']
-        ]])
-        
-        # For demo, generate a random prediction
-        # In a real app, this would be model.predict(features)[0]
-        prediction = np.random.uniform(10, 50)
-        
-        return round(prediction, 2)
-    except Exception as e:
-        st.error(f"Error making prediction: {str(e)}")
-        st.error(traceback.format_exc())
-        return None
-
-# Make prediction when button is clicked
-if predict_button:
-    prediction = predict_yield()
-    if prediction is not None:
-        st.session_state.prediction_result = prediction
-
-# Display the prediction result if available
-if st.session_state.prediction_result is not None:
-    st.markdown("<div class='result-container'>", unsafe_allow_html=True)
-    st.markdown(f"<div class='result-value'>Yield(wt%) = {st.session_state.prediction_result}</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# Add Javascript to adjust any UI elements after they're loaded
+# Add JavaScript to adjust layout after all elements are loaded
 st.markdown("""
 <script>
-    // Function to adjust any UI elements after they're loaded
-    function adjustUI() {
-        // You can add any JavaScript to manipulate the DOM here if needed
-    }
-    
-    // Execute after the page is fully loaded
-    window.addEventListener('load', adjustUI);
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // Adjust layout if needed
+        setTimeout(() => {
+            const inputRows = document.querySelectorAll('.input-row');
+            inputRows.forEach(row => {
+                // Additional layout adjustments
+            });
+        }, 1000);
+    });
 </script>
 """, unsafe_allow_html=True)
