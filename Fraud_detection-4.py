@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用CSS类选择器
+# 自定义样式 - 根据key属性区分不同列
 st.markdown(
     """
     <style>
@@ -64,23 +64,28 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 使用类来控制不同列的样式 */
-    div.proximate-inputs input[type="number"],
-    div.proximate-inputs [data-testid="stNumberInput"] input {
+    /* Proximate Analysis列的输入框样式 - 通过key选择器 */
+    [data-baseweb="input"][id*="proximate_"] input,
+    [data-testid="stNumberInput"] input[id*="proximate_"] {
         background-color: #32CD32 !important; /* 绿色 */
         color: black !important;
+        font-size: 18px !important;
     }
     
-    div.ultimate-inputs input[type="number"],
-    div.ultimate-inputs [data-testid="stNumberInput"] input {
+    /* Ultimate Analysis列的输入框样式 - 通过key选择器 */
+    [data-baseweb="input"][id*="ultimate_"] input,
+    [data-testid="stNumberInput"] input[id*="ultimate_"] {
         background-color: #DAA520 !important; /* 黄色 */
         color: black !important;
+        font-size: 18px !important;
     }
     
-    div.pyrolysis-inputs input[type="number"],
-    div.pyrolysis-inputs [data-testid="stNumberInput"] input {
+    /* Pyrolysis Conditions列的输入框样式 - 通过key选择器 */
+    [data-baseweb="input"][id*="pyrolysis_"] input,
+    [data-testid="stNumberInput"] input[id*="pyrolysis_"] {
         background-color: #FF7F50 !important; /* 橙色 */
         color: black !important;
+        font-size: 18px !important;
     }
     
     /* 增大模型选择和按钮的字体 */
@@ -165,9 +170,6 @@ features = {}
 with col1:
     st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
     
-    # 开始一个DIV包含此列所有输入
-    st.markdown("<div class='proximate-inputs'>", unsafe_allow_html=True)
-    
     for feature in feature_categories["Proximate Analysis"]:
         # 重置值或使用现有值
         if st.session_state.clear_pressed:
@@ -189,16 +191,10 @@ with col1:
                 format="%.2f",
                 label_visibility="collapsed"
             )
-    
-    # 结束DIV
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # Ultimate Analysis (黄色区域)
 with col2:
     st.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
-    
-    # 开始一个DIV包含此列所有输入
-    st.markdown("<div class='ultimate-inputs'>", unsafe_allow_html=True)
     
     for feature in feature_categories["Ultimate Analysis"]:
         if st.session_state.clear_pressed:
@@ -219,16 +215,10 @@ with col2:
                 format="%.2f",
                 label_visibility="collapsed"
             )
-    
-    # 结束DIV
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域)
 with col3:
     st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
-    
-    # 开始一个DIV包含此列所有输入
-    st.markdown("<div class='pyrolysis-inputs'>", unsafe_allow_html=True)
     
     for feature in feature_categories["Pyrolysis Conditions"]:
         if st.session_state.clear_pressed:
@@ -252,9 +242,6 @@ with col3:
                 format="%.2f",
                 label_visibility="collapsed"
             )
-    
-    # 结束DIV
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
 if st.session_state.clear_pressed:
