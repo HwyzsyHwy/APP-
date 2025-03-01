@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用更具针对性的CSS选择器
+# 自定义样式 - 使用多种方法隐藏加减按钮
 st.markdown(
     """
     <style>
@@ -78,8 +78,39 @@ st.markdown(
         color: black !important;
     }
     
-    /* 隐藏number input的加减按钮 */
-    [data-testid="stNumberInput"] > div:first-child > div:nth-child(2) {
+    /* 多种选择器尝试隐藏加减按钮 */
+    /* 方法1：直接隐藏带有加减按钮的容器 */
+    [data-testid="stNumberInput"] > div > div:nth-child(2) {
+        display: none !important;
+    }
+    
+    /* 方法2：隐藏减号按钮 */
+    button[aria-label="Decrease value"] {
+        display: none !important;
+    }
+    
+    /* 方法3：隐藏加号按钮 */
+    button[aria-label="Increase value"] {
+        display: none !important;
+    }
+    
+    /* 方法4：尝试更广泛的按钮选择器 */
+    [data-testid="stNumberInput"] button {
+        display: none !important;
+    }
+    
+    /* 方法5：针对具体按钮的SVG图标 */
+    [data-testid="stNumberInput"] svg {
+        display: none !important;
+    }
+    
+    /* 方法6：针对减少按钮的容器 */
+    .css-1hynsf2, .css-12jzoqx {
+        display: none !important;
+    }
+    
+    /* 方法7：针对增加按钮的容器 */
+    .css-1x8cf1d, .css-91z34k {
         display: none !important;
     }
     </style>
@@ -289,3 +320,25 @@ if 'prediction_result' in st.session_state and st.session_state.prediction_resul
         f"<div class='yield-result'>Yield (%) <br> {st.session_state.prediction_result:.2f}</div>",
         unsafe_allow_html=True
     )
+
+# 添加JavaScript来尝试隐藏按钮
+st.markdown("""
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 等待Streamlit完全加载
+    setTimeout(function() {
+        // 尝试找到并隐藏所有加减按钮
+        var buttons = document.querySelectorAll('[data-testid="stNumberInput"] button');
+        buttons.forEach(function(button) {
+            button.style.display = 'none';
+        });
+        
+        // 尝试找到加减按钮的容器并隐藏
+        var containers = document.querySelectorAll('[data-testid="stNumberInput"] > div > div:nth-child(2)');
+        containers.forEach(function(container) {
+            container.style.display = 'none';
+        });
+    }, 1000);
+});
+</script>
+""", unsafe_allow_html=True)
