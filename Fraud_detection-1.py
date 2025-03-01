@@ -60,9 +60,47 @@ st.markdown(
         text-align: center;
         margin-bottom: 10px;
     }
-    .stSlider {
-        padding-top: 5px;
-        padding-bottom: 5px;
+    .data-block {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+    .label-block {
+        background-color: #DAA520;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-radius: 4px;
+        width: 30%;
+        text-align: center;
+    }
+    .value-block {
+        background-color: #DAA520;
+        color: white;
+        font-weight: bold;
+        padding: 8px 15px;
+        border-radius: 4px;
+        width: 67%;
+        text-align: center;
+    }
+    .ultimate-label {
+        background-color: #DAA520;
+    }
+    .ultimate-value {
+        background-color: #DAA520;
+    }
+    .proximate-label {
+        background-color: #32CD32;
+    }
+    .proximate-value {
+        background-color: #32CD32;
+    }
+    .pyrolysis-label {
+        background-color: #FF7F50;
+    }
+    .pyrolysis-value {
+        background-color: #FF7F50;
     }
     .yield-result {
         background-color: #1E1E1E;
@@ -99,8 +137,10 @@ st.markdown(
         font-weight: bold;
         cursor: pointer;
     }
-    div.stSlider > div > div > div {
-        color: black !important;
+    /* 移除Streamlit的默认样式 */
+    div.block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
     }
     </style>
     """,
@@ -143,24 +183,29 @@ def load_scaler(model_name):
 # 定义默认值
 default_values = {
     "M(wt%)": 5.0,
-    "Ash(wt%)": 8.0,
-    "VM(wt%)": 75.0,
-    "FC(wt%)": 15.0,
-    "C(wt%)": 60.0,
-    "H(wt%)": 5.0,
-    "N(wt%)": 1.0,
-    "O(wt%)": 38.0,
-    "PS(mm)": 6.0,
+    "Ash(wt%)": 8.6,
+    "VM(wt%)": 73.5,
+    "FC(wt%)": 13.2,
+    "C(wt%)": 52.05,
+    "H(wt%)": 5.37,
+    "N(wt%)": 0.49,
+    "O(wt%)": 42.1,
+    "PS(mm)": 1.5,
     "SM(g)": 75.0,
-    "FT(℃)": 600.0,
-    "HR(℃/min)": 50.0,
-    "FR(mL/min)": 50.0,
+    "FT(℃)": 500.0,
+    "HR(℃/min)": 10.0,
+    "FR(mL/min)": 2.0,
     "RT(min)": 30.0
 }
 
+# 初始化特征值，如果从未设置则使用默认值
+for key, value in default_values.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+
 # 特征分类
 feature_categories = {
-    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
+    "Proximate Analysis": ["VM(wt%)", "FC(wt%)", "MC(wt%)", "Ash(wt%)"],
     "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
     "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
 }
@@ -168,74 +213,82 @@ feature_categories = {
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# Proximate Analysis (绿色区域) - 在第一列
-with col1:
-    st.markdown("<div class='proximate-section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
-    features = {}
-    for feature in feature_categories["Proximate Analysis"]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            if feature == "M(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-            elif feature == "Ash(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-            elif feature == "VM(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-            elif feature == "FC(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
+# 定义一个函数来处理数值输入和显示数据块
+def display_data_block(column, category, feature, min_val, max_val, css_class):
+    with column:
+        # 添加数据块标题
+        if feature == list(feature_categories[category])[0]:
+            st.markdown(f"<div class='section-title'>{category}</div>", unsafe_allow_html=True)
         
-        features[feature] = st.slider(feature, min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}")
+        # 处理输入框的回调
+        def update_value():
+            try:
+                new_val = float(st.session_state[f"input_{feature}"])
+                # 确保值在范围内
+                new_val = max(min_val, min(max_val, new_val))
+                st.session_state[feature] = new_val
+            except ValueError:
+                pass
+
+        # 创建数据块显示
+        st.markdown(f"""
+        <div class='data-block'>
+            <div class='label-block {css_class}-label'>{feature}</div>
+            <div class='value-block {css_class}-value'>{st.session_state[feature]}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 添加隐藏输入框用于更改值
+        st.number_input(
+            f"Change {feature}",
+            min_value=min_val,
+            max_value=max_val,
+            value=st.session_state[feature],
+            key=f"input_{feature}",
+            on_change=update_value,
+            label_visibility="hidden"
+        )
+
+# Ultimate Analysis (黄色区域) - 在第一列
+with col1:
+    st.markdown("<div class='ultimate-section'>", unsafe_allow_html=True)
+    for feature in feature_categories["Ultimate Analysis"]:
+        min_val = 30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0
+        max_val = 110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0))
+        display_data_block(col1, "Ultimate Analysis", feature, min_val, max_val, "ultimate")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Ultimate Analysis (黄色区域) - 在第二列
+# Proximate Analysis (绿色区域) - 在第二列
 with col2:
-    st.markdown("<div class='ultimate-section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
-    for feature in feature_categories["Ultimate Analysis"]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            if feature == "C(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-            elif feature == "H(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-            elif feature == "N(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-            elif feature == "O(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
+    st.markdown("<div class='proximate-section'>", unsafe_allow_html=True)
+    for feature in feature_categories["Proximate Analysis"]:
+        if feature in ["MC(wt%)", "M(wt%)"]:
+            min_val, max_val = 0.0, 20.0
+        elif feature == "Ash(wt%)":
+            min_val, max_val = 0.0, 25.0
+        elif feature == "VM(wt%)":
+            min_val, max_val = 0.0, 110.0
+        elif feature == "FC(wt%)":
+            min_val, max_val = 0.0, 120.0
         
-        features[feature] = st.slider(feature, min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}")
+        display_data_block(col2, "Proximate Analysis", feature, min_val, max_val, "proximate")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域) - 在第三列
 with col3:
-    st.markdown("<div class='pyrolysis-section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    st.markdown("<div class='pyrolysis-section'>", unsafe_allow_html=True)
     for feature in feature_categories["Pyrolysis Conditions"]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            if feature == "PS(mm)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "SM(g)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "FT(℃)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "HR(℃/min)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "FR(mL/min)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "RT(min)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-        
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        features[feature] = st.slider(feature, min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}")
+        display_data_block(col3, "Pyrolysis Conditions", feature, min_val, max_val, "pyrolysis")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 重置session_state中的clear_pressed状态
-if st.session_state.clear_pressed:
-    st.session_state.clear_pressed = False
+# 构建特征字典用于预测
+features = {}
+for category in feature_categories:
+    for feature in feature_categories[category]:
+        features[feature] = st.session_state[feature]
 
 # 转换为DataFrame
 input_data = pd.DataFrame([features])
@@ -251,8 +304,9 @@ with button_col:
     
     # 定义Clear按钮的回调函数
     def clear_values():
-        st.session_state.clear_pressed = True
-        # 尝试更新预测结果区域，清除显示
+        for key, value in default_values.items():
+            st.session_state[key] = value
+        # 清除预测结果
         if 'prediction_result' in st.session_state:
             st.session_state.prediction_result = None
     
