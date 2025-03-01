@@ -1,119 +1,164 @@
 import streamlit as st
+import pandas as pd
 import pickle
 import numpy as np
-import pandas as pd
 
 # 页面配置
 st.set_page_config(page_title="生物质热解产率预测器", layout="wide")
 
-# 更具针对性的CSS
+# 初始化会话状态
+if 'predict_result' not in st.session_state:
+    st.session_state.predict_result = None
+
+if 'input_values' not in st.session_state:
+    st.session_state.input_values = {
+        "M": 5.0,
+        "Ash": 8.0,
+        "VM": 75.0,
+        "FC": 15.0,
+        "C": 45.0,
+        "H": 6.0,
+        "O": 45.0,
+        "N": 0.5,
+        "S": 0.1,
+        "Temperature": 500.0,
+        "Heating_Rate": 10.0,
+        "Residence_Time": 30.0
+    }
+
+# 自定义HTML和CSS
 st.markdown("""
 <style>
-/* 整体页面样式 */
-.main {
-    background-color: #0E1117;
+/* 设置整体背景为深色 */
+.stApp {
+    background-color: #1E1E1E;
     color: white;
 }
 
-/* 针对number input的输入框部分 */
-input[type="number"] {
-    background-color: green !important;
-    color: white !important;
-}
-
-/* 针对number input的按钮部分 */
-.stNumberInput button {
-    background-color: green !important;
-    color: white !important;
-}
-
-/* 针对整个number input容器 */
-.stNumberInput div[data-baseweb="input"] {
-    background-color: green !important;
-}
-
-.proximate {
+/* 标题样式 */
+.header-green {
     background-color: green;
     padding: 10px;
     border-radius: 5px;
-    margin-bottom: 10px;
-}
-
-.ultimate {
-    background-color: yellow;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    color: black;
-}
-
-.pyrolysis {
-    background-color: orange;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    color: black;
-}
-
-.prediction {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: #262730;
-    border-radius: 5px;
+    color: white;
     text-align: center;
+    margin-bottom: 10px;
 }
 
-.btn-push {
+.header-yellow {
+    background-color: #CCCC00;
+    padding: 10px;
+    border-radius: 5px;
+    color: black;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.header-orange {
+    background-color: #FFA500;
+    padding: 10px;
+    border-radius: 5px;
+    color: black;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* 输入框样式 */
+.input-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.green-container {
+    background-color: green;
+    color: white;
+}
+
+.yellow-container {
+    background-color: #CCCC00;
+    color: black;
+}
+
+.orange-container {
+    background-color: #FFA500;
+    color: black;
+}
+
+.input-label {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.custom-input {
+    background-color: inherit;
+    color: inherit;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 5px;
+    width: 80px;
+}
+
+/* 按钮样式 */
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.predict-button, .clear-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.predict-button {
     background-color: #4CAF50;
     color: white;
-    padding: 10px 24px;
-    margin: 10px 2px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
 }
 
-.btn-clear {
+.clear-button {
     background-color: #f44336;
     color: white;
-    padding: 10px 24px;
-    margin: 10px 2px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+}
+
+/* 结果展示区域 */
+.result-area {
+    background-color: #333333;
+    padding: 20px;
+    border-radius: 5px;
+    margin-top: 20px;
+    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 初始化会话状态
-if 'predict_clicked' not in st.session_state:
-    st.session_state.predict_clicked = False
-if 'clear_pressed' not in st.session_state:
-    st.session_state.clear_pressed = False
-
-# 模型和定标器路径
-model_options = {
-    "Random Forest": "RF_model.pkl",
-    "Support Vector Machine": "SVM_model.pkl",
-    "K-Nearest Neighbors": "KNN_model.pkl"
-}
-
-# 定义加载模型和定标器函数
-def load_model(model_name):
-    try:
-        with open(model_options[model_name], 'rb') as file:
-            model = pickle.load(file)
-        return model
-    except:
-        return None
-
-def load_scaler():
-    try:
-        with open('scaler.pkl', 'rb') as file:
-            scaler = pickle.load(file)
-        return scaler
-    except:
-        return None
+# 设置JavaScript以更新Streamlit session state
+st.markdown("""
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 为所有自定义输入框添加事件监听
+    var inputs = document.querySelectorAll('.custom-input');
+    inputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            const key = this.getAttribute('data-key');
+            const value = parseFloat(this.value);
+            
+            // 发送消息到Streamlit
+            window.parent.postMessage({
+                type: 'streamlit:setComponentValue',
+                key: key,
+                value: value
+            }, '*');
+        });
+    });
+});
+</script>
+""", unsafe_allow_html=True)
 
 # 标题
 st.title("生物质热解产率预测器")
@@ -121,102 +166,189 @@ st.title("生物质热解产率预测器")
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# 默认值
-default_values = {
-    "M": 5.0, "Ash": 8.0, "VM": 75.0, "FC": 15.0,
-    "C": 45.0, "H": 6.0, "O": 40.0, "N": 0.5, "S": 0.1,
-    "temp": 500, "heat_rate": 10, "residence_time": 20
-}
-
-# 第一列：Proximate Analysis
+# 第一列：Proximate Analysis (绿色)
 with col1:
-    st.markdown('<div class="proximate">', unsafe_allow_html=True)
-    st.markdown("<h3 style='color: white; text-align: center;'>Proximate Analysis</h3>", unsafe_allow_html=True)
+    st.markdown('<div class="header-green">Proximate Analysis</div>', unsafe_allow_html=True)
     
-    # 创建输入字段
-    M = st.number_input("M(wt%)", min_value=0.0, max_value=100.0, value=default_values["M"], step=0.1)
-    Ash = st.number_input("Ash(wt%)", min_value=0.0, max_value=100.0, value=default_values["Ash"], step=0.1)
-    VM = st.number_input("VM(wt%)", min_value=0.0, max_value=100.0, value=default_values["VM"], step=0.1)
-    FC = st.number_input("FC(wt%)", min_value=0.0, max_value=100.0, value=default_values["FC"], step=0.1)
+    # 使用自定义HTML创建输入框
+    st.markdown(f"""
+    <div class="input-container green-container">
+        <div class="input-label">M(wt%)</div>
+        <input type="number" class="custom-input" data-key="M" value="{st.session_state.input_values['M']}" min="0" max="100" step="0.1" />
+    </div>
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    <div class="input-container green-container">
+        <div class="input-label">Ash(wt%)</div>
+        <input type="number" class="custom-input" data-key="Ash" value="{st.session_state.input_values['Ash']}" min="0" max="100" step="0.1" />
+    </div>
+    
+    <div class="input-container green-container">
+        <div class="input-label">VM(wt%)</div>
+        <input type="number" class="custom-input" data-key="VM" value="{st.session_state.input_values['VM']}" min="0" max="100" step="0.1" />
+    </div>
+    
+    <div class="input-container green-container">
+        <div class="input-label">FC(wt%)</div>
+        <input type="number" class="custom-input" data-key="FC" value="{st.session_state.input_values['FC']}" min="0" max="100" step="0.1" />
+    </div>
+    """, unsafe_allow_html=True)
 
-# 第二列：Ultimate Analysis
+# 第二列：Ultimate Analysis (黄色)
 with col2:
-    st.markdown('<div class="ultimate">', unsafe_allow_html=True)
-    st.markdown("<h3 style='color: black; text-align: center;'>Ultimate Analysis</h3>", unsafe_allow_html=True)
+    st.markdown('<div class="header-yellow">Ultimate Analysis</div>', unsafe_allow_html=True)
     
-    C = st.number_input("C(wt%)", min_value=0.0, max_value=100.0, value=default_values["C"], step=0.1)
-    H = st.number_input("H(wt%)", min_value=0.0, max_value=100.0, value=default_values["H"], step=0.1)
-    O = st.number_input("O(wt%)", min_value=0.0, max_value=100.0, value=default_values["O"], step=0.1)
-    N = st.number_input("N(wt%)", min_value=0.0, max_value=100.0, value=default_values["N"], step=0.1)
-    S = st.number_input("S(wt%)", min_value=0.0, max_value=100.0, value=default_values["S"], step=0.1)
+    # 使用自定义HTML创建输入框
+    st.markdown(f"""
+    <div class="input-container yellow-container">
+        <div class="input-label">C(wt%)</div>
+        <input type="number" class="custom-input" data-key="C" value="{st.session_state.input_values['C']}" min="0" max="100" step="0.1" />
+    </div>
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    <div class="input-container yellow-container">
+        <div class="input-label">H(wt%)</div>
+        <input type="number" class="custom-input" data-key="H" value="{st.session_state.input_values['H']}" min="0" max="100" step="0.1" />
+    </div>
+    
+    <div class="input-container yellow-container">
+        <div class="input-label">O(wt%)</div>
+        <input type="number" class="custom-input" data-key="O" value="{st.session_state.input_values['O']}" min="0" max="100" step="0.1" />
+    </div>
+    
+    <div class="input-container yellow-container">
+        <div class="input-label">N(wt%)</div>
+        <input type="number" class="custom-input" data-key="N" value="{st.session_state.input_values['N']}" min="0" max="10" step="0.1" />
+    </div>
+    
+    <div class="input-container yellow-container">
+        <div class="input-label">S(wt%)</div>
+        <input type="number" class="custom-input" data-key="S" value="{st.session_state.input_values['S']}" min="0" max="10" step="0.1" />
+    </div>
+    """, unsafe_allow_html=True)
 
-# 第三列：Pyrolysis Conditions
+# 第三列：Pyrolysis Conditions (橙色)
 with col3:
-    st.markdown('<div class="pyrolysis">', unsafe_allow_html=True)
-    st.markdown("<h3 style='color: black; text-align: center;'>Pyrolysis Conditions</h3>", unsafe_allow_html=True)
+    st.markdown('<div class="header-orange">Pyrolysis Conditions</div>', unsafe_allow_html=True)
     
-    temp = st.number_input("Temperature(°C)", min_value=100, max_value=1000, value=default_values["temp"], step=10)
-    heat_rate = st.number_input("Heating Rate(°C/min)", min_value=1, max_value=100, value=default_values["heat_rate"], step=1)
-    residence_time = st.number_input("Residence Time(min)", min_value=1, max_value=120, value=default_values["residence_time"], step=1)
+    # 使用自定义HTML创建输入框
+    st.markdown(f"""
+    <div class="input-container orange-container">
+        <div class="input-label">Temperature(°C)</div>
+        <input type="number" class="custom-input" data-key="Temperature" value="{st.session_state.input_values['Temperature']}" min="200" max="1000" step="10" />
+    </div>
     
-    st.markdown('</div>', unsafe_allow_html=True)
+    <div class="input-container orange-container">
+        <div class="input-label">Heating Rate(°C/min)</div>
+        <input type="number" class="custom-input" data-key="Heating_Rate" value="{st.session_state.input_values['Heating_Rate']}" min="1" max="100" step="1" />
+    </div>
+    
+    <div class="input-container orange-container">
+        <div class="input-label">Residence Time(min)</div>
+        <input type="number" class="custom-input" data-key="Residence_Time" value="{st.session_state.input_values['Residence_Time']}" min="1" max="120" step="1" />
+    </div>
+    """, unsafe_allow_html=True)
 
-# 选择模型
-selected_model = st.selectbox("选择模型", list(model_options.keys()))
+# 模型选择
+model_options = ['Random Forest', 'XGBoost', 'LightGBM']
+selected_model = st.selectbox("选择模型", model_options)
 
 # 按钮区域
-col1, col2 = st.columns(2)
+st.markdown("""
+<div class="button-container">
+    <button class="predict-button" id="predict-btn">预测</button>
+    <button class="clear-button" id="clear-btn">清除</button>
+</div>
 
-def on_predict_click():
-    st.session_state.predict_clicked = True
+<script>
+document.getElementById('predict-btn').addEventListener('click', function() {
+    window.parent.postMessage({
+        type: 'streamlit:setComponentValue',
+        key: 'predict_clicked',
+        value: true
+    }, '*');
+});
 
-def on_clear_click():
-    st.session_state.clear_pressed = True
-    # 重置所有输入值到默认值
-    for key in default_values:
-        st.session_state[key] = default_values[key]
+document.getElementById('clear-btn').addEventListener('click', function() {
+    window.parent.postMessage({
+        type: 'streamlit:setComponentValue',
+        key: 'clear_clicked',
+        value: true
+    }, '*');
+});
+</script>
+""", unsafe_allow_html=True)
 
-with col1:
-    predict_btn = st.button('PUSH', on_click=on_predict_click, key='predict_button', 
-                          help="点击预测产率", use_container_width=True)
+# 模拟按钮点击行为
+predict_button = st.button("预测", key="predict_button", label_visibility="collapsed")
+clear_button = st.button("清除", key="clear_button", label_visibility="collapsed")
 
-with col2:
-    clear_btn = st.button('CLEAR', on_click=on_clear_click, key='clear_button', 
-                        help="清除所有输入", use_container_width=True)
+# 加载模型和缩放器的函数
+def load_model_and_scaler(model_name):
+    try:
+        if model_name == 'Random Forest':
+            model = pickle.load(open('rf_model.pkl', 'rb'))
+        elif model_name == 'XGBoost':
+            model = pickle.load(open('xgb_model.pkl', 'rb'))
+        else:  # LightGBM
+            model = pickle.load(open('lgbm_model.pkl', 'rb'))
+        
+        scaler = pickle.load(open('scaler.pkl', 'rb'))
+        return model, scaler
+    except Exception as e:
+        st.error(f"模型加载错误: {str(e)}")
+        return None, None
 
-# 预测逻辑
-if st.session_state.predict_clicked:
-    st.session_state.predict_clicked = False  # 重置状态
+# 处理预测按钮点击
+if predict_button or ('predict_clicked' in st.session_state and st.session_state.predict_clicked):
+    if 'predict_clicked' in st.session_state:
+        st.session_state.predict_clicked = False
     
     try:
-        # 准备输入数据
-        input_data = np.array([M, Ash, VM, FC, C, H, O, N, S, temp, heat_rate, residence_time]).reshape(1, -1)
-        
-        # 加载模型和定标器
-        model = load_model(selected_model)
-        scaler = load_scaler()
-        
-        if model is not None and scaler is not None:
-            # 缩放数据
-            scaled_data = scaler.transform(input_data)
-            
+        # 加载模型和缩放器
+        model, scaler = load_model_and_scaler(selected_model)
+        if model and scaler:
+            # 收集所有输入特征
+            input_values = st.session_state.input_values
+            features = np.array([[
+                input_values["M"], input_values["Ash"], input_values["VM"], input_values["FC"],
+                input_values["C"], input_values["H"], input_values["O"], input_values["N"], input_values["S"],
+                input_values["Temperature"], input_values["Heating_Rate"], input_values["Residence_Time"]
+            ]])
+            # 特征缩放
+            features_scaled = scaler.transform(features)
             # 预测
-            prediction = model.predict(scaled_data)[0]
-            
-            # 显示预测结果
-            st.markdown('<div class="prediction">', unsafe_allow_html=True)
-            st.markdown(f"<h2>Yield (%): {prediction:.2f}</h2>", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.error("无法加载模型或定标器")
+            prediction = model.predict(features_scaled)[0]
+            st.session_state.predict_result = prediction
     except Exception as e:
-        st.error(f"预测过程中出错: {str(e)}")
+        st.error(f"预测错误: {str(e)}")
 
-# 清除逻辑
-if st.session_state.clear_pressed:
-    st.session_state.clear_pressed = False  # 重置状态
+# 处理清除按钮点击
+if clear_button or ('clear_clicked' in st.session_state and st.session_state.clear_clicked):
+    if 'clear_clicked' in st.session_state:
+        st.session_state.clear_clicked = False
+    
+    # 重置所有输入值
+    st.session_state.input_values = {
+        "M": 5.0,
+        "Ash": 8.0,
+        "VM": 75.0,
+        "FC": 15.0,
+        "C": 45.0,
+        "H": 6.0,
+        "O": 45.0,
+        "N": 0.5,
+        "S": 0.1,
+        "Temperature": 500.0,
+        "Heating_Rate": 10.0,
+        "Residence_Time": 30.0
+    }
+    st.session_state.predict_result = None
     st.rerun()
+
+# 展示预测结果
+if st.session_state.predict_result is not None:
+    st.markdown(f"""
+    <div class="result-area">
+        <h3>预测结果</h3>
+        <p>Yield (%): {st.session_state.predict_result:.2f}</p>
+    </div>
+    """, unsafe_allow_html=True)
