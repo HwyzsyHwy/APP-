@@ -14,35 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 添加JavaScript来修改输入框的背景颜色
-st.markdown("""
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 函数用于定期检查并应用样式
-    function applyStyles() {
-        // 找到所有数字输入框
-        const inputs = document.querySelectorAll('[data-testid="stNumberInput"] input');
-        
-        // 应用样式到Proximate Analysis的输入框（前4个）
-        for (let i = 0; i < inputs.length; i++) {
-            if (i < 4) {
-                // 近似分析输入框设为绿色
-                inputs[i].style.backgroundColor = '#32CD32';
-                inputs[i].style.color = 'white';
-            }
-        }
-    }
-    
-    // 初始调用
-    applyStyles();
-    
-    // 每500毫秒调用一次，确保在动态更新后样式仍然有效
-    setInterval(applyStyles, 500);
-});
-</script>
-""", unsafe_allow_html=True)
-
-# 自定义样式
+# 自定义样式 - 使用图中展示的多种CSS选择器方法
 st.markdown(
     """
     <style>
@@ -92,13 +64,28 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 强制尝试设置绿色背景 - 这里再次尝试用CSS方法 */
-    .proximate-inputs [data-testid="stNumberInput"] input,
-    .proximate-inputs input[type="number"],
+    /* 使用图中的方法为第一列设置绿色背景 */
+    .proximate-inputs [data-testid="stNumberInput"] input {
+        background-color: #32CD32 !important;
+        color: white !important;
+    }
+    
+    .proximate-inputs input[type="number"] {
+        background-color: #32CD32 !important;
+        color: white !important;
+    }
+    
     .proximate-inputs div[data-baseweb="input"] input {
         background-color: #32CD32 !important;
         color: white !important;
-        font-weight: bold !important;
+    }
+    
+    .proximate-inputs div[data-baseweb="input"] {
+        background-color: #32CD32 !important;
+    }
+    
+    .proximate-inputs [data-testid="stNumberInput"] * {
+        background-color: #32CD32 !important;
     }
     
     /* 增大模型选择和按钮的字体 */
@@ -182,6 +169,7 @@ features = {}
 # Proximate Analysis (绿色区域)
 with col1:
     st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
+    # 添加proximate-inputs类以便CSS选择器可以定位
     st.markdown("<div class='proximate-inputs'>", unsafe_allow_html=True)
     
     for feature in feature_categories["Proximate Analysis"]:
@@ -206,7 +194,7 @@ with col1:
                 label_visibility="collapsed"
             )
     
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)  # 结束proximate-inputs div
 
 # Ultimate Analysis (黄色区域)
 with col2:
@@ -314,23 +302,3 @@ if 'prediction_result' in st.session_state and st.session_state.prediction_resul
         f"<div class='yield-result'>Yield (wt%) <br> {st.session_state.prediction_result:.2f}</div>",
         unsafe_allow_html=True
     )
-
-# 在页面底部添加额外的JavaScript，以确保在页面完全加载后应用样式
-st.markdown("""
-<script>
-// 另一种方法：使用MutationObserver监控DOM变化
-const observer = new MutationObserver(function(mutations) {
-    const inputs = document.querySelectorAll('[data-testid="stNumberInput"] input');
-    
-    // 只应用到前4个输入框（Proximate Analysis部分）
-    for (let i = 0; i < inputs.length && i < 4; i++) {
-        inputs[i].style.backgroundColor = '#32CD32';
-        inputs[i].style.color = 'white';
-        inputs[i].style.fontWeight = 'bold';
-    }
-});
-
-// 开始观察document.body的所有子树变化
-observer.observe(document.body, { childList: true, subtree: true });
-</script>
-""", unsafe_allow_html=True)
