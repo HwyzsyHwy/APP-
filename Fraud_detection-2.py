@@ -17,60 +17,83 @@ st.markdown("""
     color: white;
 }
 
-/* 设置共享样式 */
-.label-container {
-    padding: 8px 10px;
-    border-radius: 4px 0 0 4px;
+/* 隐藏所有number input的加减按钮 */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* 设置标签和输入框的容器 */
+.custom-row {
+    display: flex;
+    width: 100%;
+    margin-bottom: 10px;
+    height: 38px;
+}
+
+/* 标签样式 */
+.input-label {
     display: flex;
     align-items: center;
-    height: 38px; /* 匹配输入框高度 */
-    margin-right: 0;
+    padding: 0 10px;
+    height: 100%;
+    width: 40%;
+    box-sizing: border-box;
 }
 
-.input-container {
-    padding: 0;
-    margin-left: 0;
+/* 输入框外部容器 */
+.input-field-container {
+    width: 60%;
+    height: 100%;
 }
 
-.input-container > div {
-    margin-bottom: 0 !important;
+/* 确保输入框填满容器 */
+.input-field-container .stNumberInput {
+    height: 100%;
 }
 
-/* 设置每个分析类别的颜色 */
-.proximate-label {
-    background-color: #4CAF50 !important; /* 绿色 */
-    color: white !important;
-}
-
-.proximate-input input[type="number"] {
-    background-color: #4CAF50 !important; /* 绿色 */
-    color: white !important;
-    border-radius: 0 4px 4px 0 !important;
+.input-field-container input {
+    height: 100% !important;
     border: none !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+/* 颜色设置 */
+.proximate-label {
+    background-color: #4CAF50 !important;
+    color: white !important;
+}
+
+.proximate-input input {
+    background-color: #4CAF50 !important;
+    color: white !important;
 }
 
 .ultimate-label {
-    background-color: #FFEB3B !important; /* 黄色 */
+    background-color: #FFEB3B !important;
     color: black !important;
 }
 
-.ultimate-input input[type="number"] {
-    background-color: #FFEB3B !important; /* 黄色 */
+.ultimate-input input {
+    background-color: #FFEB3B !important;
     color: black !important;
-    border-radius: 0 4px 4px 0 !important;
-    border: none !important;
 }
 
 .pyrolysis-label {
-    background-color: #FF9800 !important; /* 橙色 */
+    background-color: #FF9800 !important;
     color: black !important;
 }
 
-.pyrolysis-input input[type="number"] {
-    background-color: #FF9800 !important; /* 橙色 */
+.pyrolysis-input input {
+    background-color: #FF9800 !important;
     color: black !important;
-    border-radius: 0 4px 4px 0 !important;
-    border: none !important;
 }
 
 /* 设置标题样式 */
@@ -113,15 +136,22 @@ st.markdown("""
     background-color: #d32f2f;
 }
 
-/* 消除列之间的间距 */
-div.row-widget.stHorizontal > div {
-    margin-right: 0 !important;
-    padding: 0 !important;
+/* 隐藏默认标签 */
+.stNumberInput > div:first-child {
+    display: none !important;
 }
 
-/* 行间距 */
-.data-row {
-    margin-bottom: 10px;
+/* 移除输入框边距和padding */
+.stNumberInput > div {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 确保输入框容器填满空间 */
+.stNumberInput {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
 }
 
 </style>
@@ -156,24 +186,23 @@ with col1:
     
     # 为每个输入字段创建行
     for label, key in [("M(wt%)", "M"), ("Ash(wt%)", "Ash"), ("VM(wt%)", "VM"), ("FC(wt%)", "FC")]:
-        st.markdown("<div class='data-row'>", unsafe_allow_html=True)
-        label_col, input_col = st.columns([0.4, 0.6])
+        st.markdown(f"""
+        <div class='custom-row'>
+            <div class='input-label proximate-label'>{label}</div>
+            <div class='input-field-container'>
+                <div class='proximate-input'></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        with label_col:
-            st.markdown(f"<div class='label-container proximate-label'>{label}</div>", unsafe_allow_html=True)
-        
-        with input_col:
-            st.markdown("<div class='input-container proximate-input'>", unsafe_allow_html=True)
-            st.number_input("", 
-                          min_value=0.0, 
-                          max_value=100.0, 
-                          value=default_values[key], 
-                          step=0.1, 
-                          key=key,
-                          label_visibility="collapsed")
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        # 插入输入框
+        st.number_input("", 
+                        min_value=0.0, 
+                        max_value=100.0, 
+                        value=default_values[key], 
+                        step=0.1, 
+                        key=key,
+                        label_visibility="collapsed")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -182,24 +211,23 @@ with col2:
     st.markdown("<div class='analysis-container' style='background-color: rgba(255, 235, 59, 0.2);'><h3 style='color: #FFEB3B;'>Ultimate Analysis</h3>", unsafe_allow_html=True)
     
     for label, key in [("C(wt%)", "C"), ("H(wt%)", "H"), ("O(wt%)", "O"), ("N(wt%)", "N"), ("S(wt%)", "S")]:
-        st.markdown("<div class='data-row'>", unsafe_allow_html=True)
-        label_col, input_col = st.columns([0.4, 0.6])
+        st.markdown(f"""
+        <div class='custom-row'>
+            <div class='input-label ultimate-label'>{label}</div>
+            <div class='input-field-container'>
+                <div class='ultimate-input'></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        with label_col:
-            st.markdown(f"<div class='label-container ultimate-label'>{label}</div>", unsafe_allow_html=True)
-        
-        with input_col:
-            st.markdown("<div class='input-container ultimate-input'>", unsafe_allow_html=True)
-            st.number_input("", 
-                          min_value=0.0, 
-                          max_value=100.0, 
-                          value=default_values[key], 
-                          step=0.1, 
-                          key=key,
-                          label_visibility="collapsed")
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        # 插入输入框
+        st.number_input("", 
+                        min_value=0.0, 
+                        max_value=100.0, 
+                        value=default_values[key], 
+                        step=0.1, 
+                        key=key,
+                        label_visibility="collapsed")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -212,24 +240,23 @@ with col3:
         ("Heating Rate(°C/min)", "Heating_Rate", 100.0), 
         ("Holding Time(min)", "Holding_Time", 120.0)
     ]:
-        st.markdown("<div class='data-row'>", unsafe_allow_html=True)
-        label_col, input_col = st.columns([0.4, 0.6])
+        st.markdown(f"""
+        <div class='custom-row'>
+            <div class='input-label pyrolysis-label'>{label}</div>
+            <div class='input-field-container'>
+                <div class='pyrolysis-input'></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        with label_col:
-            st.markdown(f"<div class='label-container pyrolysis-label'>{label}</div>", unsafe_allow_html=True)
-        
-        with input_col:
-            st.markdown("<div class='input-container pyrolysis-input'>", unsafe_allow_html=True)
-            st.number_input("", 
-                          min_value=0.0, 
-                          max_value=max_val, 
-                          value=default_values[key], 
-                          step=0.1, 
-                          key=key,
-                          label_visibility="collapsed")
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        # 插入输入框
+        st.number_input("", 
+                        min_value=0.0, 
+                        max_value=max_val, 
+                        value=default_values[key], 
+                        step=0.1, 
+                        key=key,
+                        label_visibility="collapsed")
     
     st.markdown("</div>", unsafe_allow_html=True)
 
