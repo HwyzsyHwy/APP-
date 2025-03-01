@@ -24,26 +24,22 @@ st.markdown(
         font-weight: bold;
         margin-bottom: 20px;
     }
-    .ultimate-section {
-        background-color: #DAA520;
-        padding: 15px;
+    .section {
+        padding: 10px;
         border-radius: 8px;
         margin-bottom: 10px;
         color: black;
+        display: inline-block; /* 使其成为行内块元素 */
+        width: 30%; /* 设置宽度 */
+    }
+    .ultimate-section {
+        background-color: #DAA520;
     }
     .proximate-section {
         background-color: #32CD32;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        color: black;
     }
     .pyrolysis-section {
         background-color: #FF7F50;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        color: black;
     }
     .section-title {
         font-weight: bold;
@@ -131,7 +127,7 @@ features = {}
 
 # Proximate Analysis (绿色区域)
 with col1:
-    st.markdown("<div class='proximate-section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class='proximate-section section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Proximate Analysis"]:
         # 重置值或使用现有值
@@ -141,7 +137,7 @@ with col1:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
         # 简单的两列布局，缩小间隔
-        col_a, col_b = st.columns([1.2, 1])
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
             st.write(feature)
         with col_b:
@@ -159,7 +155,7 @@ with col1:
 
 # Ultimate Analysis (黄色区域)
 with col2:
-    st.markdown("<div class='ultimate-section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ultimate-section section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Ultimate Analysis"]:
         if st.session_state.clear_pressed:
@@ -167,7 +163,7 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        col_a, col_b = st.columns([1.2, 1])
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
             st.write(feature)
         with col_b:
@@ -185,7 +181,7 @@ with col2:
 
 # Pyrolysis Conditions (橙色区域)
 with col3:
-    st.markdown("<div class='pyrolysis-section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    st.markdown("<div class='pyrolysis-section section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Pyrolysis Conditions"]:
         if st.session_state.clear_pressed:
@@ -196,7 +192,7 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        col_a, col_b = st.columns([1.2, 1])
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
             st.write(feature)
         with col_b:
