@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 设置文字为白色，输入框背景为白色
+# 自定义样式 - 使用更精确的CSS选择器
 st.markdown(
     """
     <style>
@@ -70,11 +70,25 @@ st.markdown(
         color: white !important;  /* 设置为白色 */
     }
     
-    /* 统一设置所有输入框为白色背景和黑色文字 */
-    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
-        background-color: #FFFFFF !important;  /* 白色背景 */
+    /* 对所有数字输入框设置白色背景 - 使用!important确保优先级 */
+    input[type="number"] {
+        background-color: white !important;
         color: black !important;
-        font-size: 18px !important;  /* 增大输入框字体 */
+        font-size: 18px !important;
+    }
+    
+    /* 直接针对Streamlit的数字输入框组件 */
+    [data-testid="stNumberInput"] input {
+        background-color: white !important;
+        color: black !important;
+        font-size: 18px !important;
+    }
+    
+    /* 覆盖Streamlit的默认样式 */
+    .stNumberInput > div > div > input {
+        background-color: white !important;
+        color: black !important;
+        font-size: 18px !important;
     }
     
     /* 增大模型选择和按钮的字体 */
