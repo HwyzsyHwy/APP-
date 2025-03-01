@@ -156,7 +156,8 @@ with col1:
                 value=value, 
                 key=f"proximate_{feature}", 
                 format="%.2f",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                style="background-color: #32CD32;"  # 绿色背景
             )
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -182,7 +183,8 @@ with col2:
                 value=value, 
                 key=f"ultimate_{feature}", 
                 format="%.2f",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                style="background-color: #DAA520;"  # 黄色背景
             )
     
     st.markdown("</div>", unsafe_allow_html=True)
@@ -211,7 +213,8 @@ with col3:
                 value=value, 
                 key=f"pyrolysis_{feature}", 
                 format="%.2f",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                style="background-color: #FF7F50;"  # 橙色背景
             )
     
     st.markdown("</div>", unsafe_allow_html=True)
