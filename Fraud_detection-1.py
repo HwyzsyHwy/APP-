@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式
+# 自定义样式 - 统一颜色
 st.markdown(
     """
     <style>
@@ -53,6 +53,12 @@ st.markdown(
         padding: 15px;
         border-radius: 8px;
         margin-top: 20px;
+    }
+    .input-row {
+        background-color: #2E2E2E;  /* 统一每一行的背景颜色 */
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
     }
     </style>
     """,
@@ -135,9 +141,9 @@ with col1:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
         # 简单的两列布局，缩小间隔
-        col_a, col_b = st.columns([1, 0.2])  # 调整列宽比例，缩小间隔
+        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
         with col_a:
-            st.write(feature)
+            st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -161,9 +167,9 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        col_a, col_b = st.columns([1, 0.2])  # 调整列宽比例，缩小间隔
+        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
         with col_a:
-            st.write(feature)
+            st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -190,9 +196,9 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        col_a, col_b = st.columns([1, 0.2])  # 调整列宽比例，缩小间隔
+        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
         with col_a:
-            st.write(feature)
+            st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
