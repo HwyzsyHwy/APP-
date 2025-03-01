@@ -1,229 +1,149 @@
+# -*- coding: utf-8 -*-
+"""
+Biomass Pyrolysis Yield Forecast
+"""
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
 import joblib
-import os
-import base64
+from sklearn.metrics import r2_score, mean_squared_error
 
-# 页面配置
-st.set_page_config(page_title="生物炭产量预测", layout="wide", page_icon="🌿")
+# 页面设置
+st.set_page_config(
+    page_title='Biomass Pyrolysis Yield Forecast',
+    page_icon='📊',
+    layout='wide'
+)
 
-# 自定义CSS样式
+# 自定义样式
 st.markdown(
     """
     <style>
-    .main {
-        background-color: #0E1117;
-        color: white;
-    }
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .title {
-        color: white;
-        font-size: 2.5rem;
-        font-weight: bold;
+    .main-title {
         text-align: center;
-        margin-bottom: 2rem;
+        font-size: 32px;
+        font-weight: bold;
+        color: white;
+    }
+    .header-background {
+        background-color: #1e1e1e;
+        padding: 10px;
+        border-radius: 8px;
+    }
+    .red-text {
+        color: #ff5c5c;
+        font-size: 20px;
+        font-weight: bold;
+    }
+    .input-section {
+        margin-bottom: 20px;
     }
     .section-header {
         color: white;
-        padding: 0.5rem;
-        border-radius: 5px;
-        text-align: center;
+        font-size: 24px;
         font-weight: bold;
-        margin-top: 0.5rem;
-        margin-bottom: 0.5rem;
+        margin-top: 20px;
+        margin-bottom: 10px;
     }
-    .ultimate-header {
-        background-color: #B8860B;
+    .slider {
+        margin-bottom: 15px;
     }
-    .proximate-header {
-        background-color: #3CB371;
-    }
-    .pyrolysis-header {
+    .pyrolysis-section {
         background-color: #FF8C00;
-    }
-    .data-row {
-        text-align: center;
-        padding: 0.3rem;
-        border-radius: 5px;
-        margin-bottom: 0.5rem;
-        font-weight: bold;
-        color: white;
-    }
-    .ultimate-row {
-        background-color: #B8860B;
-    }
-    .proximate-row {
-        background-color: #3CB371;
-    }
-    .pyrolysis-row {
-        background-color: #FF8C00;
-    }
-    .stButton>button {
-        background-color: #FF5349;
-        color: white;
-        font-weight: bold;
-        border: none;
-        padding: 0.5rem 2rem;
-        border-radius: 5px;
-        width: 100%;
-    }
-    .clear-button>button {
-        background-color: #4682B4;
-    }
-    .error-msg {
-        background-color: rgba(255, 0, 0, 0.1);
-        color: #FF0000;
-        padding: 1rem;
-        border-radius: 5px;
-        margin-top: 1rem;
-    }
-    div[data-testid="stExpander"] {
-        border: 1px solid #333;
-        border-radius: 5px;
-        margin-bottom: 1rem;
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 20px;
     }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 # 主标题
-st.markdown('<h1 class="title">GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>', unsafe_allow_html=True)
+st.markdown("<div class='header-background'><h1 class='main-title'>Biomass Pyrolysis Yield Forecast</h1></div>", unsafe_allow_html=True)
 
-# 模型选择区域
-with st.expander("Model Selection", expanded=True):
-    st.subheader("Available Models")
-    model_option = st.selectbox(
-        "",
-        ["GRID7-Char"],
-    )
-    st.write(f"Current selected model: {model_option}")
+# 模型选择放置在顶部
+st.header("Select a Model")
+model_name = st.selectbox(
+    "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
+)
+st.write(f"Current selected model: **{model_name}**")
 
-# 创建三列布局
-col1, col2, col3 = st.columns(3)
+# 加载模型和Scaler
+MODEL_PATHS = {
+    "GBDT-Char": "GBDT-Char-1.15.joblib",
+    "GBDT-Oil": "GBDT-Oil-1.15.joblib",
+    "GBDT-Gas": "GBDT-Gas-1.15.joblib"
+}
+SCALER_PATHS = {
+    "GBDT-Char": "scaler-Char-1.15.joblib",
+    "GBDT-Oil": "scaler-Oil-1.15.joblib",
+    "GBDT-Gas": "scaler-Gas-1.15.joblib"
+}
 
-# 第一列: Ultimate Analysis (黄色)
+# 加载函数
+def load_model(model_name):
+    return joblib.load(MODEL_PATHS[model_name])
+
+def load_scaler(model_name):
+    return joblib.load(SCALER_PATHS[model_name])
+
+# 特征分类
+feature_categories = {
+    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
+    "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
+}
+
+# 输入特征部分
+st.markdown("<h3 style='color: orange;'>Input Features</h3>", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+
+# 左列：Proximate Analysis
 with col1:
-    st.markdown('<div class="section-header ultimate-header">Ultimate Analysis</div>', unsafe_allow_html=True)
-    
-    # C (wt%)
-    st.markdown('<div class="data-row ultimate-row">C (%)</div>', unsafe_allow_html=True)
-    c_value = st.number_input("", min_value=0.0, max_value=100.0, value=52.09, key="c_input", label_visibility="collapsed")
-    
-    # H (wt%)
-    st.markdown('<div class="data-row ultimate-row">H (%)</div>', unsafe_allow_html=True)
-    h_value = st.number_input("", min_value=0.0, max_value=100.0, value=5.37, key="h_input", label_visibility="collapsed")
-    
-    # N (wt%)
-    st.markdown('<div class="data-row ultimate-row">N (%)</div>', unsafe_allow_html=True)
-    n_value = st.number_input("", min_value=0.0, max_value=100.0, value=0.49, key="n_input", label_visibility="collapsed")
-    
-    # O (wt%)
-    st.markdown('<div class="data-row ultimate-row">O (%)</div>', unsafe_allow_html=True)
-    o_value = st.number_input("", min_value=0.0, max_value=100.0, value=42.10, key="o_input", label_visibility="collapsed")
+    st.subheader("Proximate Analysis")
+    features = {}
+    for feature in feature_categories["Proximate Analysis"]:
+        features[feature] = st.slider(feature, min_value=0.0, max_value=120.0, value=50.0, key=feature)  # 扩大范围
 
-# 第二列: Proximate Analysis (绿色)
+# 中列：Ultimate Analysis
 with col2:
-    st.markdown('<div class="section-header proximate-header">Proximate Analysis</div>', unsafe_allow_html=True)
-    
-    # FC (wt%)
-    st.markdown('<div class="data-row proximate-row">FC (%)</div>', unsafe_allow_html=True)
-    fc_value = st.number_input("", min_value=0.0, max_value=100.0, value=13.20, key="fc_input", label_visibility="collapsed")
-    
-    # VM (wt%)
-    st.markdown('<div class="data-row proximate-row">VM (%)</div>', unsafe_allow_html=True)
-    vm_value = st.number_input("", min_value=0.0, max_value=100.0, value=73.50, key="vm_input", label_visibility="collapsed")
-    
-    # MC (wt%)
-    st.markdown('<div class="data-row proximate-row">MC (%)</div>', unsafe_allow_html=True)
-    mc_value = st.number_input("", min_value=0.0, max_value=100.0, value=4.70, key="mc_input", label_visibility="collapsed")
-    
-    # Ash (wt%)
-    st.markdown('<div class="data-row proximate-row">Ash (%)</div>', unsafe_allow_html=True)
-    ash_value = st.number_input("", min_value=0.0, max_value=100.0, value=8.60, key="ash_input", label_visibility="collapsed")
+    st.subheader("Ultimate Analysis")
+    for feature in feature_categories["Ultimate Analysis"]:
+        features[feature] = st.slider(feature, min_value=30.0, max_value=110.0, value=60.0, key=feature)  # 扩大范围
 
-# 第三列: Pyrolysis Condition (橙色)
-with col3:
-    st.markdown('<div class="section-header pyrolysis-header">Pyrolysis Condition</div>', unsafe_allow_html=True)
-    
-    # Temperature (℃)
-    st.markdown('<div class="data-row pyrolysis-row">Temperature (℃)</div>', unsafe_allow_html=True)
-    temp_value = st.number_input("", min_value=0.0, max_value=1000.0, value=500.00, key="temp_input", label_visibility="collapsed")
-    
-    # Heating Rate (℃/min)
-    st.markdown('<div class="data-row pyrolysis-row">Heating Rate (℃/min)</div>', unsafe_allow_html=True)
-    hr_value = st.number_input("", min_value=0.0, max_value=100.0, value=10.00, key="hr_input", label_visibility="collapsed")
-    
-    # Particle Size (mm)
-    st.markdown('<div class="data-row pyrolysis-row">Particle Size (mm)</div>', unsafe_allow_html=True)
-    ps_value = st.number_input("", min_value=0.0, max_value=100.0, value=1.50, key="ps_input", label_visibility="collapsed")
-    
-    # N2 Flow (L/min)
-    st.markdown('<div class="data-row pyrolysis-row">N2 Flow (L/min)</div>', unsafe_allow_html=True)
-    n2_value = st.number_input("", min_value=0.0, max_value=100.0, value=2.00, key="n2_input", label_visibility="collapsed")
-    
-    # Residence Time (min)
-    st.markdown('<div class="data-row pyrolysis-row">Residence Time (min)</div>', unsafe_allow_html=True)
-    rt_value = st.number_input("", min_value=0.0, max_value=1000.0, value=60.00, key="rt_input", label_visibility="collapsed")
-    
-    # Feedstock Mass (g)
-    st.markdown('<div class="data-row pyrolysis-row">Feedstock Mass (g)</div>', unsafe_allow_html=True)
-    fm_value = st.number_input("", min_value=0.0, max_value=1000.0, value=10.00, key="fm_input", label_visibility="collapsed")
+# 移动 Pyrolysis Condition 到新的位置
+st.markdown("<div class='pyrolysis-section'><h3 style='color: white;'>Pyrolysis Condition</h3></div>", unsafe_allow_html=True)
+pyrolysis_features = {
+    "Temperature (C)": st.slider("Temperature (C)", min_value=0, max_value=1000, value=500),
+    "Heating Rate (C/min)": st.slider("Heating Rate (C/min)", min_value=0, max_value=200, value=10),
+    "Particle Size (mm)": st.slider("Particle Size (mm)", min_value=0.0, max_value=20.0, value=1.5),
+    "N2 Flow (L/min)": st.slider("N2 Flow (L/min)", min_value=0.0, max_value=20.0, value=2.0),
+}
 
-# 添加按钮行
-col1, col2 = st.columns([5, 1])
-with col2:
-    predict_button = st.button("PUSH")
-    clear_button = st.button("CLEAR", key="clear", help="清除所有输入", type="primary")
+# 转换为DataFrame
+input_data = pd.DataFrame([features])
 
-# 处理预测逻辑
-if predict_button:
+# 预测按钮和结果
+st.markdown("<h3 style='color: orange;'>Prediction Results</h3>", unsafe_allow_html=True)
+if st.button("Predict"):
     try:
-        # 准备输入特征
-        features = np.array([
-            c_value, h_value, n_value, o_value,  # Ultimate Analysis
-            fc_value, vm_value, mc_value, ash_value,  # Proximate Analysis
-            temp_value, hr_value, ps_value, n2_value, rt_value, fm_value  # Pyrolysis Condition
-        ]).reshape(1, -1)
-        
-        # 加载模型（假设模型已经保存为pickle文件）
-        # 这里只是一个示例，实际上您需要根据实际情况加载模型
-        try:
-            # 尝试多种可能的模型加载方式
-            if os.path.exists(f"{model_option}.pkl"):
-                model = pickle.load(open(f"{model_option}.pkl", "rb"))
-            elif os.path.exists(f"{model_option}.joblib"):
-                model = joblib.load(f"{model_option}.joblib")
-            else:
-                # 如果没有模型文件，创建一个简单的演示模型（仅用于示例）
-                st.error("未找到模型文件，使用示例预测值进行演示")
-                prediction = 35.2  # 示例预测值
-        except Exception as e:
-            st.error(f"模型加载失败: {str(e)}")
-            # 使用示例预测结果
-            prediction = 35.2  # 示例预测值
-        
-        # 进行预测
-        try:
-            prediction = model.predict(features)[0]
-        except:
-            # 如果模型预测失败，使用示例预测值
-            prediction = 35.2  # 示例预测值
-        
-        # 显示预测结果
-        st.success(f"预测的生物炭产量为: {prediction:.2f}%")
-        
-    except Exception as e:
-        st.error(f"预测过程中出现错误: {str(e)}")
-        st.markdown(f'<div class="error-msg">预测过程出现错误：特征名称必须与训练时的特征名称匹配，且顺序必须相同。</div>', unsafe_allow_html=True)
+        # 加载所选模型和Scaler
+        model = load_model(model_name)
+        scaler = load_scaler(model_name)
 
-# 处理清除按钮逻辑
-if clear_button:
-    # 重置所有输入值为默认值的代码
-    # 由于Streamlit的特性，这里通常需要重新运行应用
+        # 数据标准化
+        input_data_scaled = scaler.transform(input_data)
+
+        # 预测
+        y_pred = model.predict(input_data_scaled)[0]
+
+        # 显示预测结果
+        st.markdown(f"<div class='red-text'>Predicted Yield: {y_pred:.2f}</div>", unsafe_allow_html=True)
+
+    except Exception as e:
+        st.error(f"An error occurred during prediction: {e}")
+
+# 清除按钮
+if st.button("CLEAR"):
     st.experimental_rerun()
