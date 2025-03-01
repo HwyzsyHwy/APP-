@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 根据key属性区分不同列
+# 自定义样式 - 使用多种选择器确保覆盖Streamlit默认样式
 st.markdown(
     """
     <style>
@@ -64,28 +64,32 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* Proximate Analysis列的输入框样式 - 通过key选择器 */
-    [data-baseweb="input"][id*="proximate_"] input,
-    [data-testid="stNumberInput"] input[id*="proximate_"] {
-        background-color: #32CD32 !important; /* 绿色 */
+    /* 强制应用白色背景到输入框 - 使用多种选择器和!important */
+    [data-testid="stNumberInput"] input {
+        background-color: white !important;
         color: black !important;
-        font-size: 18px !important;
     }
     
-    /* Ultimate Analysis列的输入框样式 - 通过key选择器 */
-    [data-baseweb="input"][id*="ultimate_"] input,
-    [data-testid="stNumberInput"] input[id*="ultimate_"] {
-        background-color: #DAA520 !important; /* 黄色 */
+    /* 额外的选择器，确保覆盖到所有可能的输入框元素 */
+    input[type="number"] {
+        background-color: white !important;
         color: black !important;
-        font-size: 18px !important;
     }
-    
-    /* Pyrolysis Conditions列的输入框样式 - 通过key选择器 */
-    [data-baseweb="input"][id*="pyrolysis_"] input,
-    [data-testid="stNumberInput"] input[id*="pyrolysis_"] {
-        background-color: #FF7F50 !important; /* 橙色 */
+
+    /* 尝试更具体的选择器 */
+    div[data-baseweb="input"] input {
+        background-color: white !important;
         color: black !important;
-        font-size: 18px !important;
+    }
+
+    /* 针对输入框容器的选择器 */
+    div[data-baseweb="input"] {
+        background-color: white !important;
+    }
+
+    /* 最后的终极方法 - 应用给所有可能的输入元素 */
+    [data-testid="stNumberInput"] * {
+        background-color: white !important;
     }
     
     /* 增大模型选择和按钮的字体 */
