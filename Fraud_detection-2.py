@@ -1,260 +1,291 @@
+# -*- coding: utf-8 -*-
+"""
+Biomass Pyrolysis Yield Forecast
+"""
+
 import streamlit as st
-import numpy as np
-import pickle
+import pandas as pd
+import joblib
 
-# 设置页面配置
-st.set_page_config(layout="wide")
+# 页面设置
+st.set_page_config(
+    page_title='Biomass Pyrolysis Yield Forecast',
+    page_icon='📊',
+    layout='wide'
+)
 
-# 设置自定义CSS样式 - 简化版
-st.markdown("""
-<style>
-    /* 全局样式 */
-    .main {
+# 自定义样式 - 使用更具针对性的CSS选择器
+st.markdown(
+    """
+    <style>
+    .main-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    .section {
+        padding: 10px;  /* 缩小内边距 */
+        border-radius: 8px;
+        margin-bottom: 10px;
+        color: black;
+    }
+    .ultimate-section {
+        background-color: #DAA520;  /* 黄色 */
+    }
+    .proximate-section {
+        background-color: #32CD32;  /* 绿色 */
+    }
+    .pyrolysis-section {
+        background-color: #FF7F50;  /* 橙色 */
+    }
+    .section-title {
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .yield-result {
         background-color: #1E1E1E;
         color: white;
-    }
-    
-    /* 分析部分样式 */
-    .proximate-analysis {
-        background-color: rgba(46, 139, 87, 0.3);
-        border-radius: 5px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    
-    .ultimate-analysis {
-        background-color: rgba(255, 215, 0, 0.3);
-        border-radius: 5px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    
-    .pyrolysis-conditions {
-        background-color: rgba(255, 140, 0, 0.3);
-        border-radius: 5px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-    
-    /* 标题样式 */
-    h1 {
-        color: white;
+        font-size: 32px;
+        font-weight: bold;
         text-align: center;
-    }
-    
-    h3 {
-        margin-top: 0;
-    }
-    
-    /* 按钮样式 */
-    .predict-btn {
-        background-color: #4CAF50;
-        color: white;
-    }
-    
-    .clear-btn {
-        background-color: #f44336;
-        color: white;
-    }
-    
-    /* 结果样式 */
-    .result {
-        background-color: #3D3D3D;
-        border-radius: 10px;
         padding: 15px;
+        border-radius: 8px;
         margin-top: 20px;
-        text-align: center;
     }
-</style>
-""", unsafe_allow_html=True)
-
-# 标题
-st.markdown("<h1>生物质热解产率预测</h1>", unsafe_allow_html=True)
-
-# 创建会话状态变量
-if 'predicted' not in st.session_state:
-    st.session_state['predicted'] = False
+    .input-row {
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+    }
     
-if 'prediction_result' not in st.session_state:
-    st.session_state['prediction_result'] = None
+    /* 为Proximate Analysis部分的输入框添加绿色背景 */
+    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
+        background-color: #32CD32 !important;
+        color: black !important;
+    }
+    
+    /* 为Ultimate Analysis部分的输入框添加黄色背景 */
+    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
+        background-color: #DAA520 !important;
+        color: black !important;
+    }
+    
+    /* 为Pyrolysis Conditions部分的输入框添加橙色背景 */
+    [data-testid="stNumberInput"] > div:first-child > div:first-child > input {
+        background-color: #FF7F50 !important;
+        color: black !important;
+    }
+    
+    /* 完全移除数字输入框的加减按钮 */
+    [data-testid="stNumberInput"] > div:nth-child(2) {
+        display: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# 主标题
+st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
+
+# 初始化会话状态
+if 'clear_pressed' not in st.session_state:
+    st.session_state.clear_pressed = False
+
+# 模型选择
+with st.expander("Model Selection", expanded=False):
+    model_name = st.selectbox(
+        "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
+    )
+    st.write(f"Current selected model: **{model_name}**")
+
+# 模型路径
+MODEL_PATHS = {
+    "GBDT-Char": "GBDT-Char-1.15.joblib",
+    "GBDT-Oil": "GBDT-Oil-1.15.joblib",
+    "GBDT-Gas": "GBDT-Gas-1.15.joblib"
+}
+SCALER_PATHS = {
+    "GBDT-Char": "scaler-Char-1.15.joblib",
+    "GBDT-Oil": "scaler-Oil-1.15.joblib",
+    "GBDT-Gas": "scaler-Gas-1.15.joblib"
+}
+
+# 加载函数
+def load_model(model_name):
+    return joblib.load(MODEL_PATHS[model_name])
+
+def load_scaler(model_name):
+    return joblib.load(SCALER_PATHS[model_name])
 
 # 定义默认值
 default_values = {
-    'M': 5.0, 'Ash': 8.0, 'VM': 75.0, 'FC': 15.0,
-    'C': 50.0, 'H': 6.0, 'O': 40.0, 'N': 1.0, 'S': 0.1,
-    'Temperature': 500, 'Heating_rate': 10, 'Holding_time': 30
+    "M(wt%)": 5.0,
+    "Ash(wt%)": 8.0,
+    "VM(wt%)": 75.0,
+    "FC(wt%)": 15.0,
+    "C(wt%)": 60.0,
+    "H(wt%)": 5.0,
+    "N(wt%)": 1.0,
+    "O(wt%)": 38.0,
+    "PS(mm)": 6.0,
+    "SM(g)": 75.0,
+    "FT(℃)": 600.0,
+    "HR(℃/min)": 50.0,
+    "FR(mL/min)": 50.0,
+    "RT(min)": 30.0
 }
 
-# 清除函数
-def clear_inputs():
-    for key in default_values:
-        st.session_state[key] = default_values[key]
-    st.session_state['predicted'] = False
-    st.session_state['prediction_result'] = None
+# 特征分类
+feature_categories = {
+    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
+    "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
+    "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
+}
 
-# 主布局
+# 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# 第一列 - 近似分析
+# 使用字典来存储所有输入值
+features = {}
+
+# Proximate Analysis (绿色区域)
 with col1:
-    st.markdown('<div class="proximate-analysis">', unsafe_allow_html=True)
-    st.markdown("<h3>近似分析</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='proximate-section section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
     
-    m = st.number_input(
-        "M(wt%)", 
-        min_value=0.0, 
-        max_value=50.0, 
-        value=default_values['M'] if 'M' not in st.session_state else st.session_state['M'],
-        step=0.1,
-        key='M'
-    )
+    for feature in feature_categories["Proximate Analysis"]:
+        # 重置值或使用现有值
+        if st.session_state.clear_pressed:
+            value = default_values[feature]
+        else:
+            value = st.session_state.get(f"proximate_{feature}", default_values[feature])
+        
+        # 简单的两列布局
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        with col_a:
+            st.markdown(f"<div class='input-row' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)  # 绿色背景
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=0.0, 
+                max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
+                value=value, 
+                key=f"proximate_{feature}", 
+                format="%.2f",
+                label_visibility="collapsed"
+            )
     
-    ash = st.number_input(
-        "Ash(wt%)", 
-        min_value=0.0, 
-        max_value=50.0, 
-        value=default_values['Ash'] if 'Ash' not in st.session_state else st.session_state['Ash'],
-        step=0.1,
-        key='Ash'
-    )
-    
-    vm = st.number_input(
-        "VM(wt%)", 
-        min_value=0.0, 
-        max_value=100.0, 
-        value=default_values['VM'] if 'VM' not in st.session_state else st.session_state['VM'],
-        step=0.1,
-        key='VM'
-    )
-    
-    fc = st.number_input(
-        "FC(wt%)", 
-        min_value=0.0, 
-        max_value=100.0, 
-        value=default_values['FC'] if 'FC' not in st.session_state else st.session_state['FC'],
-        step=0.1,
-        key='FC'
-    )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# 第二列 - 元素分析
+# Ultimate Analysis (黄色区域)
 with col2:
-    st.markdown('<div class="ultimate-analysis">', unsafe_allow_html=True)
-    st.markdown("<h3>元素分析</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='ultimate-section section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
-    c = st.number_input(
-        "C(wt%)", 
-        min_value=0.0, 
-        max_value=100.0, 
-        value=default_values['C'] if 'C' not in st.session_state else st.session_state['C'],
-        step=0.1,
-        key='C'
-    )
+    for feature in feature_categories["Ultimate Analysis"]:
+        if st.session_state.clear_pressed:
+            value = default_values[feature]
+        else:
+            value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
+        
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        with col_a:
+            st.markdown(f"<div class='input-row' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)  # 黄色背景
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
+                max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
+                value=value, 
+                key=f"ultimate_{feature}", 
+                format="%.2f",
+                label_visibility="collapsed"
+            )
     
-    h = st.number_input(
-        "H(wt%)", 
-        min_value=0.0, 
-        max_value=20.0, 
-        value=default_values['H'] if 'H' not in st.session_state else st.session_state['H'],
-        step=0.1,
-        key='H'
-    )
-    
-    o = st.number_input(
-        "O(wt%)", 
-        min_value=0.0, 
-        max_value=100.0, 
-        value=default_values['O'] if 'O' not in st.session_state else st.session_state['O'],
-        step=0.1,
-        key='O'
-    )
-    
-    n = st.number_input(
-        "N(wt%)", 
-        min_value=0.0, 
-        max_value=20.0, 
-        value=default_values['N'] if 'N' not in st.session_state else st.session_state['N'],
-        step=0.1,
-        key='N'
-    )
-    
-    s = st.number_input(
-        "S(wt%)", 
-        min_value=0.0, 
-        max_value=10.0, 
-        value=default_values['S'] if 'S' not in st.session_state else st.session_state['S'],
-        step=0.01,
-        key='S'
-    )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# 第三列 - 热解条件
+# Pyrolysis Conditions (橙色区域)
 with col3:
-    st.markdown('<div class="pyrolysis-conditions">', unsafe_allow_html=True)
-    st.markdown("<h3>热解条件</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='pyrolysis-section section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     
-    temperature = st.number_input(
-        "温度 (°C)", 
-        min_value=200, 
-        max_value=1000, 
-        value=default_values['Temperature'] if 'Temperature' not in st.session_state else st.session_state['Temperature'],
-        step=10,
-        key='Temperature'
-    )
+    for feature in feature_categories["Pyrolysis Conditions"]:
+        if st.session_state.clear_pressed:
+            value = default_values[feature]
+        else:
+            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
+        
+        min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
+        max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
+        
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        with col_a:
+            st.markdown(f"<div class='input-row' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)  # 橙色背景
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=min_val, 
+                max_value=max_val, 
+                value=value, 
+                key=f"pyrolysis_{feature}", 
+                format="%.2f",
+                label_visibility="collapsed"
+            )
     
-    heating_rate = st.number_input(
-        "升温速率 (°C/min)", 
-        min_value=1, 
-        max_value=100, 
-        value=default_values['Heating_rate'] if 'Heating_rate' not in st.session_state else st.session_state['Heating_rate'],
-        step=1,
-        key='Heating_rate'
-    )
-    
-    holding_time = st.number_input(
-        "保温时间 (min)", 
-        min_value=0, 
-        max_value=120, 
-        value=default_values['Holding_time'] if 'Holding_time' not in st.session_state else st.session_state['Holding_time'],
-        step=1,
-        key='Holding_time'
-    )
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# 按钮布局
-col1, col2 = st.columns(2)
+# 重置session_state中的clear_pressed状态
+if st.session_state.clear_pressed:
+    st.session_state.clear_pressed = False
 
-with col1:
-    predict_button = st.button("预测", key="predict")
+# 转换为DataFrame
+input_data = pd.DataFrame([features])
 
-with col2:
-    clear_button = st.button("清除", key="clear", on_click=clear_inputs)
+# 预测结果显示区域和按钮
+result_col, button_col = st.columns([3, 1])
 
-# 预测逻辑
-if predict_button or st.session_state['predicted']:
-    st.session_state['predicted'] = True
+with result_col:
+    prediction_placeholder = st.empty()
     
+with button_col:
+    predict_button = st.button("PUSH", key="predict")
+    
+    # 定义Clear按钮的回调函数
+    def clear_values():
+        st.session_state.clear_pressed = True
+        # 清除显示
+        if 'prediction_result' in st.session_state:
+            st.session_state.prediction_result = None
+    
+    clear_button = st.button("CLEAR", key="clear", on_click=clear_values)
+
+# 处理预测逻辑
+if predict_button:
     try:
-        # 创建特征数组
-        features = [m, ash, vm, fc, c, h, o, n, s, temperature, heating_rate, holding_time]
+        # 加载所选模型和Scaler
+        model = load_model(model_name)
+        scaler = load_scaler(model_name)
+
+        # 数据标准化
+        input_data_scaled = scaler.transform(input_data)
+
+        # 预测
+        y_pred = model.predict(input_data_scaled)[0]
         
-        # 模拟模型预测结果（由于没有实际模型）
-        # 在实际应用中，应替换为模型预测逻辑
-        prediction = 30.0 + 0.05 * temperature - 0.5 * m + 0.3 * c - 0.2 * ash
-        prediction = max(10.0, min(50.0, prediction))  # 将结果限制在10-50范围内
-        
-        st.session_state['prediction_result'] = prediction
-        
+        # 保存预测结果到session_state
+        st.session_state.prediction_result = y_pred
+
         # 显示预测结果
-        st.markdown(f'''
-        <div class="result">
-            <h3>预测结果</h3>
-            <h2>产率 (%): {st.session_state["prediction_result"]:.2f}</h2>
-        </div>
-        ''', unsafe_allow_html=True)
-        
+        prediction_placeholder.markdown(
+            f"<div class='yield-result'>Yield (%) <br> {y_pred:.2f}</div>",
+            unsafe_allow_html=True
+        )
     except Exception as e:
-        st.error(f"预测时出错: {e}")
+        st.error(f"预测过程中出现错误: {e}")
+
+# 如果有保存的预测结果，显示它
+if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
+    prediction_placeholder.markdown(
+        f"<div class='yield-result'>Yield (%) <br> {st.session_state.prediction_result:.2f}</div>",
+        unsafe_allow_html=True
+    )
