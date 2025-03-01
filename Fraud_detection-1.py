@@ -276,7 +276,7 @@ if predict_button:
 
         # 显示预测结果
         prediction_placeholder.markdown(
-            f"<div class='yield-result'>Biochar Yield (%) <br> {y_pred:.2f}</div>",
+            f"<div class='yield-result'>Yield (%) <br> {y_pred:.2f}</div>",
             unsafe_allow_html=True
         )
     except Exception as e:
@@ -285,6 +285,6 @@ if predict_button:
 # 如果有保存的预测结果，显示它
 if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
     prediction_placeholder.markdown(
-        f"<div class='yield-result'>Biochar Yield (%) <br> {st.session_state.prediction_result:.2f}</div>",
+        f"<div class='yield-result'>Yield (%) <br> {st.session_state.prediction_result:.2f}</div>",
         unsafe_allow_html=True
     )
