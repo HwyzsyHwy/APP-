@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用更精确的选择器
+# 自定义样式
 st.markdown(
     """
     <style>
@@ -32,7 +32,7 @@ st.markdown(
         color: white !important;
     }
     
-    /* 区域样式 */
+    /* 区域标题样式 */
     .section-header {
         color: white;
         font-weight: bold;
@@ -64,42 +64,26 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 使用基于key前缀的选择器为不同列的输入框设置不同的背景色 */
-    /* 第一列 - 绿色 */
-    [data-testid="stNumberInput"] input[id*="proximate_"] {
-        background-color: #90EE90 !important; /* 浅绿色 */
-        color: black !important;
-        border-radius: 5px !important;
+    /* 自定义输入框容器样式 */
+    .green-container {
+        background-color: #32CD32;
+        padding: 3px;
+        border-radius: 5px;
+        margin-bottom: 8px;
     }
     
-    /* 第二列 - 黄色 */
-    [data-testid="stNumberInput"] input[id*="ultimate_"] {
-        background-color: #FFFFE0 !important; /* 浅黄色 */
-        color: black !important;
-        border-radius: 5px !important;
+    .yellow-container {
+        background-color: #DAA520;
+        padding: 3px;
+        border-radius: 5px;
+        margin-bottom: 8px;
     }
     
-    /* 第三列 - 橙色 */
-    [data-testid="stNumberInput"] input[id*="pyrolysis_"] {
-        background-color: #FFDAB9 !important; /* 浅橙色 */
-        color: black !important;
-        border-radius: 5px !important;
-    }
-    
-    /* 输入框容器样式调整 */
-    [data-testid="stNumberInput"] div:first-child {
-        border: none !important;
-        background-color: transparent !important;
-    }
-    
-    /* 增大模型选择和按钮的字体 */
-    .stSelectbox, .stButton button {
-        font-size: 18px !important;
-    }
-    
-    /* 增大展开器标题字体 */
-    [data-testid="stExpander"] div[role="button"] p {
-        font-size: 20px !important;
+    .orange-container {
+        background-color: #FF7F50;
+        padding: 3px;
+        border-radius: 5px;
+        margin-bottom: 8px;
     }
     </style>
     """,
@@ -181,20 +165,21 @@ with col1:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 简单的两列布局
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)  # 绿色背景
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=0.0, 
-                max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
-                value=value, 
-                key=f"proximate_{feature}", # 使用proximate_前缀作为key
-                format="%.2f",
-                label_visibility="collapsed"
-            )
+        # 显示标签
+        st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)
+        
+        # 包装输入框在彩色容器中
+        st.markdown("<div class='green-container'>", unsafe_allow_html=True)
+        features[feature] = st.number_input(
+            "", 
+            min_value=0.0, 
+            max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
+            value=value, 
+            key=f"proximate_{feature}", 
+            format="%.2f",
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # Ultimate Analysis (黄色区域)
 with col2:
@@ -206,19 +191,21 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)  # 黄色背景
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
-                max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
-                value=value, 
-                key=f"ultimate_{feature}", # 使用ultimate_前缀作为key
-                format="%.2f",
-                label_visibility="collapsed"
-            )
+        # 显示标签
+        st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)
+        
+        # 包装输入框在彩色容器中
+        st.markdown("<div class='yellow-container'>", unsafe_allow_html=True)
+        features[feature] = st.number_input(
+            "", 
+            min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
+            max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
+            value=value, 
+            key=f"ultimate_{feature}", 
+            format="%.2f",
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域)
 with col3:
@@ -233,19 +220,21 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)  # 橙色背景
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=min_val, 
-                max_value=max_val, 
-                value=value, 
-                key=f"pyrolysis_{feature}", # 使用pyrolysis_前缀作为key
-                format="%.2f",
-                label_visibility="collapsed"
-            )
+        # 显示标签
+        st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
+        
+        # 包装输入框在彩色容器中
+        st.markdown("<div class='orange-container'>", unsafe_allow_html=True)
+        features[feature] = st.number_input(
+            "", 
+            min_value=min_val, 
+            max_value=max_val, 
+            value=value, 
+            key=f"pyrolysis_{feature}", 
+            format="%.2f",
+            label_visibility="collapsed"
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
 if st.session_state.clear_pressed:
