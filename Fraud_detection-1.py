@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 缩小边框宽度
+# 自定义样式
 st.markdown(
     """
     <style>
@@ -135,7 +135,7 @@ with col1:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
         # 简单的两列布局，缩小间隔
-        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.2])  # 调整列宽比例，缩小间隔
         with col_a:
             st.write(feature)
         with col_b:
@@ -161,7 +161,7 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.2])  # 调整列宽比例，缩小间隔
         with col_a:
             st.write(feature)
         with col_b:
@@ -190,7 +190,7 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.2])  # 调整列宽比例，缩小间隔
         with col_a:
             st.write(feature)
         with col_b:
