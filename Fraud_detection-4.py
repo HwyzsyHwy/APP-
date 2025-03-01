@@ -14,8 +14,83 @@ st.set_page_config(
     layout='wide'
 )
 
+# 自定义样式 - 不尝试修改输入框背景
+st.markdown(
+    """
+    <style>
+    /* 全局字体设置 */
+    html, body, [class*="css"] {
+        font-size: 16px !important;  /* 增大基础字体大小 */
+    }
+    
+    .main-title {
+        text-align: center;
+        font-size: 32px !important;  /* 从28px增大到32px */
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: white !important;  /* 设置为白色 */
+    }
+    .section {
+        padding: 10px;  /* 缩小内边距 */
+        border-radius: 8px;
+        margin-bottom: 10px;
+        color: white !important;  /* 设置为白色 */
+    }
+    .ultimate-section {
+        background-color: #DAA520;  /* 黄色 */
+    }
+    .proximate-section {
+        background-color: #32CD32;  /* 绿色 */
+    }
+    .pyrolysis-section {
+        background-color: #FF7F50;  /* 橙色 */
+    }
+    .section-title {
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 22px !important;  /* 增大分析区域标题 */
+        color: white !important;  /* 设置为白色 */
+    }
+    .yield-result {
+        background-color: #1E1E1E;
+        color: white;
+        font-size: 36px !important;  /* 从32px增大到36px */
+        font-weight: bold;
+        text-align: center;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    .input-row {
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        font-size: 18px !important;  /* 增大输入标签字体 */
+        color: white !important;  /* 设置为白色 */
+    }
+    
+    /* 增大模型选择和按钮的字体 */
+    .stSelectbox, .stButton button {
+        font-size: 18px !important;
+    }
+    
+    /* 增大展开器标题字体 */
+    [data-testid="stExpander"] div[role="button"] p {
+        font-size: 20px !important;
+    }
+    
+    /* 增大错误消息字体 */
+    .stAlert p {
+        font-size: 18px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # 主标题
-st.markdown("<h1 style='text-align:center;font-size:32px;font-weight:bold;margin-bottom:20px;color:white;'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -78,47 +153,9 @@ col1, col2, col3 = st.columns(3)
 # 使用字典来存储所有输入值
 features = {}
 
-# 创建自定义样式
-custom_css = """
-<style>
-    .section-header {
-        color: white;
-        font-weight: bold;
-        font-size: 22px;
-        text-align: center;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-    
-    .input-label {
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        font-size: 18px;
-        color: white;
-    }
-    
-    .yield-result {
-        background-color: #1E1E1E;
-        color: white;
-        font-size: 36px;
-        font-weight: bold;
-        text-align: center;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 20px;
-    }
-</style>
-"""
-
-st.markdown(custom_css, unsafe_allow_html=True)
-
 # Proximate Analysis (绿色区域)
 with col1:
-    # 使用Streamlit的容器功能
-    prox_container = st.container()
-    prox_container.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class='proximate-section section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Proximate Analysis"]:
         # 重置值或使用现有值
@@ -127,13 +164,11 @@ with col1:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 创建两列布局
-        label_col, input_col = st.columns([1, 0.5])
-        
-        with label_col:
-            st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)
-        
-        with input_col:
+        # 简单的两列布局
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        with col_a:
+            st.markdown(f"<div class='input-row' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)  # 绿色背景
+        with col_b:
             features[feature] = st.number_input(
                 "", 
                 min_value=0.0, 
@@ -143,11 +178,12 @@ with col1:
                 format="%.2f",
                 label_visibility="collapsed"
             )
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Ultimate Analysis (黄色区域)
 with col2:
-    ult_container = st.container()
-    ult_container.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ultimate-section section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Ultimate Analysis"]:
         if st.session_state.clear_pressed:
@@ -155,13 +191,10 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        # 创建两列布局
-        label_col, input_col = st.columns([1, 0.5])
-        
-        with label_col:
-            st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)
-        
-        with input_col:
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        with col_a:
+            st.markdown(f"<div class='input-row' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)  # 黄色背景
+        with col_b:
             features[feature] = st.number_input(
                 "", 
                 min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
@@ -171,11 +204,12 @@ with col2:
                 format="%.2f",
                 label_visibility="collapsed"
             )
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域)
 with col3:
-    pyro_container = st.container()
-    pyro_container.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    st.markdown("<div class='pyrolysis-section section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Pyrolysis Conditions"]:
         if st.session_state.clear_pressed:
@@ -186,13 +220,10 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        # 创建两列布局
-        label_col, input_col = st.columns([1, 0.5])
-        
-        with label_col:
-            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
-        
-        with input_col:
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        with col_a:
+            st.markdown(f"<div class='input-row' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)  # 橙色背景
+        with col_b:
             features[feature] = st.number_input(
                 "", 
                 min_value=min_val, 
@@ -202,6 +233,8 @@ with col3:
                 format="%.2f",
                 label_visibility="collapsed"
             )
+    
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
 if st.session_state.clear_pressed:
