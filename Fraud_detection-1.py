@@ -193,19 +193,6 @@ with col3:
             features[feature] = st.slider(feature, min_value=5.0, max_value=100.0, value=30.0, key=f"pyrolysis_{feature}")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 添加另一部分单独展示热解条件的重要参数
-st.markdown("<div class='pyrolysis-section'><div class='section-title'>Pyrolysis Condition</div>", unsafe_allow_html=True)
-pyrolysis_cols = st.columns(4)
-with pyrolysis_cols[0]:
-    st.markdown(f"<div style='text-align:center;'>Temperature (℃)<br><b>{features['FT(℃)']}</b></div>", unsafe_allow_html=True)
-with pyrolysis_cols[1]:
-    st.markdown(f"<div style='text-align:center;'>Heating Rate (℃/min)<br><b>{features['HR(℃/min)']}</b></div>", unsafe_allow_html=True)
-with pyrolysis_cols[2]:
-    st.markdown(f"<div style='text-align:center;'>Particle Size (mm)<br><b>{features['PS(mm)']}</b></div>", unsafe_allow_html=True)
-with pyrolysis_cols[3]:
-    st.markdown(f"<div style='text-align:center;'>N2 Flow (L/min)<br><b>{features['FR(mL/min)']}</b></div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
 # 转换为DataFrame
 input_data = pd.DataFrame([features])
 
