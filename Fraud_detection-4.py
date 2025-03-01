@@ -105,10 +105,8 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 # 主标题
-st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
-
+st.markdown("<h1 class='main-title'>Prediction of crop biomass cracking yield based on GBDT modeling</h1>", unsafe_allow_html=True)
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
