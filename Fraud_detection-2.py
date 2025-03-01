@@ -78,8 +78,8 @@ st.markdown(
         color: black !important;
     }
     
-    /* 完全移除数字输入框的加减按钮 */
-    [data-testid="stNumberInput"] > div:nth-child(2) {
+    /* 隐藏number input的加减按钮 */
+    [data-testid="stNumberInput"] > div:first-child > div:nth-child(2) {
         display: none !important;
     }
     </style>
