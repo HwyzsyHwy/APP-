@@ -14,23 +14,15 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式
+# 自定义样式 - 只包含必要的样式
 st.markdown(
     """
     <style>
-    body {
-        background-color: #0e1117;
-        color: white;
-    }
     .main-title {
         text-align: center;
         font-size: 28px;
         font-weight: bold;
-        color: white;
         margin-bottom: 20px;
-        padding: 10px;
-        background-color: #1e1e1e;
-        border-radius: 5px;
     }
     .ultimate-section {
         background-color: #DAA520;
@@ -68,19 +60,6 @@ st.markdown(
         border-radius: 8px;
         margin-top: 20px;
     }
-    .input-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-    }
-    .input-label {
-        flex: 1;
-        margin-right: 10px;
-    }
-    .input-field {
-        flex: 0.3; /* 控制输入框的宽度 */
-    }
     </style>
     """,
     unsafe_allow_html=True
@@ -89,18 +68,18 @@ st.markdown(
 # 主标题
 st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
 
-# 初始化会话状态，用于保存是否需要清除数据
+# 初始化会话状态
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
 
-# 隐藏模型选择，让它不那么突出
+# 模型选择
 with st.expander("Model Selection", expanded=False):
     model_name = st.selectbox(
         "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
     )
     st.write(f"Current selected model: **{model_name}**")
 
-# 加载模型和Scaler
+# 模型路径
 MODEL_PATHS = {
     "GBDT-Char": "GBDT-Char-1.15.joblib",
     "GBDT-Oil": "GBDT-Oil-1.15.joblib",
@@ -147,42 +126,68 @@ feature_categories = {
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# Proximate Analysis (绿色区域) - 在第一列
+# 使用字典来存储所有输入值
+features = {}
+
+# Proximate Analysis (绿色区域)
 with col1:
     st.markdown("<div class='proximate-section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
-    features = {}
+    
     for feature in feature_categories["Proximate Analysis"]:
+        # 重置值或使用现有值
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 创建输入行
-        st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
-        features[feature] = st.number_input("", min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}", format="%.2f", help="Enter value", width=100)
-        st.markdown("</div>", unsafe_allow_html=True)
+        # 简单的两列布局
+        col_a, col_b = st.columns([1.5, 1])
+        with col_a:
+            st.write(feature)
+        with col_b:
+            # 移除width参数
+            features[feature] = st.number_input(
+                "", 
+                min_value=0.0, 
+                max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
+                value=value, 
+                key=f"proximate_{feature}", 
+                format="%.2f",
+                label_visibility="collapsed"
+            )
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Ultimate Analysis (黄色区域) - 在第二列
+# Ultimate Analysis (黄色区域)
 with col2:
     st.markdown("<div class='ultimate-section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
+    
     for feature in feature_categories["Ultimate Analysis"]:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        # 创建输入行
-        st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
-        features[feature] = st.number_input("", min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}", format="%.2f", help="Enter value", width=100)
-        st.markdown("</div>", unsafe_allow_html=True)
+        col_a, col_b = st.columns([1.5, 1])
+        with col_a:
+            st.write(feature)
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
+                max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
+                value=value, 
+                key=f"ultimate_{feature}", 
+                format="%.2f",
+                label_visibility="collapsed"
+            )
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
-# Pyrolysis Conditions (橙色区域) - 在第三列
+# Pyrolysis Conditions (橙色区域)
 with col3:
     st.markdown("<div class='pyrolysis-section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    
     for feature in feature_categories["Pyrolysis Conditions"]:
         if st.session_state.clear_pressed:
             value = default_values[feature]
@@ -192,11 +197,20 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        # 创建输入行
-        st.markdown("<div class='input-row'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
-        features[feature] = st.number_input("", min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}", format="%.2f", help="Enter value", width=100)
-        st.markdown("</div>", unsafe_allow_html=True)
+        col_a, col_b = st.columns([1.5, 1])
+        with col_a:
+            st.write(feature)
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=min_val, 
+                max_value=max_val, 
+                value=value, 
+                key=f"pyrolysis_{feature}", 
+                format="%.2f",
+                label_visibility="collapsed"
+            )
+    
     st.markdown("</div>", unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
@@ -218,7 +232,7 @@ with button_col:
     # 定义Clear按钮的回调函数
     def clear_values():
         st.session_state.clear_pressed = True
-        # 尝试更新预测结果区域，清除显示
+        # 清除显示
         if 'prediction_result' in st.session_state:
             st.session_state.prediction_result = None
     
