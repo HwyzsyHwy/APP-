@@ -300,7 +300,7 @@ if predict_button:
 
         # 显示预测结果
         prediction_placeholder.markdown(
-            f"<div class='yield-result'>Yield (wt%) <br> {y_pred:.2f}</div>",
+            f"<div class='yield-result'>Yield () <br> {y_pred:.2f}</div>",
             unsafe_allow_html=True
         )
     except Exception as e:
