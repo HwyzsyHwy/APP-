@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用图中展示的多种CSS选择器方法
+# 自定义样式 - 针对近似分析部分的整个数字输入控件
 st.markdown(
     """
     <style>
@@ -64,27 +64,14 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 使用图中的方法为第一列设置绿色背景 */
-    .proximate-inputs [data-testid="stNumberInput"] input {
+    /* 修改第一列数字输入控件的整个背景色为绿色 */
+    .proximate-inputs [data-testid="stNumberInput"] {
         background-color: #32CD32 !important;
-        color: white !important;
+        border-radius: 5px !important;
     }
     
-    .proximate-inputs input[type="number"] {
-        background-color: #32CD32 !important;
-        color: white !important;
-    }
-    
-    .proximate-inputs div[data-baseweb="input"] input {
-        background-color: #32CD32 !important;
-        color: white !important;
-    }
-    
-    .proximate-inputs div[data-baseweb="input"] {
-        background-color: #32CD32 !important;
-    }
-    
-    .proximate-inputs [data-testid="stNumberInput"] * {
+    /* 确保输入控件内部所有元素（加减按钮等）也使用绿色背景 */
+    .proximate-inputs [data-testid="stNumberInput"] > div {
         background-color: #32CD32 !important;
     }
     
