@@ -7,7 +7,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-from sklearn.metrics import r2_score, mean_squared_error
 
 # 页面设置
 st.set_page_config(
