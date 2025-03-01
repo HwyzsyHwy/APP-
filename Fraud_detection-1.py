@@ -60,6 +60,12 @@ st.markdown(
         border-radius: 5px;
         margin-bottom: 5px;
     }
+    .input-label {
+        background-color: #32CD32;  /* 绿色背景 */
+        padding: 5px;
+        border-radius: 5px;
+        color: black;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -143,7 +149,7 @@ with col1:
         # 简单的两列布局
         col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
-            st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)  # 设置标签背景颜色
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -169,7 +175,7 @@ with col2:
         
         col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
-            st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)  # 设置标签背景颜色
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -198,7 +204,7 @@ with col3:
         
         col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
-            st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)  # 设置标签背景颜色
         with col_b:
             features[feature] = st.number_input(
                 "", 
