@@ -31,13 +31,13 @@ st.markdown(
         color: black;
     }
     .ultimate-section {
-        background-color: #DAA520;
+        background-color: #DAA520;  /* 黄色 */
     }
     .proximate-section {
-        background-color: #32CD32;
+        background-color: #32CD32;  /* 绿色 */
     }
     .pyrolysis-section {
-        background-color: #FF7F50;
+        background-color: #FF7F50;  /* 橙色 */
     }
     .section-title {
         font-weight: bold;
@@ -140,8 +140,8 @@ with col1:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 简单的两列布局，缩小间隔
-        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
+        # 简单的两列布局
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
             st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
@@ -167,7 +167,7 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
             st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
@@ -196,7 +196,7 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        col_a, col_b = st.columns([1, 0.3])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
         with col_a:
             st.markdown(f"<div class='input-row'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
