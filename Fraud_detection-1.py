@@ -54,6 +54,12 @@ st.markdown(
         border-radius: 8px;
         margin-top: 20px;
     }
+    .input-row {
+        background-color: #2E2E2E;  /* 统一每一行的背景颜色 */
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+    }
     </style>
     """,
     unsafe_allow_html=True
