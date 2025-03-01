@@ -16,143 +16,102 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 根据图片样式修改
+# 自定义样式
 st.markdown(
     """
     <style>
-    /* 整体背景设置为深色 */
-    .stApp {
+    body {
         background-color: #0e1117;
+        color: white;
     }
-    
-    /* 主标题样式 */
     .main-title {
         text-align: center;
         font-size: 28px;
         font-weight: bold;
         color: white;
-        padding: 10px 0;
+        margin-bottom: 20px;
+        padding: 10px;
         background-color: #1e1e1e;
         border-radius: 5px;
-        margin-bottom: 20px;
     }
-    
-    /* 三个分析部分的样式 */
     .ultimate-section {
-        background-color: #c9a21f;
-        padding: 5px;
-        border-radius: 5px;
+        background-color: #DAA520;
+        padding: 15px;
+        border-radius: 8px;
         margin-bottom: 10px;
         color: black;
-        font-weight: bold;
-        text-align: center;
     }
-    
     .proximate-section {
-        background-color: #4caf50;
-        padding: 5px;
-        border-radius: 5px;
+        background-color: #32CD32;
+        padding: 15px;
+        border-radius: 8px;
         margin-bottom: 10px;
-        color: white;
-        font-weight: bold;
-        text-align: center;
+        color: black;
     }
-    
-    .structural-section {
-        background-color: #b71c1c;
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 10px;
-        color: white;
-        font-weight: bold;
-        text-align: center;
-    }
-    
-    /* 热解条件部分样式 */
     .pyrolysis-section {
-        background-color: #ff7043;
-        padding: 5px;
-        border-radius: 5px;
+        background-color: #FF7F50;
+        padding: 15px;
+        border-radius: 8px;
         margin-bottom: 10px;
-        color: white;
+        color: black;
+    }
+    .section-title {
         font-weight: bold;
         text-align: center;
+        margin-bottom: 10px;
     }
-    
-    /* 参数值样式 */
-    .param-value {
-        background-color: #293241;
-        padding: 5px 10px;
-        border-radius: 5px;
+    .stSlider {
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+    .yield-result {
+        background-color: #1E1E1E;
         color: white;
+        font-size: 32px;
         font-weight: bold;
-        margin: 5px 0;
-        display: flex;
-        justify-content: space-between;
-    }
-    
-    /* 结果显示样式 */
-    .result-box {
-        background-color: #1e1e1e;
-        padding: 20px;
+        text-align: center;
+        padding: 15px;
         border-radius: 8px;
         margin-top: 20px;
+    }
+    .button-container {
         display: flex;
-        align-items: center;
-        justify-content: center;
+        justify-content: space-between;
+        margin-top: 20px;
     }
-    
-    .yield-label {
-        font-size: 22px;
-        font-weight: bold;
+    .predict-button {
+        background-color: #ff4b4b;
         color: white;
-        margin-right: 15px;
-    }
-    
-    .yield-value {
-        background-color: #1e1e1e;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-size: 28px;
-        font-weight: bold;
-        color: white;
-    }
-    
-    /* 按钮样式 */
-    .stButton > button {
-        background-color: #e53935;
-        color: white;
-        font-weight: bold;
         border: none;
-        padding: 10px 20px;
         border-radius: 5px;
-        width: 100%;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
     }
-    
-    .clear-button > button {
-        background-color: #1e88e5;
+    .clear-button {
+        background-color: #ff4b4b;
         color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
     }
-    
-    /* 滑动条样式调整 */
-    .stSlider > div > div {
-        background-color: rgba(255, 255, 255, 0.2);
+    div.stSlider > div > div > div {
+        color: black !important;
     }
-    
-    /* 隐藏一些默认Streamlit元素 */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
     </style>
     """,
     unsafe_allow_html=True
 )
 
 # 主标题
-st.markdown("<div class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</div>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
 
-# 隐藏模型选择部分，放在边栏或者更不显眼的位置
-with st.sidebar:
-    st.header("Model Selection")
+# 隐藏模型选择，让它不那么突出
+with st.expander("Model Selection", expanded=False):
     model_name = st.selectbox(
         "Available Models", ["GBDT-Char", "GBDT-Oil", "GBDT-Gas"]
     )
@@ -177,102 +136,90 @@ def load_model(model_name):
 def load_scaler(model_name):
     return joblib.load(SCALER_PATHS[model_name])
 
-# 特征分类 - 根据图片调整
+# 特征分类
 feature_categories = {
+    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)", "FC(wt%)"],
     "Ultimate Analysis": ["C(wt%)", "H(wt%)", "N(wt%)", "O(wt%)"],
-    "Proximate Analysis": ["VM(wt%)", "FC(wt%)", "Ash(wt%)", "M(wt%)"],
-    "Pyrolysis Conditions": ["FT(℃)", "HR(℃/min)", "PS(mm)", "FR(mL/min)"]
+    "Pyrolysis Conditions": ["PS(mm)", "SM(g)", "FT(℃)", "HR(℃/min)", "FR(mL/min)", "RT(min)"]
 }
-
-# 创建特征输入界面
-features = {}
 
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# 第一列: Ultimate Analysis
+# Proximate Analysis (绿色区域) - 在第一列
 with col1:
-    st.markdown("<div class='ultimate-section'>Ultimate Analysis</div>", unsafe_allow_html=True)
-    for feature in feature_categories["Ultimate Analysis"]:
-        st.markdown(f"<div class='param-value'><span>{feature}</span><span id='{feature}'></span></div>", unsafe_allow_html=True)
-        if feature == "C(wt%)":
-            features[feature] = st.slider(feature, min_value=30.0, max_value=110.0, value=52.05, label_visibility="collapsed")
-        elif feature == "H(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=15.0, value=5.37, label_visibility="collapsed")
-        elif feature == "N(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=5.0, value=0.49, label_visibility="collapsed")
-        elif feature == "O(wt%)":
-            features[feature] = st.slider(feature, min_value=30.0, max_value=60.0, value=42.1, label_visibility="collapsed")
-        
-        # 更新显示的值
-        st.markdown(
-            f"""
-            <script>
-                document.getElementById('{feature}').textContent = '{features[feature]:.2f}';
-            </script>
-            """,
-            unsafe_allow_html=True
-        )
-
-# 第二列: Proximate Analysis
-with col2:
-    st.markdown("<div class='proximate-section'>Proximate Analysis</div>", unsafe_allow_html=True)
+    st.markdown("<div class='proximate-section'><div class='section-title'>Proximate Analysis</div>", unsafe_allow_html=True)
+    features = {}
     for feature in feature_categories["Proximate Analysis"]:
-        st.markdown(f"<div class='param-value'><span>{feature}</span><span id='{feature}'></span></div>", unsafe_allow_html=True)
-        if feature == "VM(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=110.0, value=73.5, label_visibility="collapsed")
-        elif feature == "FC(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=120.0, value=13.2, label_visibility="collapsed")
+        if feature == "M(wt%)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=20.0, value=5.0, key=f"proximate_{feature}")
         elif feature == "Ash(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=25.0, value=8.6, label_visibility="collapsed")
-        elif feature == "M(wt%)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=20.0, value=4.7, label_visibility="collapsed")
+            features[feature] = st.slider(feature, min_value=0.0, max_value=25.0, value=8.0, key=f"proximate_{feature}")
+        elif feature == "VM(wt%)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=110.0, value=75.0, key=f"proximate_{feature}")
+        elif feature == "FC(wt%)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=120.0, value=15.0, key=f"proximate_{feature}")
+    st.markdown("</div>", unsafe_allow_html=True)
 
-# 第三列: 添加一个结构分析部分和热解条件
+# Ultimate Analysis (黄色区域) - 在第二列
+with col2:
+    st.markdown("<div class='ultimate-section'><div class='section-title'>Ultimate Analysis</div>", unsafe_allow_html=True)
+    for feature in feature_categories["Ultimate Analysis"]:
+        if feature == "C(wt%)":
+            features[feature] = st.slider(feature, min_value=30.0, max_value=110.0, value=60.0, key=f"ultimate_{feature}")
+        elif feature == "H(wt%)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=15.0, value=5.0, key=f"ultimate_{feature}")
+        elif feature == "N(wt%)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=5.0, value=1.0, key=f"ultimate_{feature}")
+        elif feature == "O(wt%)":
+            features[feature] = st.slider(feature, min_value=30.0, max_value=60.0, value=38.0, key=f"ultimate_{feature}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# Pyrolysis Conditions (橙色区域) - 在第三列
 with col3:
-    st.markdown("<div class='structural-section'>Structural Analysis</div>", unsafe_allow_html=True)
-    # 这部分在原代码中没有，但图片中有，我们可以设置为静态值，不用于计算
-    st.markdown("<div class='param-value'><span>Lignin (%)</span><span>44</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='param-value'><span>Cellulose (%)</span><span>27.7</span></div>", unsafe_allow_html=True)
-    st.markdown("<div class='param-value'><span>HemiCellulose (%)</span><span>21.6</span></div>", unsafe_allow_html=True)
-    
-    # 间隔
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # 热解条件部分
-    st.markdown("<div class='pyrolysis-section'>Pyrolysis Condition</div>", unsafe_allow_html=True)
+    st.markdown("<div class='pyrolysis-section'><div class='section-title'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     for feature in feature_categories["Pyrolysis Conditions"]:
-        st.markdown(f"<div class='param-value'><span>{feature}</span><span id='{feature}'></span></div>", unsafe_allow_html=True)
-        if feature == "FT(℃)":
-            features[feature] = st.slider(feature, min_value=250.0, max_value=1100.0, value=500.0, label_visibility="collapsed")
+        if feature == "PS(mm)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=20.0, value=6.0, key=f"pyrolysis_{feature}")
+        elif feature == "SM(g)":
+            features[feature] = st.slider(feature, min_value=0.0, max_value=200.0, value=75.0, key=f"pyrolysis_{feature}")
+        elif feature == "FT(℃)":
+            features[feature] = st.slider(feature, min_value=250.0, max_value=1100.0, value=600.0, key=f"pyrolysis_{feature}")
         elif feature == "HR(℃/min)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=200.0, value=10.0, label_visibility="collapsed")
-        elif feature == "PS(mm)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=20.0, value=1.5, label_visibility="collapsed")
+            features[feature] = st.slider(feature, min_value=0.0, max_value=200.0, value=50.0, key=f"pyrolysis_{feature}")
         elif feature == "FR(mL/min)":
-            features[feature] = st.slider(feature, min_value=0.0, max_value=120.0, value=2.0, label_visibility="collapsed")
-    
-    # 增加RT和SM但不显示在热解条件中
-    features["RT(min)"] = 30.0
-    features["SM(g)"] = 75.0
+            features[feature] = st.slider(feature, min_value=0.0, max_value=120.0, value=50.0, key=f"pyrolysis_{feature}")
+        elif feature == "RT(min)":
+            features[feature] = st.slider(feature, min_value=5.0, max_value=100.0, value=30.0, key=f"pyrolysis_{feature}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# 添加另一部分单独展示热解条件的重要参数
+st.markdown("<div class='pyrolysis-section'><div class='section-title'>Pyrolysis Condition</div>", unsafe_allow_html=True)
+pyrolysis_cols = st.columns(4)
+with pyrolysis_cols[0]:
+    st.markdown(f"<div style='text-align:center;'>Temperature (℃)<br><b>{features['FT(℃)']}</b></div>", unsafe_allow_html=True)
+with pyrolysis_cols[1]:
+    st.markdown(f"<div style='text-align:center;'>Heating Rate (℃/min)<br><b>{features['HR(℃/min)']}</b></div>", unsafe_allow_html=True)
+with pyrolysis_cols[2]:
+    st.markdown(f"<div style='text-align:center;'>Particle Size (mm)<br><b>{features['PS(mm)']}</b></div>", unsafe_allow_html=True)
+with pyrolysis_cols[3]:
+    st.markdown(f"<div style='text-align:center;'>N2 Flow (L/min)<br><b>{features['FR(mL/min)']}</b></div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # 转换为DataFrame
 input_data = pd.DataFrame([features])
 
-# 预测结果部分
-st.markdown("<div class='result-box'><span class='yield-label'>Biochar Yield (%)</span><span class='yield-value' id='yield-value'>--</span></div>", unsafe_allow_html=True)
+# 预测结果显示区域和按钮
+result_col, button_col = st.columns([3, 1])
 
-# 按钮行
-col1, col2 = st.columns(2)
+with result_col:
+    prediction_placeholder = st.empty()
+    
+with button_col:
+    predict_button = st.button("PUSH", key="predict")
+    clear_button = st.button("CLEAR", key="clear")
 
-# 预测按钮和清除按钮
-with col1:
-    predict_button = st.button("PUSH")
-with col2:
-    st.markdown("<div class='clear-button'>", unsafe_allow_html=True)
-    clear_button = st.button("CLEAR")
-    st.markdown("</div>", unsafe_allow_html=True)
-
+# 处理预测逻辑
 if predict_button:
     try:
         # 加载所选模型和Scaler
@@ -286,29 +233,14 @@ if predict_button:
         y_pred = model.predict(input_data_scaled)[0]
 
         # 显示预测结果
-        st.markdown(
-            f"""
-            <script>
-                document.getElementById('yield-value').textContent = '{y_pred:.2f}';
-            </script>
-            """,
+        prediction_placeholder.markdown(
+            f"<div class='yield-result'>Biochar Yield (%) <br> {y_pred:.2f}</div>",
             unsafe_allow_html=True
         )
-        
-        # 为了确保结果显示，也使用Streamlit的方式设置
-        st.markdown(f"<div style='text-align: center; font-size: 24px; color: white;'>Predicted Yield: {y_pred:.2f}%</div>", unsafe_allow_html=True)
-
     except Exception as e:
         st.error(f"预测过程中出现错误: {e}")
 
+# 清除按钮逻辑
 if clear_button:
-    # 重置不会真正工作，因为Streamlit的状态管理机制，但保留这个按钮以匹配UI
-    st.markdown(
-        """
-        <script>
-            document.getElementById('yield-value').textContent = '--';
-        </script>
-        """,
-        unsafe_allow_html=True
-    )
+    # 不需要实际清除，因为Streamlit会在页面刷新时重置
     st.experimental_rerun()
