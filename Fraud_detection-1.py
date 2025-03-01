@@ -95,6 +95,19 @@ st.markdown(
         font-weight: bold;
         cursor: pointer;
     }
+    .input-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .input-label {
+        flex: 1;
+        margin-right: 10px;
+    }
+    .input-field {
+        flex: 0.5; /* 控制输入框的宽度 */
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -171,7 +184,11 @@ with col1:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        features[feature] = st.number_input(feature, min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}")
+        col1, col2 = st.columns([1, 1])  # 创建两列布局
+        with col1:
+            st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
+        with col2:
+            features[feature] = st.number_input("", min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}", format="%.2f", help="Enter value")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Ultimate Analysis (黄色区域) - 在第二列
@@ -183,7 +200,11 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        features[feature] = st.number_input(feature, min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}")
+        col1, col2 = st.columns([1, 1])  # 创建两列布局
+        with col1:
+            st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
+        with col2:
+            features[feature] = st.number_input("", min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}", format="%.2f", help="Enter value")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域) - 在第三列
@@ -198,7 +219,11 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        features[feature] = st.number_input(feature, min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}")
+        col1, col2 = st.columns([1, 1])  # 创建两列布局
+        with col1:
+            st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
+        with col2:
+            features[feature] = st.number_input("", min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}", format="%.2f", help="Enter value")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
