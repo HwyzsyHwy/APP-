@@ -60,10 +60,6 @@ st.markdown(
         text-align: center;
         margin-bottom: 10px;
     }
-    .stSlider {
-        padding-top: 5px;
-        padding-bottom: 5px;
-    }
     .yield-result {
         background-color: #1E1E1E;
         color: white;
@@ -98,9 +94,6 @@ st.markdown(
         font-size: 16px;
         font-weight: bold;
         cursor: pointer;
-    }
-    div.stSlider > div > div > div {
-        color: black !important;
     }
     </style>
     """,
@@ -176,16 +169,9 @@ with col1:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            if feature == "M(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-            elif feature == "Ash(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-            elif feature == "VM(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
-            elif feature == "FC(wt%)":
-                value = st.session_state.get(f"proximate_{feature}", default_values[feature])
+            value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        features[feature] = st.slider(feature, min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}")
+        features[feature] = st.number_input(feature, min_value=0.0, max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), value=value, key=f"proximate_{feature}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Ultimate Analysis (黄色区域) - 在第二列
@@ -195,16 +181,9 @@ with col2:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            if feature == "C(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-            elif feature == "H(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-            elif feature == "N(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
-            elif feature == "O(wt%)":
-                value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
+            value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        features[feature] = st.slider(feature, min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}")
+        features[feature] = st.number_input(feature, min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), value=value, key=f"ultimate_{feature}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域) - 在第三列
@@ -214,23 +193,12 @@ with col3:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            if feature == "PS(mm)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "SM(g)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "FT(℃)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "HR(℃/min)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "FR(mL/min)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-            elif feature == "RT(min)":
-                value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
+            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
         
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
-        features[feature] = st.slider(feature, min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}")
+        features[feature] = st.number_input(feature, min_value=min_val, max_value=max_val, value=value, key=f"pyrolysis_{feature}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
