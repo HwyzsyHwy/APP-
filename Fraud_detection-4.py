@@ -7,16 +7,16 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# 页面设置
+# 设置页面配置
 st.set_page_config(
     page_title='Biomass Pyrolysis Yield Forecast',
     page_icon='📊',
     layout='wide'
 )
 
-# 自定义样式 - 为不同列的输入框设置不同的背景颜色
-st.markdown(
-    """
+# 设置自定义主题(可用的主题有 "light", "dark", "green", "blue")
+# Streamlit的主题设置
+st.markdown("""
     <style>
     /* 全局字体设置 */
     html, body, [class*="css"] {
@@ -32,7 +32,7 @@ st.markdown(
         color: white !important;
     }
     
-    /* 区域样式 */
+    /* 区域标题样式 */
     .section-header {
         color: white;
         font-weight: bold;
@@ -63,35 +63,21 @@ st.markdown(
         border-radius: 8px;
         margin-top: 20px;
     }
-    
-    /* 按列设置输入框背景颜色 */
-    /* 第一列 - 绿色背景 */
-    [data-testid="stNumberInput"][key*="proximate_"] input,
-    div[key*="proximate_"] input {
-        background-color: #32CD32 !important;
-        color: black !important;
-        font-weight: bold !important;
+
+    /* 为输入框添加边框颜色 */
+    .container-green [data-testid="stNumberInput"] {
+        border-left: 6px solid #32CD32 !important;
+        padding-left: 10px !important;
     }
     
-    /* 第二列 - 黄色背景 */
-    [data-testid="stNumberInput"][key*="ultimate_"] input,
-    div[key*="ultimate_"] input {
-        background-color: #DAA520 !important;
-        color: black !important;
-        font-weight: bold !important;
+    .container-gold [data-testid="stNumberInput"] {
+        border-left: 6px solid #DAA520 !important;
+        padding-left: 10px !important;
     }
     
-    /* 第三列 - 橙色背景 */
-    [data-testid="stNumberInput"][key*="pyrolysis_"] input,
-    div[key*="pyrolysis_"] input {
-        background-color: #FF7F50 !important;
-        color: black !important;
-        font-weight: bold !important;
-    }
-    
-    /* 通用选择器捕获所有Streamlit输入框 */
-    [data-testid="stNumberInput"] input {
-        font-size: 18px !important;
+    .container-orange [data-testid="stNumberInput"] {
+        border-left: 6px solid #FF7F50 !important;
+        padding-left: 10px !important;
     }
     
     /* 增大模型选择和按钮的字体 */
@@ -104,9 +90,7 @@ st.markdown(
         font-size: 20px !important;
     }
     </style>
-    """,
-    unsafe_allow_html=True
-)
+    """, unsafe_allow_html=True)
 
 # 主标题
 st.markdown("<h1 class='main-title'>GUI for Bio-Char Yield Prediction based on ELT-PSO Model</h1>", unsafe_allow_html=True)
@@ -174,6 +158,8 @@ features = {}
 
 # Proximate Analysis (绿色区域)
 with col1:
+    # 用div包装，使CSS可以定位
+    st.markdown('<div class="container-green">', unsafe_allow_html=True)
     st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Proximate Analysis"]:
@@ -197,9 +183,13 @@ with col1:
                 format="%.2f",
                 label_visibility="collapsed"
             )
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Ultimate Analysis (黄色区域)
 with col2:
+    # 用div包装，使CSS可以定位
+    st.markdown('<div class="container-gold">', unsafe_allow_html=True)
     st.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Ultimate Analysis"]:
@@ -221,9 +211,13 @@ with col2:
                 format="%.2f",
                 label_visibility="collapsed"
             )
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Pyrolysis Conditions (橙色区域)
 with col3:
+    # 用div包装，使CSS可以定位
+    st.markdown('<div class="container-orange">', unsafe_allow_html=True)
     st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Pyrolysis Conditions"]:
@@ -248,6 +242,8 @@ with col3:
                 format="%.2f",
                 label_visibility="collapsed"
             )
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # 重置session_state中的clear_pressed状态
 if st.session_state.clear_pressed:
