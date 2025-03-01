@@ -3,8 +3,6 @@ import pandas as pd
 import numpy as np
 import pickle
 import joblib
-from streamlit_lottie import st_lottie
-import json
 import os
 import base64
 
