@@ -14,7 +14,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用多种选择器确保覆盖Streamlit默认样式
+# 自定义样式 - 使用更精确的选择器
 st.markdown(
     """
     <style>
@@ -64,32 +64,32 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 强制应用白色背景到输入框 - 使用多种选择器和!important */
-    [data-testid="stNumberInput"] input {
-        background-color: white !important;
+    /* 使用基于key前缀的选择器为不同列的输入框设置不同的背景色 */
+    /* 第一列 - 绿色 */
+    [data-testid="stNumberInput"] input[id*="proximate_"] {
+        background-color: #90EE90 !important; /* 浅绿色 */
         color: black !important;
+        border-radius: 5px !important;
     }
     
-    /* 额外的选择器，确保覆盖到所有可能的输入框元素 */
-    input[type="number"] {
-        background-color: white !important;
+    /* 第二列 - 黄色 */
+    [data-testid="stNumberInput"] input[id*="ultimate_"] {
+        background-color: #FFFFE0 !important; /* 浅黄色 */
         color: black !important;
+        border-radius: 5px !important;
     }
-
-    /* 尝试更具体的选择器 */
-    div[data-baseweb="input"] input {
-        background-color: white !important;
+    
+    /* 第三列 - 橙色 */
+    [data-testid="stNumberInput"] input[id*="pyrolysis_"] {
+        background-color: #FFDAB9 !important; /* 浅橙色 */
         color: black !important;
+        border-radius: 5px !important;
     }
-
-    /* 针对输入框容器的选择器 */
-    div[data-baseweb="input"] {
-        background-color: white !important;
-    }
-
-    /* 最后的终极方法 - 应用给所有可能的输入元素 */
-    [data-testid="stNumberInput"] * {
-        background-color: white !important;
+    
+    /* 输入框容器样式调整 */
+    [data-testid="stNumberInput"] div:first-child {
+        border: none !important;
+        background-color: transparent !important;
     }
     
     /* 增大模型选择和按钮的字体 */
@@ -191,7 +191,7 @@ with col1:
                 min_value=0.0, 
                 max_value=20.0 if feature == "M(wt%)" else (25.0 if feature == "Ash(wt%)" else (110.0 if feature == "VM(wt%)" else 120.0)), 
                 value=value, 
-                key=f"proximate_{feature}", 
+                key=f"proximate_{feature}", # 使用proximate_前缀作为key
                 format="%.2f",
                 label_visibility="collapsed"
             )
@@ -215,7 +215,7 @@ with col2:
                 min_value=30.0 if feature in ["C(wt%)", "O(wt%)"] else 0.0, 
                 max_value=110.0 if feature == "C(wt%)" else (15.0 if feature == "H(wt%)" else (5.0 if feature == "N(wt%)" else 60.0)), 
                 value=value, 
-                key=f"ultimate_{feature}", 
+                key=f"ultimate_{feature}", # 使用ultimate_前缀作为key
                 format="%.2f",
                 label_visibility="collapsed"
             )
@@ -242,7 +242,7 @@ with col3:
                 min_value=min_val, 
                 max_value=max_val, 
                 value=value, 
-                key=f"pyrolysis_{feature}", 
+                key=f"pyrolysis_{feature}", # 使用pyrolysis_前缀作为key
                 format="%.2f",
                 label_visibility="collapsed"
             )
