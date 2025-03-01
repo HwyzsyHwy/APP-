@@ -184,6 +184,7 @@ with col1:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
+        # 创建输入行
         col1, col2 = st.columns([1, 1])  # 创建两列布局
         with col1:
             st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
@@ -200,6 +201,7 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
+        # 创建输入行
         col1, col2 = st.columns([1, 1])  # 创建两列布局
         with col1:
             st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
@@ -219,6 +221,7 @@ with col3:
         min_val = 250.0 if feature == "FT(℃)" else (5.0 if feature == "RT(min)" else 0.0)
         max_val = 1100.0 if feature == "FT(℃)" else (200.0 if feature in ["SM(g)", "HR(℃/min)"] else (120.0 if feature == "FR(mL/min)" else (100.0 if feature == "RT(min)" else 20.0)))
         
+        # 创建输入行
         col1, col2 = st.columns([1, 1])  # 创建两列布局
         with col1:
             st.markdown(f"<div class='input-label'>{feature}</div>", unsafe_allow_html=True)
