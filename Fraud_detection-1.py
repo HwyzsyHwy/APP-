@@ -1,254 +1,236 @@
 import streamlit as st
 import pandas as pd
-import pickle
 import numpy as np
+import pickle
+import base64
 
-st.set_page_config(layout="wide")
+# 设置页面基本配置
+st.set_page_config(page_title="生物质炭产率预测系统", layout="wide")
 
-# 设置整体页面背景为暗色
+# 使用CSS自定义样式
 st.markdown("""
 <style>
-    .stApp {
-        background-color: #1E1E1E;
+    body {
+        background-color: #121212;
         color: white;
     }
+    .main {
+        background-color: #121212;
+    }
+    .css-1d391kg {
+        background-color: #121212;
+    }
+    .stApp {
+        background-color: #121212;
+    }
     
-    /* 尝试更精确的CSS选择器 */
-    /* 第一列 - 近似分析 (绿色) */
-    .green-input input {
-        background-color: #32CD32 !important;
+    /* 为不同区域设置背景颜色 */
+    .proximate-section {
+        background-color: #32CD32;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    .ultimate-section {
+        background-color: #DAA520;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    .pyrolysis-section {
+        background-color: #FF7F50;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    
+    /* 直接设置输入框背景色 */
+    input[type="number"] {
+        background-color: inherit !important;
         color: black !important;
+        font-weight: bold !important;
     }
     
-    /* 第二列 - 元素分析 (黄色) */
-    .yellow-input input {
-        background-color: #DAA520 !important;
-        color: black !important;
+    /* 按钮样式 */
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        font-weight: bold;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 4px;
+    }
+    .clear-button>button {
+        background-color: #f44336;
     }
     
-    /* 第三列 - 热解条件 (橙色) */
-    .orange-input input {
-        background-color: #FF7F50 !important;
-        color: black !important;
+    /* 紧凑布局 */
+    .row-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
     }
-    
-    /* 减少每个部分的边距，使布局更紧凑 */
-    .section-container {
-        margin: 0;
-        padding: 5px;
+    .label {
+        flex: 1;
+        text-align: right;
+        padding-right: 10px;
+        font-weight: bold;
+        color: black;
     }
-    
-    /* 使标签和输入框距离更近 */
-    .stColumn {
-        padding: 0 !important;
-    }
-    
-    /* 确保每个输入框的宽度一致 */
-    div[data-testid="stNumberInput"] input {
-        width: 100% !important;
+    .input-field {
+        flex: 1;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 在会话状态中初始化预测结果
+# 标题
+st.title("生物质炭产率预测系统")
+
+# 使用st.form来组织输入和按钮
+with st.form(key="prediction_form"):
+    
+    # 创建三列布局
+    col1, col2, col3 = st.columns(3)
+    
+    # 第一列：近分析
+    with col1:
+        st.markdown('<div class="proximate-section">', unsafe_allow_html=True)
+        st.subheader("近分析")
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">M(wt%)</div>', unsafe_allow_html=True)
+        m_val = st.number_input("", min_value=0.0, max_value=100.0, value=5.0, step=0.1, key="m_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">Ash(wt%)</div>', unsafe_allow_html=True)
+        ash_val = st.number_input("", min_value=0.0, max_value=100.0, value=8.0, step=0.1, key="ash_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">VM(wt%)</div>', unsafe_allow_html=True)
+        vm_val = st.number_input("", min_value=0.0, max_value=100.0, value=75.0, step=0.1, key="vm_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">FC(wt%)</div>', unsafe_allow_html=True)
+        fc_val = st.number_input("", min_value=0.0, max_value=100.0, value=15.0, step=0.1, key="fc_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 第二列：元素分析
+    with col2:
+        st.markdown('<div class="ultimate-section">', unsafe_allow_html=True)
+        st.subheader("元素分析")
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">C(wt%)</div>', unsafe_allow_html=True)
+        c_val = st.number_input("", min_value=0.0, max_value=100.0, value=51.0, step=0.1, key="c_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">H(wt%)</div>', unsafe_allow_html=True)
+        h_val = st.number_input("", min_value=0.0, max_value=100.0, value=5.7, step=0.1, key="h_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">O(wt%)</div>', unsafe_allow_html=True)
+        o_val = st.number_input("", min_value=0.0, max_value=100.0, value=42.6, step=0.1, key="o_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">N(wt%)</div>', unsafe_allow_html=True)
+        n_val = st.number_input("", min_value=0.0, max_value=100.0, value=0.6, step=0.1, key="n_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">S(wt%)</div>', unsafe_allow_html=True)
+        s_val = st.number_input("", min_value=0.0, max_value=100.0, value=0.1, step=0.1, key="s_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 第三列：热解条件
+    with col3:
+        st.markdown('<div class="pyrolysis-section">', unsafe_allow_html=True)
+        st.subheader("热解条件")
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">Temp(℃)</div>', unsafe_allow_html=True)
+        temp_val = st.number_input("", min_value=250, max_value=900, value=500, step=10, key="temp_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">Pressure(MPa)</div>', unsafe_allow_html=True)
+        press_val = st.number_input("", min_value=0.1, max_value=10.0, value=0.1, step=0.1, key="press_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">Retention Time(min)</div>', unsafe_allow_html=True)
+        time_val = st.number_input("", min_value=0, max_value=180, value=30, step=5, key="time_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">Heating Rate(℃/min)</div>', unsafe_allow_html=True)
+        rate_val = st.number_input("", min_value=1, max_value=100, value=10, step=1, key="rate_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('<div class="row-container">', unsafe_allow_html=True)
+        st.markdown('<div class="label">Particle size(mm)</div>', unsafe_allow_html=True)
+        size_val = st.number_input("", min_value=0.1, max_value=100.0, value=1.0, step=0.1, key="size_val", label_visibility="collapsed")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 使用两个列来排列按钮
+    col1, col2 = st.columns(2)
+    with col1:
+        predict_button = st.form_submit_button(label="PUSH")
+    with col2:
+        st.markdown('<div class="clear-button">', unsafe_allow_html=True)
+        clear_button = st.form_submit_button(label="CLEAR")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# 模型预测逻辑
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
 
-# 加载模型
-@st.cache_resource
-def load_model():
-    model = pickle.load(open('gradient_boosting_model.pkl', 'rb'))
-    return model
-
-model = load_model()
-
-# 标题
-st.title('生物质热解产率预测')
-
-# 显示预测结果
-def display_prediction():
-    if st.session_state.prediction_result is not None:
-        st.markdown(f"""
-        <div style="padding: 20px; background-color: #2E2E2E; border-radius: 5px; margin-top: 20px;">
-            <h3 style="color: white;">预测结果</h3>
-            <p style="font-size: 24px; color: white;">产率 (%): {st.session_state.prediction_result:.2f}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-# 创建输入区域
-col1, col2, col3 = st.columns(3)
-
-# 使用类来应用样式
-with col1:
-    st.markdown('<h3 style="color: #32CD32;">近似分析</h3>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="green-input">', unsafe_allow_html=True)
-    col1_1, col1_2 = st.columns([2, 3])
-    with col1_1:
-        st.write("M(wt%)")
-    with col1_2:
-        m = st.number_input("", min_value=0.0, max_value=20.0, value=5.0, step=0.1, key="m", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="green-input">', unsafe_allow_html=True)
-    col1_1, col1_2 = st.columns([2, 3])
-    with col1_1:
-        st.write("Ash(wt%)")
-    with col1_2:
-        ash = st.number_input("", min_value=0.0, max_value=30.0, value=8.0, step=0.1, key="ash", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="green-input">', unsafe_allow_html=True)
-    col1_1, col1_2 = st.columns([2, 3])
-    with col1_1:
-        st.write("VM(wt%)")
-    with col1_2:
-        vm = st.number_input("", min_value=50.0, max_value=90.0, value=75.0, step=0.1, key="vm", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="green-input">', unsafe_allow_html=True)
-    col1_1, col1_2 = st.columns([2, 3])
-    with col1_1:
-        st.write("FC(wt%)")
-    with col1_2:
-        fc = st.number_input("", min_value=5.0, max_value=30.0, value=15.0, step=0.1, key="fc", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col2:
-    st.markdown('<h3 style="color: #DAA520;">元素分析</h3>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="yellow-input">', unsafe_allow_html=True)
-    col2_1, col2_2 = st.columns([2, 3])
-    with col2_1:
-        st.write("C(wt%)")
-    with col2_2:
-        c = st.number_input("", min_value=40.0, max_value=60.0, value=48.0, step=0.1, key="c", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="yellow-input">', unsafe_allow_html=True)
-    col2_1, col2_2 = st.columns([2, 3])
-    with col2_1:
-        st.write("H(wt%)")
-    with col2_2:
-        h = st.number_input("", min_value=4.0, max_value=8.0, value=6.0, step=0.1, key="h", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="yellow-input">', unsafe_allow_html=True)
-    col2_1, col2_2 = st.columns([2, 3])
-    with col2_1:
-        st.write("O(wt%)")
-    with col2_2:
-        o = st.number_input("", min_value=30.0, max_value=50.0, value=40.0, step=0.1, key="o", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="yellow-input">', unsafe_allow_html=True)
-    col2_1, col2_2 = st.columns([2, 3])
-    with col2_1:
-        st.write("N(wt%)")
-    with col2_2:
-        n = st.number_input("", min_value=0.0, max_value=3.0, value=0.8, step=0.1, key="n", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with col3:
-    st.markdown('<h3 style="color: #FF7F50;">热解条件</h3>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="orange-input">', unsafe_allow_html=True)
-    col3_1, col3_2 = st.columns([2, 3])
-    with col3_1:
-        st.write("温度(°C)")
-    with col3_2:
-        temp = st.number_input("", min_value=300, max_value=1000, value=500, step=10, key="temp", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="orange-input">', unsafe_allow_html=True)
-    col3_1, col3_2 = st.columns([2, 3])
-    with col3_1:
-        st.write("停留时间(s)")
-    with col3_2:
-        time = st.number_input("", min_value=0.0, max_value=200.0, value=10.0, step=1.0, key="time", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="orange-input">', unsafe_allow_html=True)
-    col3_1, col3_2 = st.columns([2, 3])
-    with col3_1:
-        st.write("升温速率(°C/min)")
-    with col3_2:
-        heating_rate = st.number_input("", min_value=0, max_value=1000, value=10, step=10, key="heating_rate", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="orange-input">', unsafe_allow_html=True)
-    col3_1, col3_2 = st.columns([2, 3])
-    with col3_1:
-        st.write("粒径(mm)")
-    with col3_2:
-        particle_size = st.number_input("", min_value=0.0, max_value=10.0, value=1.0, step=0.1, key="particle_size", label_visibility="collapsed")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# 清除按钮的回调函数
-def clear_inputs():
-    # 设置所有输入恢复到默认值
-    default_values = {
-        "m": 5.0, "ash": 8.0, "vm": 75.0, "fc": 15.0,
-        "c": 48.0, "h": 6.0, "o": 40.0, "n": 0.8,
-        "temp": 500, "time": 10.0, "heating_rate": 10, "particle_size": 1.0
-    }
-    
-    for key, value in default_values.items():
-        st.session_state[key] = value
-    
-    # 清除预测结果
-    st.session_state.prediction_result = None
-
-# 按钮区域
-col1, col2 = st.columns(2)
-with col1:
-    if st.button('预测', key='predict_button', help='点击进行预测'):
+# 当点击PUSH按钮时
+if predict_button:
+    try:
+        # 准备输入数据
+        input_data = np.array([[
+            m_val, ash_val, vm_val, fc_val,
+            c_val, h_val, o_val, n_val, s_val,
+            temp_val, press_val, time_val, rate_val, size_val
+        ]])
+        
+        # 加载模型（确保模型文件存在）
         try:
-            # 收集输入
-            input_data = np.array([[
-                m, ash, vm, fc,
-                c, h, o, n,
-                temp, time, heating_rate, particle_size
-            ]])
-            
+            model = pickle.load(open('gradient_boosting_model.pkl', 'rb'))
             # 进行预测
             prediction = model.predict(input_data)[0]
             st.session_state.prediction_result = prediction
-        except Exception as e:
-            st.error(f"预测过程中出现错误: {e}")
+        except FileNotFoundError:
+            st.error("模型文件未找到，请确保'gradient_boosting_model.pkl'文件存在于当前目录中")
+    except Exception as e:
+        st.error(f"预测过程中发生错误: {str(e)}")
 
-with col2:
-    if st.button('清除', key='clear_button', help='点击清除所有输入', on_click=clear_inputs):
-        pass  # 使用on_click回调函数处理
+# 当点击CLEAR按钮时
+if clear_button:
+    # 清除session_state中的所有键值
+    for key in list(st.session_state.keys()):
+        if key != 'prediction_result':  # 保留预测结果
+            del st.session_state[key]
+    
+    # 使用页面重新运行的方式重置所有输入
+    try:
+        st.rerun()  # 尝试使用新的st.rerun()
+    except:
+        # 如果st.rerun()不可用，保持静默并继续执行
+        pass
 
 # 显示预测结果
-display_prediction()
-
-# 尝试另一种方法使用jQuery更新样式
-st.markdown("""
-<script>
-    // 等待DOM加载完成
-    document.addEventListener('DOMContentLoaded', function() {
-        // 近似分析 - 绿色背景
-        const greenInputs = document.querySelectorAll('.green-input input');
-        greenInputs.forEach(input => {
-            input.style.backgroundColor = '#32CD32';
-            input.style.color = 'black';
-        });
-        
-        // 元素分析 - 黄色背景
-        const yellowInputs = document.querySelectorAll('.yellow-input input');
-        yellowInputs.forEach(input => {
-            input.style.backgroundColor = '#DAA520';
-            input.style.color = 'black';
-        });
-        
-        // 热解条件 - 橙色背景
-        const orangeInputs = document.querySelectorAll('.orange-input input');
-        orangeInputs.forEach(input => {
-            input.style.backgroundColor = '#FF7F50';
-            input.style.color = 'black';
-        });
-    });
-</script>
-""", unsafe_allow_html=True)
+if st.session_state.prediction_result is not None:
+    st.success(f"产率 (%): {st.session_state.prediction_result:.2f}")
