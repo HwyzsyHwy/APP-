@@ -229,13 +229,13 @@ col1, col2 = st.columns(2)
 with col1:
     char_button = st.button("🔥 Char Yield", 
                            key="char_button", 
-                           help="预测焦炭产率 (wt%)", 
+                           help="预测焦炭产率 (%)", 
                            use_container_width=True,
                            type="primary" if st.session_state.selected_model == "Char Yield(%)" else "secondary")
 with col2:
     oil_button = st.button("💧 Oil Yield", 
                           key="oil_button", 
-                          help="预测生物油产率 (wt%)", 
+                          help="预测生物油产率 (%)", 
                           use_container_width=True,
                           type="primary" if st.session_state.selected_model == "Oil Yield(%)" else "secondary")
 
@@ -582,6 +582,20 @@ class CorrectedEnsemblePredictor:
             weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
             log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
             
+            # 计算评估指标
+            std_dev = np.std(individual_predictions)
+            rmse = np.sqrt(np.mean((all_predictions - weighted_pred.reshape(-1, 1))**2))
+            total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
+            explained_variance = total_variance - np.sum((all_predictions - weighted_pred.reshape(-1, 1))**2)
+            r2 = explained_variance / total_variance if total_variance > 0 else 0
+            
+            log(f"预测标准差: {std_dev:.4f}")
+            log(f"计算得到RMSE: {rmse[0]:.4f}, R²: {r2:.4f}")
+            
+            # 存储评估指标到session_state
+            st.session_state.current_rmse = float(rmse[0])
+            st.session_state.current_r2 = float(r2)
+            
             if return_individual:
                 return weighted_pred, individual_predictions
             else:
@@ -635,11 +649,11 @@ elif len(predictor.scalers) > 0:
 else:
     model_info_html += "<p style='color:red'>❌ 未找到子模型标准化器，使用最终标准化器</p>"
 
-# 性能指标区域（将在预测后动态更新）
-model_info_html += "<div id='performance-metrics'></div>"
-
 model_info_html += "</div>"
 st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
+
+# 性能指标显示区域
+performance_container = st.sidebar.container()
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -650,10 +664,21 @@ if 'warnings' not in st.session_state:
     st.session_state.warnings = []
 if 'individual_predictions' not in st.session_state:
     st.session_state.individual_predictions = []
-if 'rmse' not in st.session_state:
-    st.session_state.rmse = None
-if 'r2' not in st.session_state:
-    st.session_state.r2 = None
+if 'current_rmse' not in st.session_state:
+    st.session_state.current_rmse = None
+if 'current_r2' not in st.session_state:
+    st.session_state.current_r2 = None
+
+# 如果有性能指标数据，显示在侧边栏
+if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
+    performance_metrics_html = """
+    <div class='performance-metrics'>
+    <h4>性能指标</h4>
+    <p><b>R²</b>: {:.4f}</p>
+    <p><b>RMSE</b>: {:.2f}</p>
+    </div>
+    """.format(st.session_state.current_r2, st.session_state.current_rmse)
+    performance_container.markdown(performance_metrics_html, unsafe_allow_html=True)
 
 # 定义默认值 - 从用户截图中提取
 default_values = {
@@ -824,34 +849,16 @@ with col1:
             st.session_state.individual_predictions = individual_preds
             log(f"预测成功: {st.session_state.prediction_result:.2f}")
             
-            # 计算标准差作为不确定性指标
-            std_dev = np.std(individual_preds)
-            log(f"预测标准差: {std_dev:.4f}")
-            
-            # 计算RMSE和R²（假设我们没有真实值，所以使用模型元数据中的测试值作为参考）
-            if predictor.metadata and 'performance' in predictor.metadata:
-                performance = predictor.metadata['performance']
-                st.session_state.rmse = performance.get('test_rmse', 3.39)
-                st.session_state.r2 = performance.get('test_r2', 0.9313)
-                
-                # 更新侧边栏中的性能指标
+            # 性能指标显示在侧边栏
+            if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
                 performance_metrics_html = """
                 <div class='performance-metrics'>
                 <h4>性能指标</h4>
                 <p><b>R²</b>: {:.4f}</p>
                 <p><b>RMSE</b>: {:.2f}</p>
                 </div>
-                """.format(st.session_state.r2, st.session_state.rmse)
-                
-                sidebar_metrics = st.sidebar.empty()
-                sidebar_metrics.markdown(performance_metrics_html, unsafe_allow_html=True)
-                
-            else:
-                log("警告: 无法从模型元数据获取性能指标")
-                st.session_state.rmse = 3.39  # 默认值
-                st.session_state.r2 = 0.9313  # 默认值
-            
-            log(f"模型性能指标 - RMSE: {st.session_state.rmse:.2f}, R²: {st.session_state.r2:.4f}")
+                """.format(st.session_state.current_r2, st.session_state.current_rmse)
+                performance_container.markdown(performance_metrics_html, unsafe_allow_html=True)
             
         except Exception as e:
             st.session_state.prediction_error = str(e)
