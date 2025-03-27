@@ -11,7 +11,7 @@ import sys
 import glob
 import joblib
 import json
-from io import StringIO
+import traceback
 
 # 页面设置
 st.set_page_config(
@@ -19,209 +19,6 @@ st.set_page_config(
     page_icon='📊',
     layout='wide'
 )
-
-# 增加搜索模型文件的功能
-def find_model_files():
-    """
-    搜索目录中的模型文件和simple_predictor.py
-    """
-    # 搜索当前目录及子目录中的模型文件
-    model_files = glob.glob("**/model_*.joblib", recursive=True)
-    scaler_files = glob.glob("**/final_scaler.joblib", recursive=True)
-    predictor_files = glob.glob("**/simple_predictor.py", recursive=True)
-    
-    return {
-        "model_files": model_files,
-        "scaler_files": scaler_files,
-        "predictor_files": predictor_files
-    }
-
-# 定义内嵌的简单预测器类
-class EmbeddedPredictor:
-    """
-    内嵌的简单预测器类，实现CatBoost集成模型的基本功能
-    """
-    def __init__(self):
-        # 查找模型文件
-        model_info = find_model_files()
-        st.sidebar.write("模型文件搜索结果:", model_info)
-        
-        # 模型和缩放器路径
-        self.model_paths = model_info["model_files"]
-        self.scaler_paths = model_info["scaler_files"]
-        
-        # 初始化
-        self.models = []
-        self.final_scaler = None
-        self.model_weights = None
-        self.feature_names = ["PT(°C)", "RT(min)", "HR(℃/min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)"]
-        
-        # 尝试加载模型
-        self._load_components()
-    
-    def _load_components(self):
-        """加载模型组件"""
-        try:
-            # 尝试加载模型文件
-            if self.model_paths:
-                models_dir = os.path.dirname(self.model_paths[0])
-                st.sidebar.success(f"找到模型文件夹: {models_dir}")
-                
-                # 加载模型
-                for model_path in sorted(self.model_paths):
-                    st.sidebar.write(f"加载模型: {model_path}")
-                    self.models.append(joblib.load(model_path))
-                
-                # 加载缩放器
-                if self.scaler_paths:
-                    st.sidebar.write(f"加载缩放器: {self.scaler_paths[0]}")
-                    self.final_scaler = joblib.load(self.scaler_paths[0])
-                
-                # 加载权重
-                weights_path = os.path.join(models_dir, "model_weights.npy")
-                if os.path.exists(weights_path):
-                    st.sidebar.write(f"加载权重: {weights_path}")
-                    self.model_weights = np.load(weights_path)
-                else:
-                    # 如果没有权重文件，使用均等权重
-                    self.model_weights = np.ones(len(self.models)) / len(self.models)
-                
-                # 加载元数据
-                metadata_path = os.path.join(models_dir, "metadata.json")
-                if os.path.exists(metadata_path):
-                    with open(metadata_path, 'r') as f:
-                        metadata = json.load(f)
-                        if 'feature_names' in metadata:
-                            self.feature_names = metadata['feature_names']
-                            st.sidebar.write("从元数据加载特征名称")
-                
-                st.sidebar.success(f"成功加载 {len(self.models)} 个模型")
-                return True
-            else:
-                st.sidebar.warning("未找到模型文件")
-                return False
-        except Exception as e:
-            st.sidebar.error(f"加载模型组件时出错: {str(e)}")
-            return False
-    
-    def predict(self, X):
-        """
-        使用集成模型进行预测
-        """
-        try:
-            # 确保输入是DataFrame
-            if not isinstance(X, pd.DataFrame):
-                X = pd.DataFrame(X)
-            
-            # 调试信息
-            st.sidebar.write("输入特征:", X.columns.tolist())
-            st.sidebar.write("模型特征:", self.feature_names)
-            
-            # 检查特征是否需要重命名
-            if not set(self.feature_names).issubset(set(X.columns)):
-                # 尝试映射特征名
-                mapped_features = {}
-                for model_feat in self.feature_names:
-                    for input_feat in X.columns:
-                        # 移除单位部分进行比较
-                        model_base = model_feat.split('(')[0] if '(' in model_feat else model_feat
-                        input_base = input_feat.split('(')[0] if '(' in input_feat else input_feat
-                        
-                        if model_base == input_base:
-                            mapped_features[input_feat] = model_feat
-                            break
-                
-                if len(mapped_features) == len(X.columns):
-                    X = X.rename(columns=mapped_features)
-                    st.sidebar.success("特征名称已重映射")
-                    st.sidebar.write("映射关系:", mapped_features)
-            
-            # 确保特征顺序正确
-            if not all(feat in X.columns for feat in self.feature_names):
-                missing = set(self.feature_names) - set(X.columns)
-                st.sidebar.error(f"缺少特征: {missing}")
-                return np.array([33.0])  # 返回默认值
-            
-            # 按模型需要的顺序提取特征
-            X = X[self.feature_names]
-            
-            # 如果有缩放器，应用标准化
-            if self.final_scaler:
-                X_scaled = self.final_scaler.transform(X)
-                st.sidebar.success("数据已标准化")
-            else:
-                X_scaled = X.values
-                st.sidebar.warning("没有标准化器，使用原始数据")
-            
-            # 使用所有模型进行预测
-            if self.models:
-                all_predictions = np.zeros((X.shape[0], len(self.models)))
-                for i, model in enumerate(self.models):
-                    pred = model.predict(X_scaled)
-                    all_predictions[:, i] = pred
-                    st.sidebar.write(f"模型 {i} 预测值: {pred[0]:.2f}")
-                
-                # 计算加权平均
-                weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
-                st.sidebar.success(f"最终加权预测值: {weighted_pred[0]:.2f}")
-                return weighted_pred
-            else:
-                # 如果没有模型，返回基于规则的估计
-                st.sidebar.warning("无可用模型，使用简单估计")
-                return self._simple_estimate(X)
-        except Exception as e:
-            st.sidebar.error(f"预测过程中出错: {str(e)}")
-            import traceback
-            st.sidebar.error(traceback.format_exc())
-            return np.array([33.0])  # 返回默认值
-    
-    def _simple_estimate(self, X):
-        """简单估计，在没有模型时使用"""
-        # 提取关键特征
-        pt = X["PT(°C)"].values[0] if "PT(°C)" in X.columns else 500
-        rt = X["RT(min)"].values[0] if "RT(min)" in X.columns else 20
-        
-        # 基于温度和停留时间的简单估计
-        base_yield = 40.0
-        temp_effect = -0.03 * (pt - 500)  # 高温降低产率
-        time_effect = 0.1 * (rt - 20)     # 更长时间增加产率
-        
-        estimated_yield = base_yield + temp_effect + time_effect
-        estimated_yield = max(20, min(80, estimated_yield))  # 限制在合理范围内
-        
-        return np.array([estimated_yield])
-
-# 尝试查找simple_predictor模块
-found_predictor = False
-predictor_files = glob.glob("**/simple_predictor.py", recursive=True)
-
-if predictor_files:
-    # 找到了predictor文件
-    predictor_path = predictor_files[0]
-    predictor_dir = os.path.dirname(os.path.abspath(predictor_path))
-    
-    # 添加目录到sys.path
-    if predictor_dir not in sys.path:
-        sys.path.append(predictor_dir)
-    
-    st.sidebar.success(f"找到predictor文件: {predictor_path}")
-    st.sidebar.write(f"添加目录到sys.path: {predictor_dir}")
-    
-    # 尝试导入
-    try:
-        import simple_predictor
-        from simple_predictor import Char_YieldPredictor
-        predictor = Char_YieldPredictor()
-        found_predictor = True
-        st.sidebar.success("成功导入并实例化Char_YieldPredictor")
-    except Exception as e:
-        st.sidebar.error(f"导入simple_predictor失败: {str(e)}")
-        # 失败后尝试使用内嵌预测器
-        predictor = EmbeddedPredictor()
-else:
-    st.sidebar.warning("未找到simple_predictor.py文件")
-    # 使用内嵌预测器
-    predictor = EmbeddedPredictor()
 
 # 自定义样式
 st.markdown(
@@ -290,6 +87,229 @@ st.markdown(
 
 # 主标题
 st.markdown("<h1 class='main-title'>Prediction of crop biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
+
+# 创建侧边栏日志区域
+log_container = st.sidebar.container()
+log_container.write("### 调试日志")
+
+def log(message):
+    """记录调试信息到侧边栏"""
+    log_container.write(message)
+
+# 增加搜索模型文件的功能
+def find_model_files():
+    """
+    搜索目录中的模型文件和标准化器文件
+    """
+    # 搜索当前目录及子目录中的模型文件
+    model_files = glob.glob("**/model_*.joblib", recursive=True)
+    model_files = sorted(model_files, key=lambda x: int(x.split('model_')[1].split('.')[0]))
+    scaler_files = glob.glob("**/final_scaler.joblib", recursive=True)
+    metadata_files = glob.glob("**/metadata.json", recursive=True)
+    
+    log(f"找到 {len(model_files)} 个模型文件")
+    for f in model_files:
+        log(f"- {f}")
+    log(f"找到 {len(scaler_files)} 个标准化器文件: {scaler_files}")
+    log(f"找到 {len(metadata_files)} 个元数据文件: {metadata_files}")
+    
+    return model_files, scaler_files, metadata_files
+
+# 使用直接加载方式的预测器
+class DirectPredictor:
+    """直接加载模型文件进行预测的预测器"""
+    
+    def __init__(self):
+        self.models = []
+        self.model_weights = None
+        self.scaler = None
+        self.metadata = None
+        self.feature_names = None
+        
+        # 查找并加载模型
+        self.load_model_components()
+    
+    def load_model_components(self):
+        """加载模型组件"""
+        try:
+            # 查找模型文件
+            model_files, scaler_files, metadata_files = find_model_files()
+            
+            # 先加载元数据，获取特征名称
+            if metadata_files:
+                metadata_path = metadata_files[0]
+                log(f"加载元数据: {metadata_path}")
+                with open(metadata_path, 'r') as f:
+                    self.metadata = json.load(f)
+                self.feature_names = self.metadata.get('feature_names', None)
+                log(f"元数据中的特征名称: {self.feature_names}")
+            
+            # 加载模型
+            if model_files:
+                models_dir = os.path.dirname(model_files[0])
+                log(f"模型目录: {models_dir}")
+                
+                for model_path in model_files:
+                    log(f"加载模型: {model_path}")
+                    try:
+                        model = joblib.load(model_path)
+                        self.models.append(model)
+                        log(f"成功加载模型 {len(self.models)}")
+                    except Exception as e:
+                        log(f"加载模型 {model_path} 失败: {str(e)}")
+                
+                # 加载模型权重
+                weights_path = os.path.join(models_dir, 'model_weights.npy')
+                if os.path.exists(weights_path):
+                    log(f"加载权重: {weights_path}")
+                    try:
+                        self.model_weights = np.load(weights_path)
+                        log(f"权重形状: {self.model_weights.shape}")
+                    except Exception as e:
+                        log(f"加载权重失败: {str(e)}")
+                        self.model_weights = np.ones(len(self.models)) / len(self.models)
+                else:
+                    log("未找到权重文件，使用均等权重")
+                    self.model_weights = np.ones(len(self.models)) / len(self.models)
+            else:
+                log("未找到模型文件")
+            
+            # 加载标准化器
+            if scaler_files:
+                scaler_path = scaler_files[0]
+                log(f"加载标准化器: {scaler_path}")
+                try:
+                    self.scaler = joblib.load(scaler_path)
+                    log("标准化器加载成功")
+                    
+                    # 检查标准化器的特征名称
+                    if hasattr(self.scaler, 'feature_names_in_'):
+                        log(f"标准化器特征名称: {self.scaler.feature_names_in_}")
+                        # 如果元数据中没有特征名称，使用标准化器中的
+                        if self.feature_names is None:
+                            self.feature_names = self.scaler.feature_names_in_.tolist()
+                            log(f"使用标准化器中的特征名称: {self.feature_names}")
+                except Exception as e:
+                    log(f"加载标准化器失败: {str(e)}")
+            else:
+                log("未找到标准化器文件")
+            
+            # 如果仍然没有特征名称，使用默认值
+            if self.feature_names is None:
+                self.feature_names = ["PT(°C)", "RT(min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "HR(℃/min)"]
+                log(f"使用默认特征名称: {self.feature_names}")
+            
+            # 检查模型是否成功加载
+            if self.models:
+                log(f"成功加载 {len(self.models)} 个模型")
+                return True
+            else:
+                log("未能加载任何模型")
+                return False
+                
+        except Exception as e:
+            log(f"加载模型组件时出错: {str(e)}")
+            log(traceback.format_exc())
+            return False
+    
+    def predict(self, X):
+        """
+        使用加载的模型进行预测
+        
+        参数:
+            X: 特征数据，DataFram格式
+        
+        返回:
+            预测结果数组
+        """
+        try:
+            if not self.models:
+                log("没有加载模型，无法预测")
+                return np.array([33.0])  # 返回默认值
+            
+            # 提取特征顺序
+            if isinstance(X, pd.DataFrame):
+                log(f"输入特征顺序: {X.columns.tolist()}")
+                log(f"模型特征顺序: {self.feature_names}")
+                
+                # 检查是否需要重新排序
+                if sorted(X.columns.tolist()) == sorted(self.feature_names):
+                    log("特征集合匹配，确保顺序一致")
+                    X_ordered = X[self.feature_names].copy()
+                    log(f"重排后的特征顺序: {X_ordered.columns.tolist()}")
+                else:
+                    log(f"特征不匹配! 输入: {X.columns.tolist()}, 模型需要: {self.feature_names}")
+                    
+                    # 尝试映射特征
+                    matching_features = {}
+                    for model_feat in self.feature_names:
+                        model_base = model_feat.split('(')[0]
+                        for input_feat in X.columns:
+                            input_base = input_feat.split('(')[0]
+                            if model_base == input_base:
+                                matching_features[model_feat] = input_feat
+                                break
+                    
+                    log(f"特征映射: {matching_features}")
+                    
+                    if len(matching_features) == len(self.feature_names):
+                        # 创建一个新的DataFrame，按照模型需要的顺序和名称
+                        X_ordered = pd.DataFrame(index=X.index)
+                        for model_feat in self.feature_names:
+                            if model_feat in matching_features:
+                                input_feat = matching_features[model_feat]
+                                X_ordered[model_feat] = X[input_feat].values
+                            else:
+                                log(f"无法映射特征: {model_feat}")
+                                return np.array([33.0])
+                        
+                        log(f"映射后特征顺序: {X_ordered.columns.tolist()}")
+                    else:
+                        log("无法完全映射特征名称")
+                        return np.array([33.0])
+            else:
+                log("输入不是DataFrame格式")
+                return np.array([33.0])
+            
+            # 应用标准化
+            if self.scaler:
+                log("应用标准化器")
+                # 转换为numpy数组，去除特征名以避免顺序问题
+                X_values = X_ordered.values
+                X_scaled = self.scaler.transform(X_values)
+                log(f"标准化后数据形状: {X_scaled.shape}")
+            else:
+                log("没有标准化器，使用原始数据")
+                X_scaled = X_ordered.values
+            
+            # 使用每个模型进行预测
+            all_predictions = np.zeros((X_scaled.shape[0], len(self.models)))
+            
+            for i, model in enumerate(self.models):
+                try:
+                    pred = model.predict(X_scaled)
+                    all_predictions[:, i] = pred
+                    log(f"模型 {i} 预测结果: {pred[0]:.2f}")
+                except Exception as e:
+                    log(f"模型 {i} 预测失败: {str(e)}")
+                    # 使用平均值填充
+                    if i > 0:
+                        all_predictions[:, i] = np.mean(all_predictions[:, :i], axis=1)
+            
+            # 计算加权平均预测
+            weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
+            log(f"最终加权预测结果: {weighted_pred[0]:.2f}")
+            
+            return weighted_pred
+            
+        except Exception as e:
+            log(f"预测过程中出错: {str(e)}")
+            log(traceback.format_exc())
+            return np.array([33.0])  # 返回默认值
+    
+
+# 初始化预测器
+predictor = DirectPredictor()
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -445,8 +465,13 @@ with button_col:
 # 处理预测逻辑
 if predict_button:
     try:
+        # 记录输入数据
+        log("进行预测:")
+        log(f"输入数据: {input_data.to_dict('records')}")
+        
         # 使用predictor进行预测
         y_pred = predictor.predict(input_data)[0]
+        log(f"预测完成: {y_pred:.2f}")
         
         # 保存预测结果到session_state
         st.session_state.prediction_result = y_pred
@@ -457,9 +482,9 @@ if predict_button:
             unsafe_allow_html=True
         )
     except Exception as e:
+        log(f"预测过程中出错: {str(e)}")
+        log(traceback.format_exc())
         st.error(f"预测过程中出现错误: {str(e)}")
-        import traceback
-        st.error(traceback.format_exc())
 
 # 如果有保存的预测结果，显示它
 if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
