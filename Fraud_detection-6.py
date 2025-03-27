@@ -106,7 +106,7 @@ class DirectPredictor:
         self.model_weights = None
         self.scaler = None
         self.metadata = None
-        self.feature_names = None
+        self.feature_names = ['C(%)', 'H(%)', 'O(%)', 'N(%)', 'Ash(%)', 'VM(%)', 'FC(%)', 'PT(°C)', 'HR(℃/min)', 'RT(min)']
         self.feature_mapping = {}
         self.train_data_stats = {}
         self.model_dir = None
@@ -151,7 +151,11 @@ class DirectPredictor:
             if os.path.exists(metadata_path):
                 with open(metadata_path, 'r') as f:
                     self.metadata = json.load(f)
-                self.feature_names = self.metadata.get('feature_names', None)
+                metadata_features = self.metadata.get('feature_names', None)
+                if metadata_features:
+                    # 确保特征顺序与我们期望的一致
+                    if set(metadata_features) == set(self.feature_names):
+                        self.feature_names = metadata_features
                 log(f"加载元数据，特征名称: {self.feature_names}")
                 
                 # 从元数据中提取性能信息
@@ -160,9 +164,6 @@ class DirectPredictor:
                     log(f"模型性能: R²={self.performance.get('test_r2', 'unknown')}, RMSE={self.performance.get('test_rmse', 'unknown')}")
             else:
                 log(f"未找到元数据文件: {metadata_path}")
-                # 使用默认特征名称
-                self.feature_names = ["PT(°C)", "RT(min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "HR(℃/min)"]
-                log(f"使用默认特征名称: {self.feature_names}")
             
             # 加载模型
             models_dir = os.path.join(self.model_dir, 'models')
@@ -227,8 +228,10 @@ class DirectPredictor:
                 # 提取标准化器的均值和标准差，用于验证
                 if hasattr(self.scaler, 'mean_'):
                     self.train_data_stats['mean'] = self.scaler.mean_
+                    log(f"特征均值: {self.scaler.mean_}")
                 if hasattr(self.scaler, 'scale_'):
                     self.train_data_stats['scale'] = self.scaler.scale_
+                    log(f"特征标准差: {self.scaler.scale_}")
             else:
                 log(f"未找到标准化器文件: {scaler_path}")
                 # 尝试直接查找
@@ -260,26 +263,68 @@ class DirectPredictor:
         """检查输入值是否在训练数据范围内"""
         warnings = []
         
-        if hasattr(self.scaler, 'mean_') and hasattr(self.scaler, 'scale_'):
-            feature_mean = self.scaler.mean_
-            feature_std = self.scaler.scale_
+        if not hasattr(self.scaler, 'mean_') or not hasattr(self.scaler, 'scale_'):
+            return warnings
             
-            # 假设特征是正态分布，计算大致的95%置信区间
-            for i, feature in enumerate(self.feature_names):
-                if i < len(X.columns):
-                    input_val = X.iloc[0, i]
-                    mean = feature_mean[i]
-                    std = feature_std[i]
-                    
-                    # 检查是否偏离均值太多
-                    lower_bound = mean - 2 * std
-                    upper_bound = mean + 2 * std
-                    
-                    if input_val < lower_bound or input_val > upper_bound:
-                        log(f"警告: {feature} = {input_val} 超出正常范围 [{lower_bound:.2f}, {upper_bound:.2f}]")
-                        warnings.append(f"{feature}: {input_val} (范围: {lower_bound:.2f}-{upper_bound:.2f})")
+        feature_mean = self.scaler.mean_
+        feature_std = self.scaler.scale_
+        
+        # 使用转换后的数据进行检查
+        X_transformed = self.transform_input_to_model_order(X)
+        log(f"按模型顺序的特征数据: {X_transformed.to_dict('records')}")
+        
+        # 假设特征是正态分布，计算大致的95%置信区间
+        for i, feature in enumerate(self.feature_names):
+            if i < len(self.feature_names):
+                input_val = X_transformed[feature].iloc[0]
+                mean = feature_mean[i]
+                std = feature_std[i]
+                
+                # 检查是否偏离均值太多
+                lower_bound = mean - 2 * std
+                upper_bound = mean + 2 * std
+                
+                if input_val < lower_bound or input_val > upper_bound:
+                    log(f"警告: {feature} = {input_val} 超出正常范围 [{lower_bound:.2f}, {upper_bound:.2f}]")
+                    warnings.append(f"{feature}: {input_val} (范围: {lower_bound:.2f}-{upper_bound:.2f})")
         
         return warnings
+    
+    def transform_input_to_model_order(self, X):
+        """将输入特征转换为模型所需的顺序"""
+        if not isinstance(X, pd.DataFrame):
+            log("输入不是DataFrame格式")
+            return X
+            
+        log(f"输入特征顺序: {X.columns.tolist()}")
+        log(f"模型特征顺序: {self.feature_names}")
+        
+        # 创建新的DataFrame，保持模型期望的特征顺序
+        X_new = pd.DataFrame(index=X.index)
+        for feature in self.feature_names:
+            # 在UI特征中寻找匹配
+            found = False
+            # 1. 直接匹配
+            if feature in X.columns:
+                X_new[feature] = X[feature]
+                found = True
+            # 2. 基于特征名前缀匹配
+            else:
+                feature_base = feature.split('(')[0]
+                for col in X.columns:
+                    col_base = col.split('(')[0]
+                    if col_base == feature_base:
+                        X_new[feature] = X[col]
+                        log(f"基于前缀匹配特征: {col} -> {feature}")
+                        found = True
+                        break
+            
+            if not found:
+                log(f"警告：无法找到特征 {feature} 的对应输入")
+                # 使用默认值
+                X_new[feature] = 0.0
+                
+        return X_new
     
     def predict(self, X):
         """
@@ -296,52 +341,20 @@ class DirectPredictor:
                 log("没有加载模型，无法预测")
                 return np.array([33.0])  # 返回默认值
             
-            # 检查输入特征是否与模型特征匹配
-            if isinstance(X, pd.DataFrame) and self.feature_names:
-                log(f"输入特征顺序: {X.columns.tolist()}")
-                log(f"模型特征顺序: {self.feature_names}")
-                
-                # 确保特征顺序匹配
-                if set(X.columns) == set(self.feature_names):
-                    # 重新排序特征以匹配模型预期
-                    X = X[self.feature_names].copy()
-                    log("特征匹配，已重排顺序")
-                else:
-                    log("输入特征与模型特征不匹配")
-                    missing_features = set(self.feature_names) - set(X.columns)
-                    extra_features = set(X.columns) - set(self.feature_names)
-                    if missing_features:
-                        log(f"缺少特征: {missing_features}")
-                    if extra_features:
-                        log(f"多余特征: {extra_features}")
-                    
-                    # 尝试映射特征
-                    if len(missing_features) == 0 or len(X.columns) >= len(self.feature_names):
-                        # 创建新的DataFrame，包含所有必要特征
-                        X_new = pd.DataFrame(index=X.index)
-                        for feature in self.feature_names:
-                            if feature in X.columns:
-                                X_new[feature] = X[feature]
-                            else:
-                                # 尝试基于名称前缀匹配
-                                feature_base = feature.split('(')[0]
-                                for col in X.columns:
-                                    if col.startswith(feature_base):
-                                        X_new[feature] = X[col]
-                                        log(f"匹配特征: {col} -> {feature}")
-                                        break
-                        X = X_new
+            # 将输入特征转换为模型所需的顺序
+            X_model_order = self.transform_input_to_model_order(X)
+            log(f"转换后的输入数据:\n{X_model_order.to_dict('records')[0]}")
             
             # 应用标准化
             if self.scaler:
                 log("应用标准化")
-                X_scaled = self.scaler.transform(X)
+                X_scaled = self.scaler.transform(X_model_order)
             else:
                 log("未找到标准化器，使用原始数据")
-                X_scaled = X.values
+                X_scaled = X_model_order.values
             
             # 使用每个模型进行预测
-            all_predictions = np.zeros((X.shape[0], len(self.models)))
+            all_predictions = np.zeros((X_model_order.shape[0], len(self.models)))
             for i, model in enumerate(self.models):
                 try:
                     pred = model.predict(X_scaled)
@@ -381,6 +394,9 @@ def fix_simple_predictor():
         
         # 修复类名中的百分号
         fixed_content = content.replace("class Char_Yield%Predictor:", "class Char_YieldPredictor:")
+        fixed_content = fixed_content.replace("import seaborn as sns", "# import seaborn as sns")
+        fixed_content = fixed_content.replace("sns.kdeplot", "# sns.kdeplot")
+        fixed_content = fixed_content.replace("sns.barplot", "# sns.barplot")
         
         # 写回文件
         with open(predictor_path, 'w', encoding='utf-8') as f:
@@ -450,6 +466,9 @@ def load_predictor_class():
         except SyntaxError as e:
             log(f"模块存在语法错误: {e}")
             return None
+        except ModuleNotFoundError as e:
+            log(f"模块导入错误: {e}")
+            return None
         
         # 查找预测器类
         predictor_class = None
@@ -488,8 +507,6 @@ if 'clear_pressed' not in st.session_state:
 
 # 定义默认值和范围
 default_values = {
-    "PT(°C)": 500.0,
-    "RT(min)": 20.0,
     "C(%)": 45.0,
     "H(%)": 6.0,
     "O(%)": 40.0,
@@ -497,20 +514,20 @@ default_values = {
     "Ash(%)": 5.0,
     "VM(%)": 75.0,
     "FC(%)": 15.0,
-    "HR(℃/min)": 20.0
+    "PT(°C)": 500.0,
+    "HR(℃/min)": 20.0,
+    "RT(min)": 20.0
 }
 
-# 特征分类
+# 特征分类 - 根据新的要求调整
 feature_categories = {
-    "Pyrolysis Conditions": ["PT(°C)", "RT(min)", "HR(℃/min)"],
     "Ultimate Analysis": ["C(%)", "H(%)", "O(%)", "N(%)"],
-    "Proximate Analysis": ["Ash(%)", "VM(%)", "FC(%)"]
+    "Proximate Analysis": ["Ash(%)", "VM(%)", "FC(%)"],
+    "Pyrolysis Conditions": ["PT(°C)", "HR(℃/min)", "RT(min)"]
 }
 
 # 特征范围
 feature_ranges = {
-    "PT(°C)": (300.0, 900.0),
-    "RT(min)": (5.0, 120.0),
     "C(%)": (30.0, 80.0),
     "H(%)": (3.0, 10.0),
     "O(%)": (10.0, 60.0),
@@ -518,7 +535,9 @@ feature_ranges = {
     "Ash(%)": (0.0, 25.0),
     "VM(%)": (40.0, 95.0),
     "FC(%)": (5.0, 40.0),
-    "HR(℃/min)": (5.0, 100.0)
+    "PT(°C)": (300.0, 900.0),
+    "HR(℃/min)": (5.0, 100.0),
+    "RT(min)": (5.0, 120.0)
 }
 
 # 创建三列布局
@@ -527,37 +546,8 @@ col1, col2, col3 = st.columns(3)
 # 使用字典来存储所有输入值
 features = {}
 
-# Pyrolysis Conditions (橙色区域)
+# Ultimate Analysis (黄色区域) - 第一列
 with col1:
-    st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories["Pyrolysis Conditions"]:
-        # 重置值或使用现有值
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-        
-        # 获取该特征的范围
-        min_val, max_val = feature_ranges[feature]
-        
-        # 简单的两列布局
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=min_val, 
-                max_value=max_val, 
-                value=value, 
-                key=f"pyrolysis_{feature}", 
-                format="%.1f",
-                label_visibility="collapsed"
-            )
-
-# Ultimate Analysis (黄色区域)
-with col2:
     st.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Ultimate Analysis"]:
@@ -582,8 +572,8 @@ with col2:
                 label_visibility="collapsed"
             )
 
-# Proximate Analysis (绿色区域)
-with col3:
+# Proximate Analysis (绿色区域) - 第二列
+with col2:
     st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Proximate Analysis"]:
@@ -604,6 +594,35 @@ with col3:
                 max_value=max_val, 
                 value=value, 
                 key=f"proximate_{feature}", 
+                format="%.1f",
+                label_visibility="collapsed"
+            )
+
+# Pyrolysis Conditions (橙色区域) - 第三列
+with col3:
+    st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    
+    for feature in feature_categories["Pyrolysis Conditions"]:
+        # 重置值或使用现有值
+        if st.session_state.clear_pressed:
+            value = default_values[feature]
+        else:
+            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
+        
+        # 获取该特征的范围
+        min_val, max_val = feature_ranges[feature]
+        
+        # 简单的两列布局
+        col_a, col_b = st.columns([1, 0.5])
+        with col_a:
+            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=min_val, 
+                max_value=max_val, 
+                value=value, 
+                key=f"pyrolysis_{feature}", 
                 format="%.1f",
                 label_visibility="collapsed"
             )
