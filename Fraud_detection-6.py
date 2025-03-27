@@ -1,48 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Biomass Pyrolysis Yield Forecast using CatBoost Ensemble Models
+Biomass Pyrolysis Yield Forecast - Minimal Version
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
 import os
-import sys
-import matplotlib.pyplot as plt
-# 移除 seaborn 依赖
-from sklearn.metrics import mean_squared_error, r2_score
-import warnings
-warnings.filterwarnings('ignore')
-
-# 添加模型目录到系统路径，使Python能够找到模块
-model_dir = "Char_Yield_Model"  # 模型目录
-if os.path.exists(model_dir):
-    sys.path.append(os.path.abspath(model_dir))
-
-# 导入简化版预测器
-try:
-    from simple_predictor import Char_YieldPredictor
-except ImportError:
-    # 定义一个简化版的预测器类用于在缺少实际模型时使用
-    class Char_YieldPredictor:
-        def __init__(self, models_dir=None):
-            self.feature_names = ["PT(°C)", "RT(min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "HR(℃/min)"]
-            self.target_name = "Char Yield(%)"
-            print("Warning: Using dummy predictor - actual model not found")
-            
-        def predict(self, data):
-            # 返回虚拟预测值
-            return np.array([40.0 + np.random.normal(0, 5) for _ in range(len(data))])
-            
-        def summary(self):
-            print("Dummy predictor - model not found")
-            
-        def get_importance(self, plot=False):
-            return pd.DataFrame({
-                'Feature': self.feature_names,
-                'Importance': np.random.rand(len(self.feature_names))
-            }).sort_values('Importance', ascending=False)
 
 # 页面设置
 st.set_page_config(
@@ -51,7 +15,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# 自定义样式 - 使用多种选择器确保覆盖Streamlit默认样式
+# 自定义样式
 st.markdown(
     """
     <style>
@@ -101,42 +65,15 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 强制应用白色背景到输入框 - 使用多种选择器和!important */
+    /* 强制应用白色背景到输入框 */
     [data-testid="stNumberInput"] input {
         background-color: white !important;
         color: black !important;
     }
     
-    /* 额外的选择器，确保覆盖到所有可能的输入框元素 */
-    input[type="number"] {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    /* 尝试更具体的选择器 */
-    div[data-baseweb="input"] input {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    /* 针对输入框容器的选择器 */
-    div[data-baseweb="input"] {
-        background-color: white !important;
-    }
-
-    /* 最后的终极方法 - 应用给所有可能的输入元素 */
-    [data-testid="stNumberInput"] * {
-        background-color: white !important;
-    }
-    
-    /* 增大模型选择和按钮的字体 */
-    .stSelectbox, .stButton button {
+    /* 增大按钮的字体 */
+    .stButton button {
         font-size: 18px !important;
-    }
-    
-    /* 增大展开器标题字体 */
-    [data-testid="stExpander"] div[role="button"] p {
-        font-size: 20px !important;
     }
     </style>
     """,
@@ -144,25 +81,15 @@ st.markdown(
 )
 
 # 主标题
-st.markdown("<h1 class='main-title'>Prediction of crop biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>Biomass Pyrolysis Yield Prediction</h1>", unsafe_allow_html=True)
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
+if 'prediction_result' not in st.session_state:
+    st.session_state.prediction_result = None
 
-# 模型选择
-with st.expander("Model Information", expanded=False):
-    st.write("**CatBoost Ensemble Model** - Trained with 10-fold cross-validation and optimized hyperparameters")
-    
-    # 加载预测器以显示模型信息
-    predictor = Char_YieldPredictor()
-    
-    # 显示特征重要性
-    importance = predictor.get_importance(plot=False)
-    st.write("**Feature Importance:**")
-    st.dataframe(importance.head())
-
-# 定义默认值和范围 - 使用我们模型的特征
+# 定义默认值和范围
 default_values = {
     "PT(°C)": 500.0,
     "RT(min)": 20.0,
@@ -176,7 +103,7 @@ default_values = {
     "HR(℃/min)": 20.0
 }
 
-# 特征分类 - 按照我们模型使用的特征组织
+# 特征分类
 feature_categories = {
     "Pyrolysis Conditions": ["PT(°C)", "RT(min)", "HR(℃/min)"],
     "Ultimate Analysis": ["C(%)", "H(%)", "O(%)", "N(%)"],
@@ -218,9 +145,9 @@ with col1:
         min_val, max_val = feature_ranges[feature]
         
         # 简单的两列布局
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.5])
         with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)  # 橙色背景
+            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -242,12 +169,11 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        # 获取该特征的范围
         min_val, max_val = feature_ranges[feature]
         
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.5])
         with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)  # 黄色背景
+            st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -269,12 +195,11 @@ with col3:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 获取该特征的范围
         min_val, max_val = feature_ranges[feature]
         
-        col_a, col_b = st.columns([1, 0.5])  # 调整列宽比例
+        col_a, col_b = st.columns([1, 0.5])
         with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)  # 绿色背景
+            st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
@@ -306,19 +231,31 @@ with button_col:
     def clear_values():
         st.session_state.clear_pressed = True
         # 清除显示
-        if 'prediction_result' in st.session_state:
-            st.session_state.prediction_result = None
+        st.session_state.prediction_result = None
     
     clear_button = st.button("CLEAR", key="clear", on_click=clear_values)
 
-# 处理预测逻辑
+# 处理预测逻辑 - 使用简单模拟而不是实际模型
 if predict_button:
     try:
-        # 初始化预测器
-        predictor = Char_YieldPredictor()
+        # 简单模拟预测 - 基于PT和RT的简单计算
+        pt = features["PT(°C)"]
+        rt = features["RT(min)"]
         
-        # 使用预测器进行预测
-        y_pred = predictor.predict(input_data)[0]
+        # 简单模型: 较高的温度和较短的停留时间产生较少的炭产率
+        base_yield = 50.0
+        temp_effect = -0.05 * (pt - 500)  # 温度每高1°C，减少0.05%
+        time_effect = 0.1 * (rt - 20)     # 时间每长1分钟，增加0.1%
+        
+        # 加一些其他因素的影响
+        c_effect = 0.1 * (features["C(%)"] - 45)
+        ash_effect = 0.2 * (features["Ash(%)"] - 5)
+        
+        # 计算预测值
+        y_pred = base_yield + temp_effect + time_effect + c_effect + ash_effect
+        
+        # 确保预测值在合理范围内
+        y_pred = max(10.0, min(90.0, y_pred))
         
         # 保存预测结果到session_state
         st.session_state.prediction_result = y_pred
@@ -329,11 +266,22 @@ if predict_button:
             unsafe_allow_html=True
         )
     except Exception as e:
-        st.error(f"预测过程中出现错误: {e}")
+        st.error(f"预测过程中出现错误: {str(e)}")
 
 # 如果有保存的预测结果，显示它
-if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
+if st.session_state.prediction_result is not None:
     prediction_placeholder.markdown(
         f"<div class='yield-result'>Char Yield (wt%) <br> {st.session_state.prediction_result:.2f}</div>",
         unsafe_allow_html=True
     )
+
+# 添加模型描述
+st.markdown("""
+### About the Model
+This application uses a simplified regression model to predict char yield in biomass pyrolysis.
+- Higher pyrolysis temperature generally decreases char yield
+- Longer residence time generally increases char yield
+- Carbon and ash content also affect the final yield
+
+For more accurate predictions, a full CatBoost ensemble model would be used in production.
+""")
