@@ -849,6 +849,10 @@ with col1:
             st.session_state.individual_predictions = individual_preds
             log(f"预测成功: {st.session_state.prediction_result:.2f}")
             
+            # 计算标准差作为不确定性指标
+            std_dev = np.std(individual_preds)
+            log(f"预测标准差: {std_dev:.4f}")
+            
             # 性能指标显示在侧边栏
             if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
                 performance_metrics_html = """
@@ -899,7 +903,72 @@ if st.session_state.prediction_result is not None:
             unsafe_allow_html=True
         )
     
-    # 技术说明 - 使用折叠式展示
+    # 预测详情 - 使用柱状图显示各个模型的预测结果
+    if st.session_state.individual_predictions:
+        st.markdown("## 预测详情")
+        
+        # 创建各个模型预测结果的图表
+        fig, ax = plt.subplots(figsize=(10, 5))
+        model_indices = list(range(1, len(st.session_state.individual_predictions) + 1))
+        model_names = [f"模型 {i}" for i in model_indices]
+        
+        # 绘制柱状图
+        bars = ax.bar(model_names, st.session_state.individual_predictions)
+        
+        # 添加水平线表示最终预测结果
+        ax.axhline(y=st.session_state.prediction_result, color='r', linestyle='-', label=f'最终预测: {st.session_state.prediction_result:.2f}%')
+        
+        # 添加数据标签
+        for i, bar in enumerate(bars):
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+                    f'{height:.2f}%', ha='center', va='bottom', rotation=0)
+        
+        ax.set_ylabel(f'{st.session_state.selected_model}')
+        ax.set_title('各子模型预测结果')
+        ax.legend()
+        
+        # 确保y轴从0开始，但上限根据数据动态调整
+        max_value = max(st.session_state.individual_predictions) * 1.1  # 比最大值高10%
+        ax.set_ylim(0, max_value)
+        
+        # 显示图表
+        st.pyplot(fig)
+        
+        # 创建输入特征的数据框
+        features_df = pd.DataFrame([features])
+        
+        # 显示格式化的输入特征表格
+        st.markdown("### 输入特征")
+        formatted_features = {}
+        for feature, value in features.items():
+            formatted_features[feature] = f"{value:.2f}"
+        
+        # 转换为DataFrame并显示
+        input_df = pd.DataFrame([formatted_features])
+        st.dataframe(input_df, use_container_width=True)
+    
+    # 显示性能指标
+    if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
+        st.markdown("## 性能指标")
+        metrics_col1, metrics_col2 = st.columns(2)
+        with metrics_col1:
+            st.markdown("""
+            <div style='background-color: #1E1E1E; padding: 15px; border-radius: 10px; text-align: center;'>
+            <h3 style='margin:0;'>R²</h3>
+            <p style='font-size: 24px; font-weight: bold; margin:0;'>{:.4f}</p>
+            </div>
+            """.format(st.session_state.current_r2), unsafe_allow_html=True)
+        
+        with metrics_col2:
+            st.markdown("""
+            <div style='background-color: #1E1E1E; padding: 15px; border-radius: 10px; text-align: center;'>
+            <h3 style='margin:0;'>RMSE</h3>
+            <p style='font-size: 24px; font-weight: bold; margin:0;'>{:.2f}</p>
+            </div>
+            """.format(st.session_state.current_rmse), unsafe_allow_html=True)
+    
+    # 技术说明部分 - 使用折叠式展示
     with st.expander("技术说明"):
         st.markdown("""
         <div class='tech-info'>
