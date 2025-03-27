@@ -8,6 +8,10 @@ import pandas as pd
 import numpy as np
 import os
 import sys
+import glob
+import joblib
+import json
+from io import StringIO
 
 # 页面设置
 st.set_page_config(
@@ -16,35 +20,210 @@ st.set_page_config(
     layout='wide'
 )
 
-# 添加模型目录到系统路径，确保能找到simple_predictor模块
-model_dir = "Char_Yield_Model"  # 模型目录
-if os.path.exists(model_dir):
-    if model_dir not in sys.path:
-        sys.path.append(os.path.abspath(model_dir))
-
-# 尝试导入预测器类
-try:
-    from simple_predictor import Char_YieldPredictor
-    predictor = Char_YieldPredictor()
-    model_loaded = True
-    st.sidebar.success("🟢 模型加载成功")
-    # 打印特征列表，用于调试
-    st.sidebar.write("模型特征列表:")
-    st.sidebar.write(predictor.feature_names)
-except Exception as e:
-    model_loaded = False
-    st.sidebar.error(f"❌ 模型加载失败: {str(e)}")
-    # 定义一个虚拟预测器以避免程序崩溃
-    class DummyPredictor:
-        def __init__(self):
-            self.feature_names = ["PT(°C)", "RT(min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "HR(℃/min)"]
-        
-        def predict(self, data):
-            return np.array([30.0])  # 返回一个固定值
+# 增加搜索模型文件的功能
+def find_model_files():
+    """
+    搜索目录中的模型文件和simple_predictor.py
+    """
+    # 搜索当前目录及子目录中的模型文件
+    model_files = glob.glob("**/model_*.joblib", recursive=True)
+    scaler_files = glob.glob("**/final_scaler.joblib", recursive=True)
+    predictor_files = glob.glob("**/simple_predictor.py", recursive=True)
     
-    predictor = DummyPredictor()
+    return {
+        "model_files": model_files,
+        "scaler_files": scaler_files,
+        "predictor_files": predictor_files
+    }
 
-# 自定义样式 - 使用多种选择器确保覆盖Streamlit默认样式
+# 定义内嵌的简单预测器类
+class EmbeddedPredictor:
+    """
+    内嵌的简单预测器类，实现CatBoost集成模型的基本功能
+    """
+    def __init__(self):
+        # 查找模型文件
+        model_info = find_model_files()
+        st.sidebar.write("模型文件搜索结果:", model_info)
+        
+        # 模型和缩放器路径
+        self.model_paths = model_info["model_files"]
+        self.scaler_paths = model_info["scaler_files"]
+        
+        # 初始化
+        self.models = []
+        self.final_scaler = None
+        self.model_weights = None
+        self.feature_names = ["PT(°C)", "RT(min)", "HR(℃/min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)"]
+        
+        # 尝试加载模型
+        self._load_components()
+    
+    def _load_components(self):
+        """加载模型组件"""
+        try:
+            # 尝试加载模型文件
+            if self.model_paths:
+                models_dir = os.path.dirname(self.model_paths[0])
+                st.sidebar.success(f"找到模型文件夹: {models_dir}")
+                
+                # 加载模型
+                for model_path in sorted(self.model_paths):
+                    st.sidebar.write(f"加载模型: {model_path}")
+                    self.models.append(joblib.load(model_path))
+                
+                # 加载缩放器
+                if self.scaler_paths:
+                    st.sidebar.write(f"加载缩放器: {self.scaler_paths[0]}")
+                    self.final_scaler = joblib.load(self.scaler_paths[0])
+                
+                # 加载权重
+                weights_path = os.path.join(models_dir, "model_weights.npy")
+                if os.path.exists(weights_path):
+                    st.sidebar.write(f"加载权重: {weights_path}")
+                    self.model_weights = np.load(weights_path)
+                else:
+                    # 如果没有权重文件，使用均等权重
+                    self.model_weights = np.ones(len(self.models)) / len(self.models)
+                
+                # 加载元数据
+                metadata_path = os.path.join(models_dir, "metadata.json")
+                if os.path.exists(metadata_path):
+                    with open(metadata_path, 'r') as f:
+                        metadata = json.load(f)
+                        if 'feature_names' in metadata:
+                            self.feature_names = metadata['feature_names']
+                            st.sidebar.write("从元数据加载特征名称")
+                
+                st.sidebar.success(f"成功加载 {len(self.models)} 个模型")
+                return True
+            else:
+                st.sidebar.warning("未找到模型文件")
+                return False
+        except Exception as e:
+            st.sidebar.error(f"加载模型组件时出错: {str(e)}")
+            return False
+    
+    def predict(self, X):
+        """
+        使用集成模型进行预测
+        """
+        try:
+            # 确保输入是DataFrame
+            if not isinstance(X, pd.DataFrame):
+                X = pd.DataFrame(X)
+            
+            # 调试信息
+            st.sidebar.write("输入特征:", X.columns.tolist())
+            st.sidebar.write("模型特征:", self.feature_names)
+            
+            # 检查特征是否需要重命名
+            if not set(self.feature_names).issubset(set(X.columns)):
+                # 尝试映射特征名
+                mapped_features = {}
+                for model_feat in self.feature_names:
+                    for input_feat in X.columns:
+                        # 移除单位部分进行比较
+                        model_base = model_feat.split('(')[0] if '(' in model_feat else model_feat
+                        input_base = input_feat.split('(')[0] if '(' in input_feat else input_feat
+                        
+                        if model_base == input_base:
+                            mapped_features[input_feat] = model_feat
+                            break
+                
+                if len(mapped_features) == len(X.columns):
+                    X = X.rename(columns=mapped_features)
+                    st.sidebar.success("特征名称已重映射")
+                    st.sidebar.write("映射关系:", mapped_features)
+            
+            # 确保特征顺序正确
+            if not all(feat in X.columns for feat in self.feature_names):
+                missing = set(self.feature_names) - set(X.columns)
+                st.sidebar.error(f"缺少特征: {missing}")
+                return np.array([33.0])  # 返回默认值
+            
+            # 按模型需要的顺序提取特征
+            X = X[self.feature_names]
+            
+            # 如果有缩放器，应用标准化
+            if self.final_scaler:
+                X_scaled = self.final_scaler.transform(X)
+                st.sidebar.success("数据已标准化")
+            else:
+                X_scaled = X.values
+                st.sidebar.warning("没有标准化器，使用原始数据")
+            
+            # 使用所有模型进行预测
+            if self.models:
+                all_predictions = np.zeros((X.shape[0], len(self.models)))
+                for i, model in enumerate(self.models):
+                    pred = model.predict(X_scaled)
+                    all_predictions[:, i] = pred
+                    st.sidebar.write(f"模型 {i} 预测值: {pred[0]:.2f}")
+                
+                # 计算加权平均
+                weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
+                st.sidebar.success(f"最终加权预测值: {weighted_pred[0]:.2f}")
+                return weighted_pred
+            else:
+                # 如果没有模型，返回基于规则的估计
+                st.sidebar.warning("无可用模型，使用简单估计")
+                return self._simple_estimate(X)
+        except Exception as e:
+            st.sidebar.error(f"预测过程中出错: {str(e)}")
+            import traceback
+            st.sidebar.error(traceback.format_exc())
+            return np.array([33.0])  # 返回默认值
+    
+    def _simple_estimate(self, X):
+        """简单估计，在没有模型时使用"""
+        # 提取关键特征
+        pt = X["PT(°C)"].values[0] if "PT(°C)" in X.columns else 500
+        rt = X["RT(min)"].values[0] if "RT(min)" in X.columns else 20
+        
+        # 基于温度和停留时间的简单估计
+        base_yield = 40.0
+        temp_effect = -0.03 * (pt - 500)  # 高温降低产率
+        time_effect = 0.1 * (rt - 20)     # 更长时间增加产率
+        
+        estimated_yield = base_yield + temp_effect + time_effect
+        estimated_yield = max(20, min(80, estimated_yield))  # 限制在合理范围内
+        
+        return np.array([estimated_yield])
+
+# 尝试查找simple_predictor模块
+found_predictor = False
+predictor_files = glob.glob("**/simple_predictor.py", recursive=True)
+
+if predictor_files:
+    # 找到了predictor文件
+    predictor_path = predictor_files[0]
+    predictor_dir = os.path.dirname(os.path.abspath(predictor_path))
+    
+    # 添加目录到sys.path
+    if predictor_dir not in sys.path:
+        sys.path.append(predictor_dir)
+    
+    st.sidebar.success(f"找到predictor文件: {predictor_path}")
+    st.sidebar.write(f"添加目录到sys.path: {predictor_dir}")
+    
+    # 尝试导入
+    try:
+        import simple_predictor
+        from simple_predictor import Char_YieldPredictor
+        predictor = Char_YieldPredictor()
+        found_predictor = True
+        st.sidebar.success("成功导入并实例化Char_YieldPredictor")
+    except Exception as e:
+        st.sidebar.error(f"导入simple_predictor失败: {str(e)}")
+        # 失败后尝试使用内嵌预测器
+        predictor = EmbeddedPredictor()
+else:
+    st.sidebar.warning("未找到simple_predictor.py文件")
+    # 使用内嵌预测器
+    predictor = EmbeddedPredictor()
+
+# 自定义样式
 st.markdown(
     """
     <style>
@@ -94,42 +273,15 @@ st.markdown(
         margin-top: 20px;
     }
     
-    /* 强制应用白色背景到输入框 - 使用多种选择器和!important */
+    /* 强制应用白色背景到输入框 */
     [data-testid="stNumberInput"] input {
         background-color: white !important;
         color: black !important;
     }
     
-    /* 额外的选择器，确保覆盖到所有可能的输入框元素 */
-    input[type="number"] {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    /* 尝试更具体的选择器 */
-    div[data-baseweb="input"] input {
-        background-color: white !important;
-        color: black !important;
-    }
-
-    /* 针对输入框容器的选择器 */
-    div[data-baseweb="input"] {
-        background-color: white !important;
-    }
-
-    /* 最后的终极方法 - 应用给所有可能的输入元素 */
-    [data-testid="stNumberInput"] * {
-        background-color: white !important;
-    }
-    
-    /* 增大模型选择和按钮的字体 */
-    .stSelectbox, .stButton button {
+    /* 增大按钮的字体 */
+    .stButton button {
         font-size: 18px !important;
-    }
-    
-    /* 增大展开器标题字体 */
-    [data-testid="stExpander"] div[role="button"] p {
-        font-size: 20px !important;
     }
     </style>
     """,
@@ -223,7 +375,6 @@ with col2:
         else:
             value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
-        # 获取该特征的范围
         min_val, max_val = feature_ranges[feature]
         
         col_a, col_b = st.columns([1, 0.5])
@@ -250,7 +401,6 @@ with col3:
         else:
             value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
-        # 获取该特征的范围
         min_val, max_val = feature_ranges[feature]
         
         col_a, col_b = st.columns([1, 0.5])
@@ -271,8 +421,8 @@ with col3:
 if st.session_state.clear_pressed:
     st.session_state.clear_pressed = False
 
-# 转换为DataFrame - 确保按照模型需要的特征顺序
-feature_df = pd.DataFrame([features])
+# 转换为DataFrame
+input_data = pd.DataFrame([features])
 
 # 预测结果显示区域和按钮
 result_col, button_col = st.columns([3, 1])
@@ -292,68 +442,11 @@ with button_col:
     
     clear_button = st.button("CLEAR", key="clear", on_click=clear_values)
 
-# 调试信息
-debug_expander = st.expander("Debug Information", expanded=False)
-with debug_expander:
-    st.write("Input Features:")
-    st.write(feature_df)
-    
-    if model_loaded:
-        st.write("Model Features:")
-        st.write(predictor.feature_names)
-    else:
-        st.write("No model loaded")
-
 # 处理预测逻辑
 if predict_button:
     try:
-        # 使用预测器进行预测
-        if model_loaded:
-            # 确保特征顺序正确
-            ordered_data = feature_df.copy()
-            
-            # 如果特征名称格式不同，尝试进行映射
-            model_features = predictor.feature_names
-            feature_mapping = {}
-            
-            # 检查是否需要特征名称映射（例如，C(%) 到 C(wt%)）
-            for app_feature in feature_df.columns:
-                for model_feature in model_features:
-                    # 尝试匹配去掉单位等标记后的基本名称
-                    app_base = app_feature.split('(')[0]
-                    model_base = model_feature.split('(')[0]
-                    if app_base == model_base:
-                        feature_mapping[app_feature] = model_feature
-                        break
-            
-            # 如果找到映射关系，应用它
-            if feature_mapping and len(feature_mapping) == len(feature_df.columns):
-                ordered_data = feature_df.rename(columns=feature_mapping)
-                st.sidebar.write("应用特征映射:")
-                st.sidebar.write(feature_mapping)
-            
-            # 进行预测
-            y_pred = predictor.predict(ordered_data)[0]
-            
-            # 记录调试信息
-            st.session_state.debug_info = {
-                'input_features': ordered_data.to_dict('records')[0],
-                'prediction': float(y_pred)
-            }
-        else:
-            # 使用简单模拟进行预测
-            pt = features["PT(°C)"]
-            rt = features["RT(min)"]
-            
-            # 模拟预测计算
-            y_pred = 33.0 - 0.04 * (pt - 400) + 0.2 * rt
-            
-            # 记录为模拟预测
-            st.session_state.debug_info = {
-                'note': 'Using simulation prediction (model not loaded)',
-                'input_features': features,
-                'prediction': float(y_pred)
-            }
+        # 使用predictor进行预测
+        y_pred = predictor.predict(input_data)[0]
         
         # 保存预测结果到session_state
         st.session_state.prediction_result = y_pred
@@ -363,15 +456,10 @@ if predict_button:
             f"<div class='yield-result'>Char Yield (wt%) <br> {y_pred:.2f}</div>",
             unsafe_allow_html=True
         )
-        
-        # 在调试区显示详细信息
-        with debug_expander:
-            st.write("Prediction Details:")
-            st.write(st.session_state.debug_info)
-            
     except Exception as e:
         st.error(f"预测过程中出现错误: {str(e)}")
-        st.exception(e)  # 显示详细错误信息
+        import traceback
+        st.error(traceback.format_exc())
 
 # 如果有保存的预测结果，显示它
 if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
@@ -379,6 +467,15 @@ if 'prediction_result' in st.session_state and st.session_state.prediction_resul
         f"<div class='yield-result'>Char Yield (wt%) <br> {st.session_state.prediction_result:.2f}</div>",
         unsafe_allow_html=True
     )
+
+# 添加调试信息
+with st.expander("Debug Information", expanded=False):
+    st.write("Input Features:")
+    st.write(input_data)
+    
+    if hasattr(predictor, 'feature_names'):
+        st.write("Model Features:")
+        st.write(predictor.feature_names)
 
 # 添加关于模型的信息
 st.markdown("""
@@ -392,9 +489,3 @@ This application uses a CatBoost ensemble model to predict char yield in biomass
 
 The model was trained using 10-fold cross-validation with optimized hyperparameters, achieving high prediction accuracy.
 """)
-
-# 显示调试信息
-if 'debug_info' in st.session_state:
-    with debug_expander:
-        st.write("Last Prediction Details:")
-        st.json(st.session_state.debug_info)
