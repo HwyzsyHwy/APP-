@@ -106,14 +106,14 @@ def find_model_files():
     model_files = sorted(model_files, key=lambda x: int(x.split('model_')[1].split('.')[0]))
     scaler_files = glob.glob("**/final_scaler.joblib", recursive=True)
     metadata_files = glob.glob("**/metadata.json", recursive=True)
+    weights_files = glob.glob("**/model_weights.npy", recursive=True)
     
     log(f"找到 {len(model_files)} 个模型文件")
-    for f in model_files:
-        log(f"- {f}")
     log(f"找到 {len(scaler_files)} 个标准化器文件: {scaler_files}")
     log(f"找到 {len(metadata_files)} 个元数据文件: {metadata_files}")
+    log(f"找到 {len(weights_files)} 个权重文件: {weights_files}")
     
-    return model_files, scaler_files, metadata_files
+    return model_files, scaler_files, metadata_files, weights_files
 
 # 使用直接加载方式的预测器
 class DirectPredictor:
@@ -125,6 +125,8 @@ class DirectPredictor:
         self.scaler = None
         self.metadata = None
         self.feature_names = None
+        self.feature_mapping = {}
+        self.train_data_stats = {}
         
         # 查找并加载模型
         self.load_model_components()
@@ -133,9 +135,9 @@ class DirectPredictor:
         """加载模型组件"""
         try:
             # 查找模型文件
-            model_files, scaler_files, metadata_files = find_model_files()
+            model_files, scaler_files, metadata_files, weights_files = find_model_files()
             
-            # 先加载元数据，获取特征名称
+            # 先加载元数据，获取特征名称和范围
             if metadata_files:
                 metadata_path = metadata_files[0]
                 log(f"加载元数据: {metadata_path}")
@@ -143,6 +145,10 @@ class DirectPredictor:
                     self.metadata = json.load(f)
                 self.feature_names = self.metadata.get('feature_names', None)
                 log(f"元数据中的特征名称: {self.feature_names}")
+                
+                # 尝试提取训练数据统计信息或性能
+                if 'performance' in self.metadata:
+                    log(f"模型性能: {self.metadata['performance']}")
             
             # 加载模型
             if model_files:
@@ -159,12 +165,13 @@ class DirectPredictor:
                         log(f"加载模型 {model_path} 失败: {str(e)}")
                 
                 # 加载模型权重
-                weights_path = os.path.join(models_dir, 'model_weights.npy')
-                if os.path.exists(weights_path):
+                if weights_files:
+                    weights_path = weights_files[0]
                     log(f"加载权重: {weights_path}")
                     try:
                         self.model_weights = np.load(weights_path)
                         log(f"权重形状: {self.model_weights.shape}")
+                        log(f"权重值: {self.model_weights}")
                     except Exception as e:
                         log(f"加载权重失败: {str(e)}")
                         self.model_weights = np.ones(len(self.models)) / len(self.models)
@@ -189,6 +196,14 @@ class DirectPredictor:
                         if self.feature_names is None:
                             self.feature_names = self.scaler.feature_names_in_.tolist()
                             log(f"使用标准化器中的特征名称: {self.feature_names}")
+                            
+                    # 提取标准化器的均值和标准差，用于验证
+                    if hasattr(self.scaler, 'mean_'):
+                        log(f"标准化器均值: {self.scaler.mean_}")
+                        self.train_data_stats['mean'] = self.scaler.mean_
+                    if hasattr(self.scaler, 'scale_'):
+                        log(f"标准化器标准差: {self.scaler.scale_}")
+                        self.train_data_stats['scale'] = self.scaler.scale_
                 except Exception as e:
                     log(f"加载标准化器失败: {str(e)}")
             else:
@@ -198,6 +213,14 @@ class DirectPredictor:
             if self.feature_names is None:
                 self.feature_names = ["PT(°C)", "RT(min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "HR(℃/min)"]
                 log(f"使用默认特征名称: {self.feature_names}")
+            
+            # 创建特征映射
+            app_features = ["PT(°C)", "RT(min)", "HR(℃/min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)"]
+            for i, model_feat in enumerate(self.feature_names):
+                if i < len(app_features):
+                    self.feature_mapping[app_features[i]] = model_feat
+            
+            log(f"创建特征映射: {self.feature_mapping}")
             
             # 检查模型是否成功加载
             if self.models:
@@ -212,12 +235,37 @@ class DirectPredictor:
             log(traceback.format_exc())
             return False
     
+    def check_input_range(self, X):
+        """检查输入值是否在训练数据范围内"""
+        warnings = []
+        
+        if hasattr(self.scaler, 'mean_') and hasattr(self.scaler, 'scale_'):
+            feature_mean = self.scaler.mean_
+            feature_std = self.scaler.scale_
+            
+            # 假设特征是正态分布，计算大致的95%置信区间
+            for i, feature in enumerate(self.feature_names):
+                if i < len(X.columns):
+                    input_val = X.iloc[0, i]
+                    mean = feature_mean[i]
+                    std = feature_std[i]
+                    
+                    # 检查是否偏离均值太多
+                    lower_bound = mean - 2 * std
+                    upper_bound = mean + 2 * std
+                    
+                    if input_val < lower_bound or input_val > upper_bound:
+                        log(f"警告: {feature} = {input_val} 超出正常范围 [{lower_bound:.2f}, {upper_bound:.2f}]")
+                        warnings.append(f"{feature}: {input_val} (范围: {lower_bound:.2f}-{upper_bound:.2f})")
+        
+        return warnings
+    
     def predict(self, X):
         """
         使用加载的模型进行预测
         
         参数:
-            X: 特征数据，DataFram格式
+            X: 特征数据，DataFrame格式
         
         返回:
             预测结果数组
@@ -227,57 +275,99 @@ class DirectPredictor:
                 log("没有加载模型，无法预测")
                 return np.array([33.0])  # 返回默认值
             
+            # 检查输入范围
+            warnings = self.check_input_range(X)
+            if warnings:
+                log("输入数据可能超出模型训练范围:")
+                for warning in warnings:
+                    log(f"- {warning}")
+            
             # 提取特征顺序
             if isinstance(X, pd.DataFrame):
                 log(f"输入特征顺序: {X.columns.tolist()}")
                 log(f"模型特征顺序: {self.feature_names}")
                 
                 # 检查是否需要重新排序
-                if sorted(X.columns.tolist()) == sorted(self.feature_names):
-                    log("特征集合匹配，确保顺序一致")
+                if set(X.columns) == set(self.feature_names):
+                    log("特征集合完全匹配，重排顺序")
                     X_ordered = X[self.feature_names].copy()
-                    log(f"重排后的特征顺序: {X_ordered.columns.tolist()}")
+                elif self.feature_mapping and set(X.columns).issubset(set(self.feature_mapping.keys())):
+                    log("使用预定义的特征映射")
+                    
+                    # 创建新的DataFrame，按照模型特征顺序
+                    X_ordered = pd.DataFrame(index=X.index)
+                    for model_feat in self.feature_names:
+                        found = False
+                        
+                        # 寻找映射
+                        for app_feat, mapped_feat in self.feature_mapping.items():
+                            if mapped_feat == model_feat and app_feat in X.columns:
+                                X_ordered[model_feat] = X[app_feat].values
+                                found = True
+                                break
+                        
+                        if not found:
+                            # 尝试基础匹配（不考虑单位）
+                            for app_feat in X.columns:
+                                if app_feat.split('(')[0] == model_feat.split('(')[0]:
+                                    X_ordered[model_feat] = X[app_feat].values
+                                    found = True
+                                    log(f"基础匹配: {app_feat} -> {model_feat}")
+                                    break
+                        
+                        if not found:
+                            log(f"无法映射特征: {model_feat}")
+                            return np.array([33.0])
                 else:
-                    log(f"特征不匹配! 输入: {X.columns.tolist()}, 模型需要: {self.feature_names}")
+                    log("特征不匹配，尝试自动映射")
                     
                     # 尝试映射特征
-                    matching_features = {}
+                    mapping = {}
                     for model_feat in self.feature_names:
                         model_base = model_feat.split('(')[0]
                         for input_feat in X.columns:
                             input_base = input_feat.split('(')[0]
                             if model_base == input_base:
-                                matching_features[model_feat] = input_feat
+                                mapping[model_feat] = input_feat
                                 break
                     
-                    log(f"特征映射: {matching_features}")
+                    log(f"自动特征映射: {mapping}")
                     
-                    if len(matching_features) == len(self.feature_names):
+                    if len(mapping) == len(self.feature_names):
                         # 创建一个新的DataFrame，按照模型需要的顺序和名称
                         X_ordered = pd.DataFrame(index=X.index)
                         for model_feat in self.feature_names:
-                            if model_feat in matching_features:
-                                input_feat = matching_features[model_feat]
+                            if model_feat in mapping:
+                                input_feat = mapping[model_feat]
                                 X_ordered[model_feat] = X[input_feat].values
                             else:
                                 log(f"无法映射特征: {model_feat}")
                                 return np.array([33.0])
-                        
-                        log(f"映射后特征顺序: {X_ordered.columns.tolist()}")
                     else:
                         log("无法完全映射特征名称")
                         return np.array([33.0])
+                
+                log(f"最终输入数据:\n{X_ordered.to_dict('records')[0]}")
             else:
                 log("输入不是DataFrame格式")
                 return np.array([33.0])
             
-            # 应用标准化
+            # 应用标准化 - 打印详细步骤
             if self.scaler:
                 log("应用标准化器")
-                # 转换为numpy数组，去除特征名以避免顺序问题
-                X_values = X_ordered.values
-                X_scaled = self.scaler.transform(X_values)
-                log(f"标准化后数据形状: {X_scaled.shape}")
+                # 显示原始值
+                raw_values = X_ordered.values
+                log(f"原始值: {raw_values[0]}")
+                
+                # 详细跟踪标准化过程
+                if hasattr(self.scaler, 'mean_') and hasattr(self.scaler, 'scale_'):
+                    # 手动计算标准化，看是否与scaler结果一致
+                    manual_scaled = (raw_values - self.scaler.mean_) / self.scaler.scale_
+                    log(f"手动标准化值: {manual_scaled[0]}")
+                
+                # 使用scaler进行标准化
+                X_scaled = self.scaler.transform(raw_values)
+                log(f"scaler标准化值: {X_scaled[0]}")
             else:
                 log("没有标准化器，使用原始数据")
                 X_scaled = X_ordered.values
@@ -296,7 +386,14 @@ class DirectPredictor:
                     if i > 0:
                         all_predictions[:, i] = np.mean(all_predictions[:, :i], axis=1)
             
-            # 计算加权平均预测
+            # 计算加权平均预测 - 显示详细步骤
+            log(f"所有模型预测: {all_predictions[0]}")
+            log(f"权重: {self.model_weights}")
+            
+            # 更详细的加权过程
+            weighted_contributions = all_predictions[0] * self.model_weights
+            log(f"各模型加权贡献: {weighted_contributions}")
+            
             weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
             log(f"最终加权预测结果: {weighted_pred[0]:.2f}")
             
@@ -449,6 +546,7 @@ result_col, button_col = st.columns([3, 1])
 
 with result_col:
     prediction_placeholder = st.empty()
+    warning_placeholder = st.empty()
     
 with button_col:
     predict_button = st.button("PUSH", key="predict")
@@ -459,6 +557,8 @@ with button_col:
         # 清除显示
         if 'prediction_result' in st.session_state:
             st.session_state.prediction_result = None
+        if 'warnings' in st.session_state:
+            st.session_state.warnings = None
     
     clear_button = st.button("CLEAR", key="clear", on_click=clear_values)
 
@@ -468,6 +568,10 @@ if predict_button:
         # 记录输入数据
         log("进行预测:")
         log(f"输入数据: {input_data.to_dict('records')}")
+        
+        # 检查输入范围
+        warnings = predictor.check_input_range(input_data)
+        st.session_state.warnings = warnings
         
         # 使用predictor进行预测
         y_pred = predictor.predict(input_data)[0]
@@ -481,6 +585,14 @@ if predict_button:
             f"<div class='yield-result'>Char Yield (wt%) <br> {y_pred:.2f}</div>",
             unsafe_allow_html=True
         )
+        
+        # 显示警告信息
+        if warnings:
+            warning_text = "<div style='color:orange;padding:10px;margin-top:10px;'><b>⚠️ 警告:</b> 以下输入值超出训练范围，可能影响预测准确性:<br>"
+            for warning in warnings:
+                warning_text += f"- {warning}<br>"
+            warning_text += "</div>"
+            warning_placeholder.markdown(warning_text, unsafe_allow_html=True)
     except Exception as e:
         log(f"预测过程中出错: {str(e)}")
         log(traceback.format_exc())
@@ -492,6 +604,14 @@ if 'prediction_result' in st.session_state and st.session_state.prediction_resul
         f"<div class='yield-result'>Char Yield (wt%) <br> {st.session_state.prediction_result:.2f}</div>",
         unsafe_allow_html=True
     )
+    
+    # 显示保存的警告
+    if 'warnings' in st.session_state and st.session_state.warnings:
+        warning_text = "<div style='color:orange;padding:10px;margin-top:10px;'><b>⚠️ 警告:</b> 以下输入值超出训练范围，可能影响预测准确性:<br>"
+        for warning in st.session_state.warnings:
+            warning_text += f"- {warning}<br>"
+        warning_text += "</div>"
+        warning_placeholder.markdown(warning_text, unsafe_allow_html=True)
 
 # 添加调试信息
 with st.expander("Debug Information", expanded=False):
@@ -501,6 +621,24 @@ with st.expander("Debug Information", expanded=False):
     if hasattr(predictor, 'feature_names'):
         st.write("Model Features:")
         st.write(predictor.feature_names)
+    
+    if hasattr(predictor, 'train_data_stats'):
+        st.write("Training Data Statistics:")
+        if 'mean' in predictor.train_data_stats:
+            st.write("Feature Means:")
+            mean_df = pd.DataFrame({
+                'Feature': predictor.feature_names,
+                'Mean': predictor.train_data_stats['mean']
+            })
+            st.write(mean_df)
+        
+        if 'scale' in predictor.train_data_stats:
+            st.write("Feature Standard Deviations:")
+            scale_df = pd.DataFrame({
+                'Feature': predictor.feature_names,
+                'StdDev': predictor.train_data_stats['scale']
+            })
+            st.write(scale_df)
 
 # 添加关于模型的信息
 st.markdown("""
@@ -512,5 +650,5 @@ This application uses a CatBoost ensemble model to predict char yield in biomass
 - **Residence Time**: Longer residence time generally increases char yield
 - **Biomass Composition**: Carbon content and ash content significantly affect the final yield
 
-The model was trained using 10-fold cross-validation with optimized hyperparameters, achieving high prediction accuracy.
+The model was trained using 10-fold cross-validation with optimized hyperparameters, achieving high prediction accuracy (R² = 0.93, RMSE = 3.39 on test set).
 """)
