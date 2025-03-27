@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using CatBoost Ensemble Models
-修复版本 - 解决子模型标准化器问题，支持两位小数输入
+修复版本 - 解决小数精度问题和子模型标准化器问题
 """
 
 import streamlit as st
@@ -562,14 +562,14 @@ if 'individual_predictions' not in st.session_state:
 
 # 定义默认值 - 从用户截图中提取
 default_values = {
-    "C(%)": 38.34,  # 使用两位小数精度
-    "H(%)": 5.47,
-    "O(%)": 55.22,
+    "C(%)": 46.00,  # 使用两位小数精度
+    "H(%)": 5.50,
+    "O(%)": 55.20,
     "N(%)": 0.60,
-    "Ash(%)": 6.63,
-    "VM(%)": 83.08,
-    "FC(%)": 10.29,
-    "PT(°C)": 300.00,  # 使用实际测试值
+    "Ash(%)": 6.60,
+    "VM(%)": 81.10,
+    "FC(%)": 10.30,
+    "PT(°C)": 500.00,  # 使用实际测试值
     "HR(℃/min)": 10.00,
     "RT(min)": 60.00
 }
@@ -610,13 +610,15 @@ with col1:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
+            # 关键修改: 设置步长为0.01以支持两位小数
             features[feature] = st.number_input(
                 "", 
-                min_value=0.0, 
-                max_value=100.0, 
-                value=value, 
+                min_value=0.00, 
+                max_value=100.00, 
+                value=float(value), 
+                step=0.01,  # 设置为0.01允许两位小数输入
                 key=f"{category}_{feature}", 
-                format="%.2f",  # 修改为两位小数
+                format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
 
@@ -636,13 +638,15 @@ with col2:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
+            # 关键修改: 设置步长为0.01以支持两位小数
             features[feature] = st.number_input(
                 "", 
-                min_value=0.0, 
-                max_value=100.0, 
-                value=value, 
+                min_value=0.00, 
+                max_value=100.00, 
+                value=float(value), 
+                step=0.01,  # 设置为0.01允许两位小数输入
                 key=f"{category}_{feature}", 
-                format="%.2f",  # 修改为两位小数
+                format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
 
@@ -660,25 +664,27 @@ with col3:
         
         # 根据特征设置范围
         if feature == "PT(°C)":
-            min_val, max_val = 200.0, 900.0
+            min_val, max_val = 200.00, 900.00
         elif feature == "HR(℃/min)":
-            min_val, max_val = 1.0, 100.0
+            min_val, max_val = 1.00, 100.00
         elif feature == "RT(min)":
-            min_val, max_val = 0.0, 120.0
+            min_val, max_val = 0.00, 120.00
         else:
-            min_val, max_val = 0.0, 100.0
+            min_val, max_val = 0.00, 100.00
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
+            # 关键修改: 设置步长为0.01以支持两位小数
             features[feature] = st.number_input(
                 "", 
-                min_value=min_val, 
-                max_value=max_val, 
-                value=value, 
+                min_value=float(min_val), 
+                max_value=float(max_val), 
+                value=float(value), 
+                step=0.01,  # 设置为0.01允许两位小数输入
                 key=f"{category}_{feature}", 
-                format="%.2f",  # 修改为两位小数
+                format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
 
@@ -793,303 +799,275 @@ with result_container:
                         st.warning("⚠️ 标准差较大，表示模型预测一致性较低")
                     elif std_dev < 1.0:
                         st.success("✅ 标准差较小，表示模型预测一致性高")
-                
                 with col2:
-                    # 简单柱状图
+                    # 显示子模型预测分布图
                     st.write("### 预测分布")
-                    fig, ax = plt.subplots(figsize=(4, 3))
-                    ax.bar(pred_df['模型'], pred_df['预测值'], color='skyblue')
-                    ax.axhline(st.session_state.prediction_result, color='red', linestyle='--', label='平均值')
-                    ax.set_ylabel('预测值')
-                    ax.set_xticklabels(pred_df['模型'], rotation=45)
-                    plt.tight_layout()
+                    fig, ax = plt.subplots(figsize=(5, 3))
+                    ax.hist(st.session_state.individual_predictions, bins=5, alpha=0.7, color='skyblue')
+                    ax.axvline(st.session_state.prediction_result, color='red', linestyle='--', linewidth=2, label='最终预测')
+                    ax.set_xlabel('预测值')
+                    ax.set_ylabel('频率')
+                    ax.legend()
                     st.pyplot(fig)
             
-            # 显示输入特征及其重要性
-            if predictor.feature_importance is not None:
-                st.write("### 输入特征值及其重要性排名")
-                
-                # 合并特征重要性和输入值
-                input_values = input_data.iloc[0].to_dict()
-                importance_data = predictor.feature_importance.copy()
-                
-                # 计算排名
-                importance_data['排名'] = importance_data.index + 1
-                
-                # 添加输入值列
-                importance_data['输入值'] = importance_data['Feature'].map(input_values)
-                
-                # 调整显示列
-                display_df = importance_data[['排名', 'Feature', '输入值', 'Importance']]
-                display_df.columns = ['排名', '特征', '输入值', '重要性得分']
-                
-                st.dataframe(display_df.style.format({
-                    '输入值': '{:.2f}',  # 使用两位小数显示
-                    '重要性得分': '{:.4f}'
-                }))
-                
-                # 显示特征重要性图
-                importance_img = predictor.get_feature_importance_plot()
-                if importance_img:
-                    st.image(importance_img, caption="特征重要性分析", use_column_width=True)
-                
-                # 提示最重要特征的影响
-                top_feature = importance_data['Feature'].iloc[0]
-                top_value = input_values.get(top_feature)
-                
-                if top_feature == 'PT(°C)':
-                    if top_value < 350:
-                        st.info(f"🔍 您的热解温度({top_value:.2f}°C)较低，这通常会导致较高的焦炭产率。")
-                    elif top_value > 600:
-                        st.info(f"🔍 您的热解温度({top_value:.2f}°C)较高，这通常会导致较低的焦炭产率。")
-                
-                elif top_feature == 'RT(min)':
-                    if top_value > 45:
-                        st.info(f"🔍 您的停留时间({top_value:.2f}分钟)较长，这通常会增加焦炭产率。")
-                    elif top_value < 10:
-                        st.info(f"🔍 您的停留时间({top_value:.2f}分钟)较短，这通常会减少焦炭产率。")
+            # 显示输入特征表
+            st.write("### 输入特征")
+            input_df = pd.DataFrame([features])
+            
+            # 格式化为两位小数显示
+            display_df = input_df.applymap(lambda x: f"{x:.2f}")
+            st.dataframe(display_df)
 
-# 添加模型信息区域
-with st.expander("About the Model", expanded=False):
-    # 左右两列布局
-    info_col, chart_col = st.columns([1, 1])
+# 特征重要性和模型信息部分
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    # 特征重要性部分
+    st.subheader("特征重要性")
     
-    with info_col:
-        st.write("### 模型信息")
-        model_info = predictor.get_model_info()
-        for key, value in model_info.items():
-            st.write(f"**{key}:** {value}")
+    if predictor.feature_importance is not None:
+        # 显示特征重要性表格
+        importance_df = predictor.feature_importance.copy()
         
-        st.write("### 关键影响因素")
-        st.markdown("""
-        * **热解温度(PT)**: 更高的温度通常会降低焦炭产率
-        * **停留时间(RT)**: 更长的停留时间通常会增加焦炭产率
-        * **生物质成分**: 碳含量和灰分含量显著影响最终产率
-        """)
+        # 格式化重要性分数，使用4位小数
+        formatted_df = importance_df.copy()
+        formatted_df['Importance'] = formatted_df['Importance'].apply(lambda x: f"{x:.4f}")
         
-        # 添加标准化器信息
-        st.write("### 标准化器使用情况")
-        if len(predictor.scalers) == len(predictor.models):
-            st.success(f"✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器")
-        elif len(predictor.scalers) > 0:
-            st.warning(f"⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器")
+        st.dataframe(formatted_df, use_container_width=True)
+        
+        # 显示特征重要性图
+        importance_img = predictor.get_feature_importance_plot()
+        if importance_img:
+            st.image(importance_img, use_column_width=True)
+        
+        # 提供特征重要性的洞察
+        st.markdown("#### 重要特征洞察")
+        
+        # 获取前两个最重要的特征
+        top_features = importance_df['Feature'].tolist()[:2]
+        
+        if 'PT(°C)' in top_features:
+            st.info("""
+            📌 **温度(PT)** 是影响产率的最重要因素，这与热解理论一致：
+            - 较低温度下，生物质降解不完全，导致焦炭产率较高
+            - 随着温度升高，热解反应更彻底，气体产物增加，焦炭产率下降
+            """)
+        
+        if 'RT(min)' in top_features:
+            st.info("""
+            📌 **停留时间(RT)** 显著影响热解程度：
+            - 较短的停留时间可能导致热解不完全
+            - 较长的停留时间允许更多的挥发分释放，减少焦炭产率
+            """)
+    else:
+        st.warning("无法加载特征重要性数据")
+
+with col2:
+    # 关于模型部分
+    st.subheader("关于模型")
+    
+    # 获取模型信息
+    model_info = predictor.get_model_info()
+    
+    # 创建信息表
+    for key, value in model_info.items():
+        st.markdown(f"**{key}**: {value}")
+    
+    # 标准化器状态
+    st.markdown("#### 标准化器状态")
+    if len(predictor.scalers) == len(predictor.models):
+        st.success(f"✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器")
+    elif len(predictor.scalers) > 0:
+        st.warning(f"⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器")
+    else:
+        st.error("❌ 未找到子模型标准化器，使用最终标准化器")
+    
+    # 子模型与标准差可视化
+    st.markdown("#### 预测标准差")
+    if st.session_state.individual_predictions:
+        std_dev = np.std(st.session_state.individual_predictions)
+        
+        # 创建进度条表示标准差
+        st.progress(min(std_dev / 5.0, 1.0))  # 标准化到0-1范围
+        
+        # 根据标准差大小显示不同消息
+        if std_dev < 1.0:
+            st.success(f"预测一致性高 (标准差 = {std_dev:.2f})")
+        elif std_dev < 3.0:
+            st.info(f"预测一致性中等 (标准差 = {std_dev:.2f})")
         else:
-            st.error("❌ 未找到任何子模型标准化器，使用最终标准化器代替")
-        
-    with chart_col:
-        if predictor.feature_importance is not None:
-            importance_img = predictor.get_feature_importance_plot()
-            if importance_img:
-                st.image(importance_img, caption="Feature Importance Analysis", use_column_width=True)
-        
-        # 添加标准差信息
-        if 'individual_predictions' in st.session_state and st.session_state.individual_predictions:
-            std_dev = np.std(st.session_state.individual_predictions)
-            
-            # 创建简单的标准差指示器
-            fig, ax = plt.subplots(figsize=(8, 2))
-            std_level = min(std_dev / 5.0, 1.0)  # 标准化为0-1范围
-            
-            # 绘制一个简单的仪表
-            ax.barh(0, std_level, color='red' if std_level > 0.6 else 'orange' if std_level > 0.3 else 'green')
-            ax.barh(0, 1, color='lightgrey', alpha=0.3)
-            ax.set_xlim(0, 1)
-            ax.set_ylim(-0.5, 0.5)
-            ax.set_yticks([])
-            ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
-            ax.set_xticklabels(['极佳', '良好', '一般', '较差', '很差'])
-            ax.set_title(f'模型一致性: {std_dev:.2f}', fontsize=14)
-            
-            plt.tight_layout()
-            st.pyplot(fig)
-            
-            # 添加解释
-            if std_dev < 1.5:
-                st.success("✅ 子模型预测结果一致性高，增加了最终预测的可靠性")
-            elif std_dev < 3.0:
-                st.info("ℹ️ 子模型预测结果一致性中等，最终预测可信度适中")
-            else:
-                st.warning("⚠️ 子模型预测结果差异较大，建议考虑模型不确定性")
+            st.warning(f"预测一致性低 (标准差 = {std_dev:.2f})")
 
-# 添加调试信息区域（隐藏但可展开）
-with st.expander("Debug Information", expanded=False):
-    st.write("### 输入特征（精确到小数点后两位）")
-    # 以两位小数显示输入数据
-    st.dataframe(input_data.style.format("{:.2f}"))
+# 调试信息区域
+with st.expander("调试信息", expanded=False):
+    st.markdown("### 输入特征详情")
+    # 显示带两位小数格式的输入特征
+    formatted_features = {k: f"{v:.2f}" for k, v in features.items()}
+    st.json(formatted_features)
     
-    st.write("### 模型信息")
-    if hasattr(predictor, 'models') and predictor.models:
-        st.write(f"模型数量: {len(predictor.models)}")
-    if hasattr(predictor, 'scalers') and predictor.scalers:
-        st.write(f"标准化器数量: {len(predictor.scalers)}")
-    if hasattr(predictor, 'model_weights') and predictor.model_weights is not None:
-        st.write(f"权重形状: {predictor.model_weights.shape}")
-    if hasattr(predictor, 'feature_names') and predictor.feature_names:
-        st.write(f"特征名称: {predictor.feature_names}")
+    st.markdown("### 模型信息")
+    st.json({
+        "模型数量": len(predictor.models),
+        "标准化器数量": len(predictor.scalers),
+        "特征数量": len(predictor.feature_names) if predictor.feature_names else 0,
+        "特征列表": predictor.feature_names,
+        "模型目录": predictor.model_dir
+    })
     
-    # 显示标准化器信息
-    if hasattr(predictor, 'final_scaler') and predictor.final_scaler is not None:
-        if hasattr(predictor.final_scaler, 'mean_'):
-            st.write("### 最终标准化器均值")
-            mean_df = pd.DataFrame({
-                '特征': predictor.feature_names,
-                '均值': predictor.final_scaler.mean_
-            })
-            st.dataframe(mean_df.style.format({'均值': '{:.4f}'}))
-        
-        if hasattr(predictor.final_scaler, 'scale_'):
-            st.write("### 最终标准化器标准差")
-            scale_df = pd.DataFrame({
-                '特征': predictor.feature_names,
-                '标准差': predictor.final_scaler.scale_
-            })
-            st.dataframe(scale_df.style.format({'标准差': '{:.4f}'}))
-    
-    # 显示标准化前后的数据
-    if hasattr(predictor, 'final_scaler') and predictor.final_scaler is not None:
-        st.write("### 标准化前后对比")
-        original_data = input_data.iloc[0].to_dict()
-        scaled_data = predictor.final_scaler.transform(input_data)[0]
-        
-        compare_df = pd.DataFrame({
-            '特征': predictor.feature_names,
-            '原始值': [original_data.get(f) for f in predictor.feature_names],
-            '标准化后': scaled_data
-        })
-        
-        st.dataframe(compare_df.style.format({
-            '原始值': '{:.2f}',  # 显示两位小数
-            '标准化后': '{:.4f}'
-        }))
+    st.markdown("### 标准化器信息")
+    if predictor.final_scaler and hasattr(predictor.final_scaler, 'mean_'):
+        scaler_info = {
+            "均值": predictor.final_scaler.mean_.tolist(),
+            "标准差": predictor.final_scaler.scale_.tolist() if hasattr(predictor.final_scaler, 'scale_') else None
+        }
+        st.json(scaler_info)
+    else:
+        st.warning("最终标准化器信息不可用")
 
-# 添加技术说明区域
-with st.expander("Technical Notes", expanded=False):
-    st.write("### 关于预测精度")
+# 技术说明区域
+with st.expander("技术说明", expanded=False):
     st.markdown("""
-    该模型使用CatBoost回归器集成进行预测，模型的测试集RMSE为3.39，这意味着：
+    ### 预测精度说明
     
-    - 在测试集上，平均预测误差约为±3.39个百分点
-    - 实际预测可能会略高或略低于这个范围
-    - 特别是在训练数据范围边缘的输入值（如低温或极高温）可能会有更大误差
+    本模型是基于CatBoost的集成学习模型，通过10个子模型共同预测以提高准确性和稳定性。模型在测试集上达到了约0.93的R²和3.39的RMSE。
     
-    ### 预测精度改进
+    #### 已修复的问题
     
-    此版本实现了两个关键改进：
+    1. **子模型标准化器问题**: 应用正确加载并应用每个子模型的标准化器，确保特征的标准化与训练时一致。
+    2. **输入精度问题**: 允许输入两位小数而不是一位，减少舍入误差。
     
-    1. **修复子模型标准化器问题**: 每个子模型现在使用其对应的标准化器处理输入数据，显著提高了预测准确性
-    2. **提高输入精度**: 所有输入值现在支持两位小数精度，减少了因截断造成的误差
+    #### 使用建议
     
-    ### 使用建议
-    
-    - 对于关键决策，建议多调整输入参数，观察预测值的变化趋势
-    - 预测结果最好结合实际经验和实验室验证
-    - 当输入参数超出训练范围时，请谨慎使用预测结果
+    1. 尽量使用在训练范围内的输入值，超出范围的预测可能不准确。
+    2. 对于生物质热解，温度(PT)和停留时间(RT)是最关键的参数，建议重点关注这些参数的设置。
+    3. 如果多个子模型的预测差异较大(标准差>3)，表明当前输入条件下的预测可能不稳定。
     """)
+
+# 温度敏感性分析
+with st.expander("温度敏感性分析", expanded=False):
+    st.markdown("### 分析温度对产率的影响")
     
-    # 添加温度敏感性分析
-    if 'prediction_result' in st.session_state and st.session_state.prediction_result is not None:
-        current_temp = features.get('PT(°C)', 500.0)
-        current_result = st.session_state.prediction_result
+    # 温度范围滑块
+    temp_range = st.slider("温度范围(°C)", 
+                          min_value=200, 
+                          max_value=900, 
+                          value=(300, 700),
+                          step=50)
+    
+    # 温度步长
+    temp_step = st.selectbox("温度步长", options=[10, 25, 50, 100], index=1)
+    
+    # 执行分析按钮
+    if st.button("运行温度敏感性分析"):
+        # 创建温度序列
+        temps = np.arange(temp_range[0], temp_range[1] + 1, temp_step)
         
-        st.write("### 温度敏感性分析")
-        st.info(f"这将显示在当前温度({current_temp:.2f}°C)附近，温度变化对焦炭产率的影响。")
+        # 创建保存当前输入特征的副本
+        base_features = features.copy()
         
-        temp_range = [-50, -25, 0, 25, 50]
-        temp_results = []
+        # 结果容器
+        results = []
         
-        run_analysis = st.button("运行温度敏感性分析")
-        
-        if run_analysis:
-            for delta in temp_range:
-                # 创建一个新的输入复制
-                temp_input = input_data.copy()
-                new_temp = current_temp + delta
-                temp_input['PT(°C)'] = new_temp
-                
-                # 预测
-                try:
-                    result = predictor.predict(temp_input)[0]
-                    temp_results.append((new_temp, result))
-                except Exception as e:
-                    log(f"温度 {new_temp:.2f}°C 分析失败: {str(e)}")
+        # 执行预测
+        for temp in temps:
+            temp_features = base_features.copy()
+            temp_features['PT(°C)'] = temp
             
-            if temp_results:
-                # 创建分析表格
-                temp_df = pd.DataFrame(temp_results, columns=['温度(°C)', '预测焦炭产率(%)'])
-                st.dataframe(temp_df.style.format({
-                    '温度(°C)': '{:.2f}',
-                    '预测焦炭产率(%)': '{:.2f}'
-                }))
-                
-                # 绘制温度敏感性图
-                fig, ax = plt.subplots(figsize=(8, 4))
-                ax.plot([t[0] for t in temp_results], [t[1] for t in temp_results], 
-                        'o-', color='blue', linewidth=2)
+            # 创建输入DataFrame
+            temp_input = pd.DataFrame([temp_features])
+            
+            # 预测
+            try:
+                pred = predictor.predict(temp_input)
+                results.append((temp, float(pred[0])))
+            except Exception as e:
+                st.error(f"温度 {temp}°C 预测失败: {str(e)}")
+        
+        # 显示结果
+        if results:
+            # 创建DataFrame
+            result_df = pd.DataFrame(results, columns=['温度(°C)', '预测产率(%)'])
+            
+            # 显示表格
+            st.dataframe(result_df.style.format({
+                '温度(°C)': '{:.0f}',
+                '预测产率(%)': '{:.2f}'
+            }))
+            
+            # 绘制曲线
+            fig, ax = plt.subplots(figsize=(10, 6))
+            ax.plot(result_df['温度(°C)'], result_df['预测产率(%)'], marker='o', linewidth=2)
+            ax.set_xlabel('温度(°C)', fontsize=12)
+            ax.set_ylabel('预测产率(%)', fontsize=12)
+            ax.set_title('温度对产率的影响', fontsize=14)
+            ax.grid(True, linestyle='--', alpha=0.7)
+            
+            # 添加当前温度标记
+            current_temp = base_features['PT(°C)']
+            if temp_range[0] <= current_temp <= temp_range[1]:
+                # 找到最接近的预测点
+                closest_idx = np.abs(result_df['温度(°C)'] - current_temp).argmin()
+                closest_temp = result_df.iloc[closest_idx]['温度(°C)']
+                closest_yield = result_df.iloc[closest_idx]['预测产率(%)']
                 
                 # 标记当前温度点
-                current_idx = next((i for i, (t, _) in enumerate(temp_results) if abs(t - current_temp) < 0.01), None)
-                if current_idx is not None:
-                    ax.plot(current_temp, temp_results[current_idx][1], 'o', color='red', markersize=10)
-                
-                ax.set_xlabel('温度 (°C)')
-                ax.set_ylabel('预测焦炭产率 (%)')
-                ax.set_title('温度对焦炭产率的影响')
-                ax.grid(True, linestyle='--', alpha=0.7)
-                
-                plt.tight_layout()
-                st.pyplot(fig)
-                
-                # 添加温度敏感性解释
-                if len(temp_results) > 2:
-                    first_temp, first_yield = temp_results[0]
-                    last_temp, last_yield = temp_results[-1]
-                    temp_diff = last_temp - first_temp
-                    yield_diff = last_yield - first_yield
-                    
-                    # 计算温度变化率
-                    temp_sensitivity = yield_diff / temp_diff if temp_diff != 0 else 0
-                    
-                    st.write(f"**温度敏感性:** {temp_sensitivity:.4f} %/°C")
-                    if temp_sensitivity < -0.1:
-                        st.write("温度对焦炭产率有显著负面影响，提高温度会降低产率。")
-                    elif temp_sensitivity > 0.1:
-                        st.write("温度对焦炭产率有显著正面影响，提高温度会增加产率。")
-                    else:
-                        st.write("温度对焦炭产率影响较小。")
+                ax.scatter([closest_temp], [closest_yield], color='red', s=100, zorder=5, 
+                           label=f'当前温度: {current_temp:.0f}°C')
+                ax.legend()
+            
+            st.pyplot(fig)
+            
+            # 找出最大和最小产率点
+            max_idx = result_df['预测产率(%)'].idxmax()
+            min_idx = result_df['预测产率(%)'].idxmin()
+            
+            max_temp = result_df.iloc[max_idx]['温度(°C)']
+            max_yield = result_df.iloc[max_idx]['预测产率(%)']
+            
+            min_temp = result_df.iloc[min_idx]['温度(°C)']
+            min_yield = result_df.iloc[min_idx]['预测产率(%)']
+            
+            # 显示分析结果
+            st.markdown(f"""
+            ### 分析结果
+            
+            - 在分析范围内，产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
+            - 在分析范围内，产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
+            - 温度变化 1°C 平均导致产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
+            """)
 
-# 添加数据验证和准确性建议区域
-with st.expander("数据验证与准确性建议", expanded=False):
-    st.write("### 验证预测结果")
+# 数据验证建议
+with st.expander("数据验证与精度建议", expanded=False):
     st.markdown("""
-    为了获得最准确的预测结果，建议关注以下几点：
+    ### 提高预测精度的建议
     
-    1. **输入精度**：所有特征值现在精确到小数点后两位，请确保输入的数据精度足够
+    1. **确保数据质量**:
+       - 使用两位小数输入可以减少舍入误差
+       - 通过实验验证输入的分析数据
     
-    2. **热解温度**：这是影响焦炭产率的最重要因素，确保输入的温度尽可能准确
+    2. **优先关注重要特征**:
+       - 热解温度(PT)是最关键的参数，确保其准确性
+       - 停留时间(RT)是第二重要的参数，需要精确控制
     
-    3. **子模型标准化**：当前预测使用了每个子模型训练时的对应标准化器，显著提高了预测准确性
+    3. **注意特征之间的相关性**:
+       - C、H、O含量通常相关，确保它们的总和合理
+       - VM和FC含量也应与元素分析结果相符
     
-    4. **输入范围验证**：系统会自动检查输入值是否在训练数据范围内，请注意任何超出范围的警告
-    
-    5. **模型一致性**：观察各子模型预测的一致性（标准差），一致性高的预测通常更可靠
-    """)
-    
-    st.write("### 数据问题排查")
-    st.markdown("""
-    如果预测结果与实际值有较大差异，可能的原因包括：
-    
-    - **输入特征精度不足**：确保所有输入保留足够精度（至少两位小数）
-    - **特征值超出训练范围**：特别是温度等关键特征，尽量使用在训练数据范围内的值
-    - **标准化器不匹配**：如果通过其他方法调用模型，确保使用正确的标准化器
-    - **特征顺序错误**：务必按照训练时相同的顺序提供特征
+    4. **模型的局限性**:
+       - 模型主要在训练数据范围内有效
+       - 超出范围的预测会通过警告提示，但可能不准确
     """)
 
-# 添加页脚
+# 页脚
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: gray; font-size: 14px;">
-© 2023 Biomass Pyrolysis Research Team. All rights reserved.<br>
-使用CatBoost集成模型预测生物质热解产率 | 模型精度: R² = 0.93, RMSE = 3.39<br>
-最近更新: 添加两位小数精度支持 & 修复子模型标准化器问题
+    © 2023 生物质热解产率预测系统 | 模型精度: R² = 0.93, RMSE = 3.39 | 集成 10 个 CatBoost 子模型<br>
+    版本更新: 支持两位小数输入 & 修复子模型标准化器问题
 </div>
 """, unsafe_allow_html=True)
+
+
+
+
+
