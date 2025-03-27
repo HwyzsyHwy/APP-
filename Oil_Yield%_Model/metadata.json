@@ -1,0 +1,24 @@
+{
+    "creation_date": "2025-03-27 21:12:58",
+    "version": "1.0",
+    "description": "CatBoost\u6a21\u578b\u96c6\u6210\u7cfb\u7edf",
+    "feature_names": [
+        "C(%)",
+        "H(%)",
+        "O(%)",
+        "N(%)",
+        "Ash(%)",
+        "VM(%)",
+        "FC(%)",
+        "PT(\u00b0C)",
+        "HR(\u2103/min)",
+        "RT(min)"
+    ],
+    "target_name": "Oil Yield(%)",
+    "performance": {
+        "train_rmse": 2.850067108118619,
+        "train_r2": 0.9442576050696921,
+        "test_rmse": 3.8950729586967,
+        "test_r2": 0.8825800731555289
+    }
+}
