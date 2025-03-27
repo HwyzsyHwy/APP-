@@ -216,7 +216,7 @@ log("应用启动 - 支持两位小数和模型切换功能")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "Char Yield(%)"
+    st.session_state.selected_model = "Char Yield(%)"  # 这里修改了，移除wt
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
@@ -241,20 +241,20 @@ with col2:
 
 # 处理模型选择
 if char_button:
-    st.session_state.selected_model = "Char Yield(%)"
+    st.session_state.selected_model = "Char Yield(%)"  # 这里修改了，移除wt
     st.session_state.prediction_result = None
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
     log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()  # 使用st.rerun()代替st.experimental_rerun()
+    st.rerun()
 
 if oil_button:
-    st.session_state.selected_model = "Oil Yield(%)"
+    st.session_state.selected_model = "Oil Yield(%)"  # 这里修改了，移除wt
     st.session_state.prediction_result = None
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
     log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()  # 使用st.rerun()代替st.experimental_rerun()
+    st.rerun()
 
 st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
@@ -262,7 +262,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 class CorrectedEnsemblePredictor:
     """修复版集成模型预测器 - 解决子模型标准化器问题，支持多模型切换"""
     
-    def __init__(self, target_model="Char Yield(%)"):
+    def __init__(self, target_model="Char Yield(%)"):  # 这里修改了，移除wt
         self.models = []
         self.scalers = []  # 每个子模型的标准化器
         self.final_scaler = None  # 最终标准化器（备用）
@@ -582,7 +582,7 @@ class CorrectedEnsemblePredictor:
             weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
             log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
             
-            # 计算评估指标
+            # 计算评估指标 - 动态计算RMSE和R²
             std_dev = np.std(individual_predictions)
             rmse = np.sqrt(np.mean((all_predictions - weighted_pred.reshape(-1, 1))**2))
             total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
@@ -592,7 +592,7 @@ class CorrectedEnsemblePredictor:
             log(f"预测标准差: {std_dev:.4f}")
             log(f"计算得到RMSE: {rmse[0]:.4f}, R²: {r2:.4f}")
             
-            # 存储评估指标到session_state
+            # 存储评估指标到session_state - 确保性能指标动态更新
             st.session_state.current_rmse = float(rmse[0])
             st.session_state.current_r2 = float(r2)
             
@@ -645,14 +645,14 @@ model_info_html += "<h4>标准化器状态</h4>"
 if len(predictor.scalers) == len(predictor.models):
     model_info_html += f"<p style='color:green'>✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器</p>"
 elif len(predictor.scalers) > 0:
-    model_info_html += f"<p style='color:orange'>⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器</p>"
+    model_info_html += f"<p style='color:orange'⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器</p>"
 else:
     model_info_html += "<p style='color:red'>❌ 未找到子模型标准化器，使用最终标准化器</p>"
 
 model_info_html += "</div>"
 st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
 
-# 性能指标显示区域
+# 性能指标显示区域（在预测后动态更新）
 performance_container = st.sidebar.container()
 
 # 初始化会话状态
@@ -890,7 +890,7 @@ if st.session_state.prediction_result is not None:
     
     # 显示警告
     if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b>⚠️ 警告：部分输入超出训练范围</b><ul>"
+        warnings_html = "<div class='warning-box'><b⚠️ 警告：部分输入超出训练范围</b><ul>"
         for warning in st.session_state.warnings:
             warnings_html += f"<li>{warning}</li>"
         warnings_html += "</ul><p>预测结果可能不太可靠。</p></div>"
