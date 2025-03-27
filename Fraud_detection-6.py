@@ -97,51 +97,80 @@ def log(message):
     """记录调试信息到侧边栏"""
     log_container.write(message)
 
-# 直接预测器类 - 严格按照训练时的特征顺序和处理方法
-class ModelPredictor:
-    """直接加载并使用模型文件进行预测"""
+# 直接包含 DirectPredictor 类的定义，而不是尝试创建单独的文件
+class DirectPredictor:
+    """直接加载模型文件进行预测的预测器"""
     
     def __init__(self):
-        # 严格定义模型期望的特征顺序
+        # 根据训练代码输出设置正确的特征顺序
         self.feature_names = ['C(%)', 'H(%)', 'O(%)', 'N(%)', 'Ash(%)', 'VM(%)', 'FC(%)', 'PT(°C)', 'HR(℃/min)', 'RT(min)']
         self.models = []
         self.model_weights = None
         self.scaler = None
         self.metadata = None
-        self.performance = None
+        self.feature_mapping = {}
+        self.train_data_stats = {}
+        self.model_dir = None
         
-        # 加载模型组件
-        self.load_components()
+        # 查找并加载模型
+        self.load_model_components()
     
-    def load_components(self):
-        """加载所有模型组件"""
+    def find_model_directories(self):
+        """
+        查找包含模型文件的目录
+        """
+        model_dirs = []
+        # 查找包含models子目录和metadata.json的目录
+        for root, dirs, files in os.walk("."):
+            if "models" in dirs and "metadata.json" in files:
+                model_dirs.append(os.path.abspath(root))
+        
+        return model_dirs
+    
+    def load_model_components(self):
+        """加载模型组件"""
         try:
             # 查找模型目录
-            model_dirs = glob.glob("**/models", recursive=True)
+            model_dirs = self.find_model_directories()
             if not model_dirs:
-                log("未找到模型目录")
-                return False
-            
-            # 推断模型根目录
-            model_dir = os.path.dirname(model_dirs[0])
-            log(f"模型根目录: {model_dir}")
+                log("未找到模型目录，尝试直接查找模型文件")
+                # 尝试直接查找模型文件
+                model_files = glob.glob("**/model_*.joblib", recursive=True)
+                if model_files:
+                    self.model_dir = os.path.dirname(os.path.dirname(model_files[0]))
+                    log(f"基于模型文件推断模型目录: {self.model_dir}")
+                else:
+                    log("未找到任何模型文件")
+                    return False
+            else:
+                # 选择第一个模型目录
+                self.model_dir = model_dirs[0]
+                log(f"使用模型目录: {self.model_dir}")
             
             # 加载元数据
-            metadata_path = os.path.join(model_dir, 'metadata.json')
+            metadata_path = os.path.join(self.model_dir, 'metadata.json')
             if os.path.exists(metadata_path):
                 with open(metadata_path, 'r') as f:
                     self.metadata = json.load(f)
-                # 验证特征顺序, 但仍使用预定义的顺序
                 metadata_features = self.metadata.get('feature_names', None)
                 if metadata_features:
-                    log(f"元数据特征顺序: {metadata_features}")
-                # 加载性能指标
+                    # 验证特征顺序
+                    if set(metadata_features) == set(self.feature_names):
+                        # 使用元数据中的特征顺序
+                        self.feature_names = metadata_features
+                    else:
+                        log(f"警告：元数据中的特征与预期不匹配")
+                log(f"加载元数据，特征名称: {self.feature_names}")
+                
+                # 从元数据中提取性能信息
                 if 'performance' in self.metadata:
                     self.performance = self.metadata['performance']
                     log(f"模型性能: R²={self.performance.get('test_r2', 'unknown')}, RMSE={self.performance.get('test_rmse', 'unknown')}")
+            else:
+                log(f"未找到元数据文件: {metadata_path}")
             
             # 加载模型
-            models_dir = os.path.join(model_dir, 'models')
+            models_dir = os.path.join(self.model_dir, 'models')
             if os.path.exists(models_dir):
                 model_files = sorted(glob.glob(os.path.join(models_dir, 'model_*.joblib')))
                 if model_files:
@@ -152,29 +181,81 @@ class ModelPredictor:
                             log(f"加载模型: {model_path}")
                         except Exception as e:
                             log(f"加载模型失败: {model_path}, 错误: {e}")
+                else:
+                    log(f"未找到模型文件在: {models_dir}")
+                    # 尝试直接查找
+                    model_files = sorted(glob.glob("**/model_*.joblib", recursive=True))
+                    if model_files:
+                        for model_path in model_files:
+                            try:
+                                model = joblib.load(model_path)
+                                self.models.append(model)
+                                log(f"加载模型: {model_path}")
+                            except Exception as e:
+                                log(f"加载模型失败: {model_path}, 错误: {e}")
+            else:
+                log(f"未找到模型目录: {models_dir}")
+                # 尝试直接查找
+                model_files = sorted(glob.glob("**/model_*.joblib", recursive=True))
+                if model_files:
+                    for model_path in model_files:
+                        try:
+                            model = joblib.load(model_path)
+                            self.models.append(model)
+                            log(f"加载模型: {model_path}")
+                        except Exception as e:
+                            log(f"加载模型失败: {model_path}, 错误: {e}")
             
             # 加载权重
-            weights_path = os.path.join(model_dir, 'model_weights.npy')
+            weights_path = os.path.join(self.model_dir, 'model_weights.npy')
             if os.path.exists(weights_path):
                 self.model_weights = np.load(weights_path)
                 log(f"加载权重: {weights_path}")
             else:
-                if self.models:
-                    self.model_weights = np.ones(len(self.models)) / len(self.models)
-                    log("使用均等权重")
+                log(f"未找到权重文件: {weights_path}")
+                # 尝试直接查找
+                weights_files = glob.glob("**/model_weights.npy", recursive=True)
+                if weights_files:
+                    self.model_weights = np.load(weights_files[0])
+                    log(f"加载权重: {weights_files[0]}")
+                else:
+                    if self.models:
+                        self.model_weights = np.ones(len(self.models)) / len(self.models)
+                        log("使用均等权重")
             
             # 加载标准化器
-            scaler_path = os.path.join(model_dir, 'final_scaler.joblib')
+            scaler_path = os.path.join(self.model_dir, 'final_scaler.joblib')
             if os.path.exists(scaler_path):
                 self.scaler = joblib.load(scaler_path)
                 log(f"加载标准化器: {scaler_path}")
+                
+                # 提取标准化器的均值和标准差，用于验证
+                if hasattr(self.scaler, 'mean_'):
+                    self.train_data_stats['mean'] = self.scaler.mean_
+                    log(f"特征均值: {self.scaler.mean_}")
+                if hasattr(self.scaler, 'scale_'):
+                    self.train_data_stats['scale'] = self.scaler.scale_
+                    log(f"特征标准差: {self.scaler.scale_}")
+            else:
+                log(f"未找到标准化器文件: {scaler_path}")
+                # 尝试直接查找
+                scaler_files = glob.glob("**/final_scaler.joblib", recursive=True)
+                if scaler_files:
+                    self.scaler = joblib.load(scaler_files[0])
+                    log(f"加载标准化器: {scaler_files[0]}")
+                    
+                    # 提取标准化器的均值和标准差，用于验证
+                    if hasattr(self.scaler, 'mean_'):
+                        self.train_data_stats['mean'] = self.scaler.mean_
+                    if hasattr(self.scaler, 'scale_'):
+                        self.train_data_stats['scale'] = self.scaler.scale_
             
-            # 验证加载状态
-            if self.models and self.scaler:
+            # 检查模型是否成功加载
+            if self.models:
                 log(f"成功加载 {len(self.models)} 个模型")
                 return True
             else:
-                log("模型加载不完整")
+                log("未能加载任何模型")
                 return False
                 
         except Exception as e:
@@ -182,174 +263,285 @@ class ModelPredictor:
             log(traceback.format_exc())
             return False
     
-    def check_input_range(self, input_data):
+    def check_input_range(self, X):
         """检查输入值是否在训练数据范围内"""
-        if not hasattr(self.scaler, 'mean_') or not hasattr(self.scaler, 'scale_'):
-            return []
-            
         warnings = []
+        
+        if not hasattr(self.scaler, 'mean_') or not hasattr(self.scaler, 'scale_'):
+            return warnings
+            
         feature_mean = self.scaler.mean_
         feature_std = self.scaler.scale_
-            
-        # 转换后检查输入范围
-        ordered_data = self.reorder_features(input_data)
         
+        # 使用转换后的数据进行检查
+        X_transformed = self.transform_input_to_model_order(X)
+        log(f"按模型顺序的特征数据: {X_transformed.to_dict('records')}")
+        
+        # 假设特征是正态分布，计算大致的95%置信区间
         for i, feature in enumerate(self.feature_names):
-            input_val = ordered_data[feature].iloc[0]
-            mean = feature_mean[i]
-            std = feature_std[i]
-            
-            # 计算合理范围 (2个标准差)
-            lower_bound = mean - 2 * std
-            upper_bound = mean + 2 * std
-            
-            # 检查是否超出范围
-            if input_val < lower_bound or input_val > upper_bound:
-                log(f"警告: {feature} = {input_val} 超出正常范围 [{lower_bound:.2f}, {upper_bound:.2f}]")
-                warnings.append(f"{feature}: {input_val} (范围: {lower_bound:.2f}-{upper_bound:.2f})")
+            if i < len(self.feature_names):
+                input_val = X_transformed[feature].iloc[0]
+                mean = feature_mean[i]
+                std = feature_std[i]
+                
+                # 检查是否偏离均值太多
+                lower_bound = mean - 2 * std
+                upper_bound = mean + 2 * std
+                
+                if input_val < lower_bound or input_val > upper_bound:
+                    log(f"警告: {feature} = {input_val} 超出正常范围 [{lower_bound:.2f}, {upper_bound:.2f}]")
+                    warnings.append(f"{feature}: {input_val} (范围: {lower_bound:.2f}-{upper_bound:.2f})")
         
         return warnings
     
-    def reorder_features(self, X):
-        """确保特征顺序与模型期望一致"""
+    def transform_input_to_model_order(self, X):
+        """将输入特征转换为模型所需的顺序"""
         if not isinstance(X, pd.DataFrame):
             log("输入不是DataFrame格式")
-            # 转换为DataFrame
-            if isinstance(X, dict):
-                X = pd.DataFrame([X])
-            else:
-                return X
+            return X
+            
+        log(f"输入特征顺序: {X.columns.tolist()}")
+        log(f"模型特征顺序: {self.feature_names}")
         
-        log(f"输入特征: {X.columns.tolist()}")
-        log(f"模型期望特征: {self.feature_names}")
-        
-        # 创建新DataFrame，确保特征顺序正确
-        ordered_X = pd.DataFrame(index=X.index)
-        
-        # 匹配特征
+        # 创建新的DataFrame，保持模型期望的特征顺序
+        X_new = pd.DataFrame(index=X.index)
         for feature in self.feature_names:
+            # 在UI特征中寻找匹配
+            found = False
+            # 1. 直接匹配
             if feature in X.columns:
-                # 直接匹配
-                ordered_X[feature] = X[feature]
+                X_new[feature] = X[feature]
+                found = True
+            # 2. 基于特征名前缀匹配
             else:
-                # 基于前缀匹配
                 feature_base = feature.split('(')[0]
-                matched = False
                 for col in X.columns:
                     col_base = col.split('(')[0]
                     if col_base == feature_base:
-                        ordered_X[feature] = X[col]
-                        log(f"匹配特征: {col} -> {feature}")
-                        matched = True
+                        X_new[feature] = X[col]
+                        log(f"基于前缀匹配特征: {col} -> {feature}")
+                        found = True
                         break
+            
+            if not found:
+                log(f"警告：无法找到特征 {feature} 的对应输入")
+                # 使用默认值
+                X_new[feature] = 0.0
                 
-                if not matched:
-                    log(f"警告: 找不到匹配特征 {feature}")
-                    # 使用默认值
-                    ordered_X[feature] = 0.0
-        
-        return ordered_X
+        return X_new
     
-    def predict(self, input_data):
-        """使用模型预测结果"""
+    def predict(self, X):
+        """
+        使用加载的模型进行预测
+        
+        参数:
+            X: 特征数据，DataFrame格式
+        
+        返回:
+            预测结果数组
+        """
         try:
             if not self.models:
-                log("模型未加载，无法预测")
+                log("没有加载模型，无法预测")
                 return np.array([33.0])  # 返回默认值
             
-            # 确保特征顺序正确
-            ordered_data = self.reorder_features(input_data)
-            log(f"重排后的特征数据: {ordered_data.iloc[0].to_dict()}")
+            # 将输入特征转换为模型所需的顺序
+            X_model_order = self.transform_input_to_model_order(X)
+            log(f"转换后的输入数据:\n{X_model_order.to_dict('records')[0]}")
             
-            # 标准化数据
+            # 应用标准化
             if self.scaler:
-                X_scaled = self.scaler.transform(ordered_data)
-                log("应用标准化器")
-                # 调试：显示标准化前后的值
-                log(f"标准化前: {ordered_data.iloc[0].values}")
-                log(f"标准化后: {X_scaled[0]}")
+                log("应用标准化")
+                X_scaled = self.scaler.transform(X_model_order)
             else:
                 log("未找到标准化器，使用原始数据")
-                X_scaled = ordered_data.values
+                X_scaled = X_model_order.values
             
-            # 使用每个模型预测并应用权重
-            all_predictions = np.zeros((len(ordered_data), len(self.models)))
-            
+            # 使用每个模型进行预测
+            all_predictions = np.zeros((X_model_order.shape[0], len(self.models)))
             for i, model in enumerate(self.models):
                 try:
                     pred = model.predict(X_scaled)
                     all_predictions[:, i] = pred
-                    log(f"模型 {i} 预测: {pred[0]:.2f}")
+                    log(f"模型 {i} 预测结果: {pred[0]:.2f}")
                 except Exception as e:
                     log(f"模型 {i} 预测失败: {e}")
+                    # 使用平均值填充
                     if i > 0:
-                        # 使用已完成模型的平均值
                         all_predictions[:, i] = np.mean(all_predictions[:, :i], axis=1)
             
-            # 应用权重
-            if self.model_weights is not None:
-                weighted_contributions = all_predictions[0] * self.model_weights
-                log(f"各模型贡献: {weighted_contributions}")
-                weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
-            else:
-                # 简单平均
-                weighted_pred = np.mean(all_predictions, axis=1)
+            # 计算加权平均预测
+            weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
+            log(f"最终加权预测结果: {weighted_pred[0]:.2f}")
             
-            log(f"最终预测: {weighted_pred[0]:.2f}")
             return weighted_pred
             
         except Exception as e:
-            log(f"预测过程出错: {str(e)}")
+            log(f"预测过程中出错: {str(e)}")
             log(traceback.format_exc())
             return np.array([33.0])  # 返回默认值
 
-# 加载模型
-predictor = ModelPredictor()
+# 尝试修复简化预测器模块中的语法错误
+def fix_simple_predictor():
+    try:
+        predictor_paths = glob.glob("**/simple_predictor.py", recursive=True)
+        if not predictor_paths:
+            log("未找到simple_predictor.py文件")
+            return False
+            
+        predictor_path = predictor_paths[0]
+        log(f"尝试修复: {predictor_path}")
+        
+        # 读取文件
+        with open(predictor_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 修复类名中的百分号和seaborn依赖
+        fixed_content = content.replace("class Char_Yield%Predictor:", "class Char_YieldPredictor:")
+        fixed_content = fixed_content.replace("import seaborn as sns", "# import seaborn as sns")
+        fixed_content = fixed_content.replace("sns.kdeplot", "# sns.kdeplot")
+        fixed_content = fixed_content.replace("sns.barplot", "# sns.barplot")
+        
+        # 写回文件
+        with open(predictor_path, 'w', encoding='utf-8') as f:
+            f.write(fixed_content)
+            
+        log("成功修复simple_predictor.py文件")
+        return True
+    except Exception as e:
+        log(f"修复simple_predictor.py时出错: {str(e)}")
+        return False
+
+# 加载修复simple_predictor模块
+try:
+    log("尝试修复simple_predictor.py文件中的语法错误")
+    fix_simple_predictor()
+except Exception as e:
+    log(f"修复尝试失败: {str(e)}")
+
+# 查找simple_predictor.py文件
+def find_predictor_module():
+    """
+    查找simple_predictor.py模块
+    """
+    predictor_paths = glob.glob("**/simple_predictor.py", recursive=True)
+    if predictor_paths:
+        return predictor_paths[0]
+    return None
+
+# 动态加载simple_predictor模块
+def load_predictor_class():
+    """
+    动态加载simple_predictor.py中的预测器类
+    """
+    try:
+        # 查找预测器模块
+        predictor_path = find_predictor_module()
+        if not predictor_path:
+            log("未找到simple_predictor.py模块，将使用直接加载方式")
+            return None
+        
+        log(f"找到预测器模块: {predictor_path}")
+        
+        # 尝试直接读取并检查预测器类
+        with open(predictor_path, 'r', encoding='utf-8') as f:
+            content = f.readlines()
+        
+        # 查找类定义行
+        class_line = None
+        for line in content:
+            if "class" in line and "Predictor" in line:
+                class_line = line.strip()
+                log(f"找到预测器类定义: {class_line}")
+                break
+        
+        # 检查是否包含语法错误
+        if class_line and "%" in class_line:
+            log("预测器类名包含非法字符，无法直接导入")
+            return None
+        
+        # 导入模块
+        module_name = os.path.basename(predictor_path).replace(".py", "")
+        spec = importlib.util.spec_from_file_location(module_name, predictor_path)
+        module = importlib.util.module_from_spec(spec)
+        
+        try:
+            spec.loader.exec_module(module)
+        except SyntaxError as e:
+            log(f"模块存在语法错误: {e}")
+            return None
+        except ModuleNotFoundError as e:
+            log(f"模块导入错误: {e}")
+            return None
+        
+        # 查找预测器类
+        predictor_class = None
+        for name in dir(module):
+            if name.endswith("Predictor") and name != "Predictor":
+                predictor_class = getattr(module, name)
+                log(f"找到预测器类: {name}")
+                break
+        
+        if predictor_class:
+            # 实例化预测器
+            log("实例化预测器类")
+            predictor = predictor_class()
+            log("预测器类成功加载")
+            return predictor
+        else:
+            log("在模块中未找到预测器类")
+            return None
+            
+    except Exception as e:
+        log(f"加载预测器类时出错: {str(e)}")
+        log(traceback.format_exc())
+        return None
+
+# 初始化预测器
+predictor = load_predictor_class()
+
+# 如果无法加载simple_predictor，则使用直接加载方式
+if predictor is None:
+    log("使用直接模型加载方式")
+    predictor = DirectPredictor()
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
 
-# 定义默认值和范围 - 使用模型期望的特征顺序
+# 定义默认值和范围 - 按照训练的feature_names顺序定义
 default_values = {
-    'C(%)': 45.0,
-    'H(%)': 6.0,
-    'O(%)': 40.0,
-    'N(%)': 0.5,
-    'Ash(%)': 5.0,
-    'VM(%)': 75.0,
-    'FC(%)': 15.0,
-    'PT(°C)': 500.0,
-    'HR(℃/min)': 20.0,
-    'RT(min)': 20.0
+    "C(%)": 45.0,
+    "H(%)": 6.0,
+    "O(%)": 40.0,
+    "N(%)": 0.5,
+    "Ash(%)": 5.0,
+    "VM(%)": 75.0,
+    "FC(%)": 15.0,
+    "PT(°C)": 500.0,
+    "HR(℃/min)": 20.0,
+    "RT(min)": 20.0
 }
 
-# 特征分类及顺序
+# 特征分类 - 根据模型特征分组
 feature_categories = {
-    "Ultimate Analysis": ['C(%)', 'H(%)', 'O(%)', 'N(%)'],
-    "Proximate Analysis": ['Ash(%)', 'VM(%)', 'FC(%)'],
-    "Pyrolysis Conditions": ['PT(°C)', 'HR(℃/min)', 'RT(min)']
+    "Ultimate Analysis": ["C(%)", "H(%)", "O(%)", "N(%)"],
+    "Proximate Analysis": ["Ash(%)", "VM(%)", "FC(%)"],
+    "Pyrolysis Conditions": ["PT(°C)", "HR(℃/min)", "RT(min)"]
 }
 
 # 特征范围
 feature_ranges = {
-    'C(%)': (30.0, 80.0),
-    'H(%)': (3.0, 10.0),
-    'O(%)': (10.0, 60.0),
-    'N(%)': (0.0, 5.0),
-    'Ash(%)': (0.0, 25.0),
-    'VM(%)': (40.0, 95.0),
-    'FC(%)': (5.0, 40.0),
-    'PT(°C)': (300.0, 900.0),
-    'HR(℃/min)': (5.0, 100.0),
-    'RT(min)': (5.0, 120.0)
-}
-
-# 为每种分类设置不同的颜色
-category_colors = {
-    "Ultimate Analysis": "#DAA520",  # 黄色
-    "Proximate Analysis": "#32CD32",  # 绿色
-    "Pyrolysis Conditions": "#FF7F50"  # 橙色
+    "C(%)": (30.0, 80.0),
+    "H(%)": (3.0, 10.0),
+    "O(%)": (10.0, 60.0),
+    "N(%)": (0.0, 5.0),
+    "Ash(%)": (0.0, 25.0),
+    "VM(%)": (40.0, 95.0),
+    "FC(%)": (5.0, 40.0),
+    "PT(°C)": (300.0, 900.0),
+    "HR(℃/min)": (5.0, 100.0),
+    "RT(min)": (5.0, 120.0)
 }
 
 # 创建三列布局
@@ -358,83 +550,83 @@ col1, col2, col3 = st.columns(3)
 # 使用字典来存储所有输入值
 features = {}
 
-# 第一列: Ultimate Analysis (黄色区域)
+# Ultimate Analysis (黄色区域) - 第一列
 with col1:
-    category = "Ultimate Analysis"
-    st.markdown(f"<div class='section-header' style='background-color: {category_colors[category]};'>{category}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
-    for feature in feature_categories[category]:
+    for feature in feature_categories["Ultimate Analysis"]:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            value = st.session_state.get(f"{category}_{feature}", default_values[feature])
+            value = st.session_state.get(f"ultimate_{feature}", default_values[feature])
         
         min_val, max_val = feature_ranges[feature]
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {category_colors[category]};'>{feature}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='input-label' style='background-color: #DAA520;'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
                 min_value=min_val, 
                 max_value=max_val, 
                 value=value, 
-                key=f"{category}_{feature}", 
+                key=f"ultimate_{feature}", 
                 format="%.1f",
                 label_visibility="collapsed"
             )
 
-# 第二列: Proximate Analysis (绿色区域)
+# Proximate Analysis (绿色区域) - 第二列
 with col2:
-    category = "Proximate Analysis"
-    st.markdown(f"<div class='section-header' style='background-color: {category_colors[category]};'>{category}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
     
-    for feature in feature_categories[category]:
+    for feature in feature_categories["Proximate Analysis"]:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            value = st.session_state.get(f"{category}_{feature}", default_values[feature])
+            value = st.session_state.get(f"proximate_{feature}", default_values[feature])
         
         min_val, max_val = feature_ranges[feature]
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {category_colors[category]};'>{feature}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='input-label' style='background-color: #32CD32;'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
                 min_value=min_val, 
                 max_value=max_val, 
                 value=value, 
-                key=f"{category}_{feature}", 
+                key=f"proximate_{feature}", 
                 format="%.1f",
                 label_visibility="collapsed"
             )
 
-# 第三列: Pyrolysis Conditions (橙色区域)
+# Pyrolysis Conditions (橙色区域) - 第三列
 with col3:
-    category = "Pyrolysis Conditions"
-    st.markdown(f"<div class='section-header' style='background-color: {category_colors[category]};'>{category}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
     
-    for feature in feature_categories[category]:
+    for feature in feature_categories["Pyrolysis Conditions"]:
+        # 重置值或使用现有值
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            value = st.session_state.get(f"{category}_{feature}", default_values[feature])
+            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
         
+        # 获取该特征的范围
         min_val, max_val = feature_ranges[feature]
         
+        # 简单的两列布局
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {category_colors[category]};'>{feature}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
                 "", 
                 min_value=min_val, 
                 max_value=max_val, 
                 value=value, 
-                key=f"{category}_{feature}", 
+                key=f"pyrolysis_{feature}", 
                 format="%.1f",
                 label_visibility="collapsed"
             )
@@ -474,9 +666,11 @@ if predict_button:
         log("进行预测:")
         log(f"输入数据: {input_data.to_dict('records')}")
         
-        # 检查输入范围
-        warnings_list = predictor.check_input_range(input_data)
-        st.session_state.warnings = warnings_list
+        # 捕获警告（如果预测器有此方法）
+        warnings_list = []
+        if hasattr(predictor, 'check_input_range'):
+            warnings_list = predictor.check_input_range(input_data)
+            st.session_state.warnings = warnings_list
         
         # 使用predictor进行预测
         log("调用预测器的predict方法")
@@ -527,16 +721,15 @@ with st.expander("Debug Information", expanded=False):
     if predictor is not None:
         st.write("Predictor Information:")
         predictor_info = {
-            "Type": type(predictor).__name__,
-            "Feature Names": predictor.feature_names
+            "Type": type(predictor).__name__
         }
-        
-        if predictor.performance:
+        if hasattr(predictor, 'feature_names'):
+            predictor_info["Feature Names"] = predictor.feature_names
+        if hasattr(predictor, 'performance'):
             predictor_info["Performance"] = predictor.performance
-        
         st.write(predictor_info)
         
-        if predictor.metadata:
+        if hasattr(predictor, 'metadata') and predictor.metadata:
             st.write("Model Metadata:")
             st.write(predictor.metadata)
 
