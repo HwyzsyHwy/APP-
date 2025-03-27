@@ -192,7 +192,7 @@ if 'selected_model' not in st.session_state:
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>Prediction of crop biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>Prediction of biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
 
 # 添加模型选择区域
 st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
@@ -797,7 +797,12 @@ if predict_button:
 # 显示结果
 with result_container:
     # 主预测结果 - 显示当前选择的模型结果
-    st.subheader(f"{st.session_state.selected_model.replace('(%)', '')} (wt%)")
+    if st.session_state.selected_model == "Char Yield(%)":
+        result_label = "Char Yield (wt%)"
+    else:
+        result_label = "Oil Yield (%)"
+    
+    st.subheader(result_label)
     
     if st.session_state.prediction_result is not None:
         # 显示预测结果
@@ -913,33 +918,6 @@ with col2:
         else:
             st.warning(f"预测一致性低 (标准差 = {std_dev:.2f})")
 
-# 调试信息区域
-with st.expander("调试信息", expanded=False):
-    st.markdown("### 输入特征详情")
-    # 显示带两位小数格式的输入特征
-    formatted_features = {k: f"{v:.2f}" for k, v in features.items()}
-    st.json(formatted_features)
-    
-    st.markdown("### 模型信息")
-    st.json({
-        "当前模型目标": st.session_state.selected_model,
-        "模型数量": len(predictor.models),
-        "标准化器数量": len(predictor.scalers),
-        "特征数量": len(predictor.feature_names) if predictor.feature_names else 0,
-        "特征列表": predictor.feature_names,
-        "模型目录": predictor.model_dir
-    })
-    
-    st.markdown("### 标准化器信息")
-    if predictor.final_scaler and hasattr(predictor.final_scaler, 'mean_'):
-        scaler_info = {
-            "均值": predictor.final_scaler.mean_.tolist(),
-            "标准差": predictor.final_scaler.scale_.tolist() if hasattr(predictor.final_scaler, 'scale_') else None
-        }
-        st.json(scaler_info)
-    else:
-        st.warning("最终标准化器信息不可用")
-
 # 技术说明区域
 with st.expander("技术说明", expanded=False):
     st.markdown(f"""
@@ -960,115 +938,9 @@ with st.expander("技术说明", expanded=False):
     #### 使用建议
     
     1. 尽量使用在训练范围内的输入值，超出范围的预测会通过警告提示，但可能不准确。
-    2. 对于生物质热解，温度(PT)和停留时间(RT)是最关键的参数，建议重点关注这些参数的设置。
+    2. **预测前需要将FC(%)的值使用1-Ash(%)-VM(%)公式进行转换后再进行输入，以提高模型预测精度，因为训练模型时，就按照此公式进行了数值的转换。**
     3. 如果多个子模型的预测差异较大(标准差>3)，表明当前输入条件下的预测可能不稳定。
     """)
-
-# 温度敏感性分析
-with st.expander("温度敏感性分析", expanded=False):
-    st.markdown(f"### 分析温度对{st.session_state.selected_model.replace('(%)', '')}的影响")
-    
-    # 温度范围滑块
-    temp_range = st.slider("温度范围(°C)", 
-                          min_value=200, 
-                          max_value=900, 
-                          value=(300, 700),
-                          step=50)
-    
-    # 温度步长
-    temp_step = st.selectbox("温度步长", options=[10, 25, 50, 100], index=1)
-    
-    # 执行分析按钮
-    if st.button("运行温度敏感性分析", key="temp_analysis"):
-        # 创建温度序列
-        temps = np.arange(temp_range[0], temp_range[1] + 1, temp_step)
-        
-        # 创建保存当前输入特征的副本
-        base_features = features.copy()
-        
-        # 结果容器
-        results = []
-        
-        # 执行预测
-        for temp in temps:
-            temp_features = base_features.copy()
-            temp_features['PT(°C)'] = temp
-            
-            # 创建输入DataFrame
-            temp_input = pd.DataFrame([temp_features])
-            
-            # 预测
-            try:
-                pred = predictor.predict(temp_input)
-                results.append((temp, float(pred[0])))
-            except Exception as e:
-                st.error(f"温度 {temp}°C 预测失败: {str(e)}")
-        
-        # 显示结果
-        if results:
-            # 创建DataFrame
-            result_df = pd.DataFrame(results, columns=['温度(°C)', f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'])
-            
-            # 显示表格
-            st.dataframe(result_df.style.format({
-                '温度(°C)': '{:.0f}',
-                f'预测{st.session_state.selected_model.replace("(%)", "")}(%)': '{:.2f}'
-            }))
-            
-            # 绘制曲线
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.plot(result_df['温度(°C)'], result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'], marker='o', linewidth=2)
-            ax.set_xlabel('温度(°C)', fontsize=12)
-            ax.set_ylabel(f'预测{st.session_state.selected_model.replace("(%)", "")}(%)', fontsize=12)
-            ax.set_title(f'温度对{st.session_state.selected_model.replace("(%)", "")}的影响', fontsize=14)
-            ax.grid(True, linestyle='--', alpha=0.7)
-            
-            # 添加当前温度标记
-            current_temp = base_features['PT(°C)']
-            if temp_range[0] <= current_temp <= temp_range[1]:
-                # 找到最接近的预测点
-                closest_idx = np.abs(result_df['温度(°C)'] - current_temp).argmin()
-                closest_temp = result_df.iloc[closest_idx]['温度(°C)']
-                closest_yield = result_df.iloc[closest_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
-                
-                # 标记当前温度点
-                ax.scatter([closest_temp], [closest_yield], color='red', s=100, zorder=5, 
-                           label=f'当前温度: {current_temp:.0f}°C')
-                ax.legend()
-            
-            st.pyplot(fig)
-            
-            # 找出最大和最小产率点
-            max_idx = result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'].idxmax()
-            min_idx = result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'].idxmin()
-            
-            max_temp = result_df.iloc[max_idx]['温度(°C)']
-            max_yield = result_df.iloc[max_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
-            
-            min_temp = result_df.iloc[min_idx]['温度(°C)']
-            min_yield = result_df.iloc[min_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
-            
-            # 根据当前模型提供不同的分析结果
-            if st.session_state.selected_model == "Char Yield(%)":
-                st.markdown(f"""
-                ### 分析结果
-                
-                - 在分析范围内，焦炭产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
-                - 在分析范围内，焦炭产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
-                - 温度变化 1°C 平均导致焦炭产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
-                
-                **分析结论**：通常焦炭产率随温度升高而降低，这与热解理论相符，高温会促进更彻底的有机物转化和气化
-                """)
-            else:  # Oil Yield
-                st.markdown(f"""
-                ### 分析结果
-                
-                - 在分析范围内，生物油产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
-                - 在分析范围内，生物油产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
-                - 温度变化 1°C 平均导致生物油产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
-                
-                **分析结论**：生物油产率通常在中等温度区间达到最高值，过低温度导致热解不充分，过高温度会促进油蒸气的二次裂解成气体
-                """)
 
 # 数据验证建议
 with st.expander("数据验证与精度建议", expanded=False):
