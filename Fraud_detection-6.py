@@ -32,9 +32,6 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# 添加调试信息
-st.sidebar.write(f"调试信息: 支持两位小数测试值 = {st.session_state.decimal_test:.2f}")
-
 # 自定义样式
 st.markdown(
     """
@@ -153,6 +150,14 @@ st.markdown(
     .stApp {
         max-width: 1200px;
         margin: 0 auto;
+    }
+    
+    /* 侧边栏模型信息样式 */
+    .sidebar-model-info {
+        background-color: #2E2E2E;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 20px;
     }
     </style>
     """,
@@ -592,6 +597,33 @@ class CorrectedEnsemblePredictor:
 # 初始化预测器 - 使用当前选择的模型
 predictor = CorrectedEnsemblePredictor(target_model=st.session_state.selected_model)
 
+# 在侧边栏添加模型信息
+model_info = predictor.get_model_info()
+model_info_html = "<div class='sidebar-model-info'><h3>关于模型</h3>"
+for key, value in model_info.items():
+    model_info_html += f"<p><b>{key}</b>: {value}</p>"
+
+# 标准化器状态
+model_info_html += "<h4>标准化器状态</h4>"
+if len(predictor.scalers) == len(predictor.models):
+    model_info_html += f"<p style='color:green'>✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器</p>"
+elif len(predictor.scalers) > 0:
+    model_info_html += f"<p style='color:orange'>⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器</p>"
+else:
+    model_info_html += "<p style='color:red'>❌ 未找到子模型标准化器，使用最终标准化器</p>"
+
+# 评估指标
+if predictor.metadata and 'performance' in predictor.metadata:
+    performance = predictor.metadata['performance']
+    r2 = performance.get('test_r2', 'N/A')
+    rmse = performance.get('test_rmse', 'N/A')
+    model_info_html += f"<h4>性能指标</h4>"
+    model_info_html += f"<p><b>R²</b>: {r2:.4f}</p>"
+    model_info_html += f"<p><b>RMSE</b>: {rmse:.2f}</p>"
+
+model_info_html += "</div>"
+st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
+
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
@@ -738,7 +770,6 @@ with col3:
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
-
 # 重置状态
 if st.session_state.clear_pressed:
     st.session_state.clear_pressed = False
@@ -880,44 +911,6 @@ with result_container:
             display_df = input_df.applymap(lambda x: f"{x:.2f}")
             st.dataframe(display_df)
 
-# 关于模型部分 - 移除特征重要性部分，仅保留关于模型的基本信息，并居中显示
-st.subheader("关于模型")
-
-# 居中显示模型信息
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    # 获取模型信息
-    model_info = predictor.get_model_info()
-    
-    # 创建信息表
-    for key, value in model_info.items():
-        st.markdown(f"**{key}**: {value}")
-    
-    # 标准化器状态
-    st.markdown("#### 标准化器状态")
-    if len(predictor.scalers) == len(predictor.models):
-        st.success(f"✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器")
-    elif len(predictor.scalers) > 0:
-        st.warning(f"⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器")
-    else:
-        st.error("❌ 未找到子模型标准化器，使用最终标准化器")
-    
-    # 子模型与标准差可视化
-    st.markdown("#### 预测标准差")
-    if st.session_state.individual_predictions:
-        std_dev = np.std(st.session_state.individual_predictions)
-        
-        # 创建进度条表示标准差
-        st.progress(min(std_dev / 5.0, 1.0))  # 标准化到0-1范围
-        
-        # 根据标准差大小显示不同消息
-        if std_dev < 1.0:
-            st.success(f"预测一致性高 (标准差 = {std_dev:.2f})")
-        elif std_dev < 3.0:
-            st.info(f"预测一致性中等 (标准差 = {std_dev:.2f})")
-        else:
-            st.warning(f"预测一致性低 (标准差 = {std_dev:.2f})")
-
 # 技术说明区域
 with st.expander("技术说明", expanded=False):
     st.markdown(f"""
@@ -940,32 +933,6 @@ with st.expander("技术说明", expanded=False):
     1. 尽量使用在训练范围内的输入值，超出范围的预测会通过警告提示，但可能不准确。
     2. **预测前需要将FC(%)的值使用1-Ash(%)-VM(%)公式进行转换后再进行输入，以提高模型预测精度，因为训练模型时，就按照此公式进行了数值的转换。**
     3. 如果多个子模型的预测差异较大(标准差>3)，表明当前输入条件下的预测可能不稳定。
-    """)
-
-# 数据验证建议
-with st.expander("数据验证与精度建议", expanded=False):
-    st.markdown(f"""
-    ### 提高{st.session_state.selected_model.replace('(%)', '')}预测精度的建议
-    
-    1. **确保数据质量**:
-       - 使用两位小数输入可以减少舍入误差
-       - 通过实验验证输入的分析数据
-    
-    2. **优先关注重要特征**:
-       - 热解温度(PT)是最关键的参数，确保其准确性
-       - 停留时间(RT)是第二重要的参数，需要精确控制
-    
-    3. **注意特征之间的相关性**:
-       - C、H、O含量通常相关，确保它们的总和合理
-       - VM和FC含量也应与元素分析结果相符
-    
-    4. **模型的局限性**:
-       - 模型主要在训练数据范围内有效
-       - 超出范围的预测会通过警告提示，但可能不准确
-       
-    5. **多模型比较**:
-       - 考虑同时预测Char、Oil和Gas产率，验证三者总和是否接近100%
-       - 显著偏离可能表明输入数据或预测结果有问题
     """)
 
 # 页脚
