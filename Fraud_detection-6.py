@@ -2,6 +2,7 @@
 """
 Biomass Pyrolysis Yield Forecast using CatBoost Ensemble Models
 修复版本 - 解决小数精度问题和子模型标准化器问题
+添加多模型切换功能 - 支持Char和Oil产率预测
 """
 
 import streamlit as st
@@ -124,6 +125,20 @@ st.markdown(
         border-radius: 5px;
         font-size: 14px !important;
     }
+    
+    /* 模型选择器样式 */
+    .model-selector {
+        background-color: #2E2E2E;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    /* 模型切换按钮组样式 */
+    div[data-testid="stHorizontalBlock"] [data-testid="stButton"] {
+        margin: 0 5px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -153,19 +168,60 @@ def log(message):
         unsafe_allow_html=True
     )
 
-# 主标题
+# 初始化会话状态 - 添加模型选择功能
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "Char Yield(%)"
+
+# 更新主标题以显示当前选定的模型
 st.markdown("<h1 class='main-title'>Prediction of crop biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
 
+# 添加模型选择区域
+st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
+st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
+col1, col2 = st.columns(2)
+with col1:
+    char_button = st.button("🔥 Char Yield", 
+                           key="char_button", 
+                           help="预测焦炭产率 (wt%)", 
+                           use_container_width=True,
+                           type="primary" if st.session_state.selected_model == "Char Yield(%)" else "secondary")
+with col2:
+    oil_button = st.button("💧 Oil Yield", 
+                          key="oil_button", 
+                          help="预测生物油产率 (wt%)", 
+                          use_container_width=True,
+                          type="primary" if st.session_state.selected_model == "Oil Yield(%)" else "secondary")
+
+# 处理模型选择
+if char_button:
+    st.session_state.selected_model = "Char Yield(%)"
+    st.session_state.prediction_result = None
+    st.session_state.warnings = []
+    st.session_state.individual_predictions = []
+    log(f"切换到模型: {st.session_state.selected_model}")
+    st.experimental_rerun()
+
+if oil_button:
+    st.session_state.selected_model = "Oil Yield(%)"
+    st.session_state.prediction_result = None
+    st.session_state.warnings = []
+    st.session_state.individual_predictions = []
+    log(f"切换到模型: {st.session_state.selected_model}")
+    st.experimental_rerun()
+
+st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
 class CorrectedEnsemblePredictor:
-    """修复版集成模型预测器 - 解决子模型标准化器问题"""
+    """修复版集成模型预测器 - 解决子模型标准化器问题，支持多模型切换"""
     
-    def __init__(self):
+    def __init__(self, target_model="Char Yield(%)"):
         self.models = []
         self.scalers = []  # 每个子模型的标准化器
         self.final_scaler = None  # 最终标准化器（备用）
         self.model_weights = None
         self.feature_names = None
-        self.target_name = "Char Yield(%)"
+        self.target_name = target_model  # 设置目标变量名称
         self.metadata = None
         self.model_dir = None
         self.feature_importance = None
@@ -175,20 +231,19 @@ class CorrectedEnsemblePredictor:
         self.load_model()
     
     def find_model_directory(self):
-        """查找模型目录的多种方法"""
+        """查找模型目录的多种方法，支持不同模型类型"""
+        # 根据目标变量确定模型目录名称
+        model_name = self.target_name.replace(' ', '_').replace('(', '').replace(')', '')
+        
         # 模型目录可能的路径
         possible_dirs = [
             # 直接路径
-            "Char_Yield_Model",
-            "Char_Yield%_Model",
+            f"{model_name}_Model",
             # 相对路径
-            "./Char_Yield_Model",
-            "./Char_Yield%_Model",
-            "../Char_Yield_Model",
-            "../Char_Yield%_Model",
+            f"./{model_name}_Model",
+            f"../{model_name}_Model",
             # 绝对路径示例
-            "C:/Users/HWY/Desktop/方-3/Char_Yield_Model",
-            "C:/Users/HWY/Desktop/方-3/Char_Yield%_Model"
+            f"C:/Users/HWY/Desktop/方-3/{model_name}_Model"
         ]
         
         # 尝试所有可能路径
@@ -199,7 +254,7 @@ class CorrectedEnsemblePredictor:
         
         # 如果找不到，尝试通过模型文件推断
         try:
-            model_files = glob.glob("**/model_*.joblib", recursive=True)
+            model_files = glob.glob(f"**/{model_name}_Model/models/model_*.joblib", recursive=True)
             if model_files:
                 model_dir = os.path.dirname(os.path.dirname(model_files[0]))
                 log(f"基于模型文件推断模型目录: {model_dir}")
@@ -208,7 +263,7 @@ class CorrectedEnsemblePredictor:
             log(f"通过模型文件推断目录时出错: {str(e)}")
         
         # 当前目录作为最后的退路
-        log("警告: 无法找到模型目录，将使用当前目录")
+        log(f"警告: 无法找到{self.target_name}模型目录，将使用当前目录")
         return os.getcwd()
     
     def load_feature_importance(self):
@@ -286,9 +341,15 @@ class CorrectedEnsemblePredictor:
     def load_model(self):
         """加载所有模型组件，包括每个子模型的标准化器"""
         try:
+            # 清空之前的模型数据
+            self.models = []
+            self.scalers = []
+            self.feature_importance = None
+            self.training_ranges = {}
+            
             # 1. 查找模型目录
             self.model_dir = self.find_model_directory()
-            log(f"使用模型目录: {self.model_dir}")
+            log(f"使用{self.target_name}模型目录: {self.model_dir}")
             
             # 2. 加载元数据
             metadata_path = os.path.join(self.model_dir, 'metadata.json')
@@ -409,7 +470,7 @@ class CorrectedEnsemblePredictor:
         try:
             # 验证模型组件
             if not self.models or len(self.models) == 0:
-                log("错误: 没有加载模型")
+                log(f"错误: 没有加载{self.target_name}模型")
                 return np.array([0.0])
             
             # 确保输入特征包含所有必要特征
@@ -427,10 +488,10 @@ class CorrectedEnsemblePredictor:
             # 按照模型训练时的特征顺序重新排列
             if self.feature_names:
                 input_ordered = input_features[self.feature_names].copy()
-                log("输入特征已按照训练时的顺序排列")
+                log(f"{self.target_name}模型: 输入特征已按照训练时的顺序排列")
             else:
                 input_ordered = input_features
-                log("警告: 没有特征名称列表，使用原始输入顺序")
+                log(f"警告: {self.target_name}模型没有特征名称列表，使用原始输入顺序")
             
             # 记录输入数据
             log(f"预测输入数据: {input_ordered.iloc[0].to_dict()}")
@@ -472,7 +533,7 @@ class CorrectedEnsemblePredictor:
             
             # 计算加权平均
             weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
-            log(f"最终加权预测结果: {weighted_pred[0]:.2f}")
+            log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
             
             if return_individual:
                 return weighted_pred, individual_predictions
@@ -502,7 +563,7 @@ class CorrectedEnsemblePredictor:
             ax.barh(features, importance, color='skyblue')
             
             # 添加标题和标签
-            ax.set_title('Feature Importance', fontsize=14)
+            ax.set_title(f'Feature Importance for {self.target_name}', fontsize=14)
             ax.set_xlabel('Importance Score', fontsize=12)
             ax.set_ylabel('Feature', fontsize=12)
             
@@ -547,8 +608,8 @@ class CorrectedEnsemblePredictor:
         
         return info
 
-# 初始化预测器
-predictor = CorrectedEnsemblePredictor()
+# 初始化预测器 - 使用当前选择的模型
+predictor = CorrectedEnsemblePredictor(target_model=st.session_state.selected_model)
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -717,9 +778,14 @@ input_data = pd.DataFrame([features])
 # 预测流程
 if predict_button:
     log("="*40)
-    log("开始新预测")
+    log(f"开始新的{st.session_state.selected_model}预测")
     
     try:
+        # 确保使用正确的模型
+        if predictor.target_name != st.session_state.selected_model:
+            log(f"重新加载{st.session_state.selected_model}模型")
+            predictor = CorrectedEnsemblePredictor(target_model=st.session_state.selected_model)
+        
         # 检查输入范围
         warnings = predictor.check_input_range(input_data)
         st.session_state.warnings = warnings
@@ -731,16 +797,15 @@ if predict_button:
         st.session_state.prediction_result = float(result[0])
         st.session_state.individual_predictions = individual_preds
         
-        log(f"预测成功完成: {st.session_state.prediction_result:.2f}")
-        
+        log(f"{st.session_state.selected_model}预测成功完成: {st.session_state.prediction_result:.2f}")
     except Exception as e:
         log(f"预测过程中出错: {str(e)}")
         st.error(f"预测失败: {str(e)}")
 
 # 显示结果
 with result_container:
-    # 主预测结果
-    st.subheader("Char Yield (wt%)")
+    # 主预测结果 - 显示当前选择的模型结果
+    st.subheader(f"{st.session_state.selected_model.replace('(%)', '')} (wt%)")
     
     if st.session_state.prediction_result is not None:
         # 显示预测结果
@@ -822,8 +887,8 @@ with result_container:
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    # 特征重要性部分
-    st.subheader("特征重要性")
+    # 特征重要性部分 - 显示当前选择的模型的特征重要性
+    st.subheader(f"{st.session_state.selected_model}模型特征重要性")
     
     if predictor.feature_importance is not None:
         # 显示特征重要性表格
@@ -846,21 +911,45 @@ with col1:
         # 获取前两个最重要的特征
         top_features = importance_df['Feature'].tolist()[:2]
         
-        if 'PT(°C)' in top_features:
-            st.info("""
-            📌 **温度(PT)** 是影响产率的最重要因素，这与热解理论一致：
-            - 较低温度下，生物质降解不完全，导致焦炭产率较高
-            - 随着温度升高，热解反应更彻底，气体产物增加，焦炭产率下降
-            """)
-        
-        if 'RT(min)' in top_features:
-            st.info("""
-            📌 **停留时间(RT)** 显著影响热解程度：
-            - 较短的停留时间可能导致热解不完全
-            - 较长的停留时间允许更多的挥发分释放，减少焦炭产率
-            """)
+        # 为不同的模型提供特定的洞察
+        if st.session_state.selected_model == "Char Yield(%)":
+            if 'PT(°C)' in top_features:
+                st.info("""
+                📌 **温度(PT)** 是影响焦炭产率的最重要因素，这与热解理论一致：
+                - 较低温度下，生物质降解不完全，导致焦炭产率较高
+                - 随着温度升高，热解反应更彻底，气体和液体产物增加，焦炭产率下降
+                """)
+            
+            if 'RT(min)' in top_features:
+                st.info("""
+                📌 **停留时间(RT)** 显著影响热解程度：
+                - 较短的停留时间可能导致热解不完全，焦炭产率较高
+                - 较长的停留时间允许更多的挥发分释放，减少焦炭产率
+                """)
+        elif st.session_state.selected_model == "Oil Yield(%)":
+            if 'PT(°C)' in top_features:
+                st.info("""
+                📌 **温度(PT)** 对生物油产率有关键影响：
+                - 中等温度(450-550°C)范围内，生物油产率通常达到最大值
+                - 过高温度会导致二次裂解，减少生物油产率并增加气体产物
+                - 过低温度则导致热解不完全，油产率较低
+                """)
+            
+            if 'RT(min)' in top_features:
+                st.info("""
+                📌 **停留时间(RT)** 影响油气二次反应：
+                - 适中的停留时间有利于生物油的形成和收集
+                - 过长的停留时间会促进油蒸气的二次裂解，降低生物油产率
+                """)
+            
+            if 'HR(℃/min)' in top_features:
+                st.info("""
+                📌 **升温速率(HR)** 影响生物油产率和组成：
+                - 快速升温有利于提高液体产物产率，减少焦炭形成
+                - 慢速升温可能导致更多的焦炭形成和气体释放
+                """)
     else:
-        st.warning("无法加载特征重要性数据")
+        st.warning(f"无法加载{st.session_state.selected_model}模型的特征重要性数据")
 
 with col2:
     # 关于模型部分
@@ -907,6 +996,7 @@ with st.expander("调试信息", expanded=False):
     
     st.markdown("### 模型信息")
     st.json({
+        "当前模型目标": st.session_state.selected_model,
         "模型数量": len(predictor.models),
         "标准化器数量": len(predictor.scalers),
         "特征数量": len(predictor.feature_names) if predictor.feature_names else 0,
@@ -926,26 +1016,31 @@ with st.expander("调试信息", expanded=False):
 
 # 技术说明区域
 with st.expander("技术说明", expanded=False):
-    st.markdown("""
-    ### 预测精度说明
+    st.markdown(f"""
+    ### {st.session_state.selected_model}预测模型精度说明
     
-    本模型是基于CatBoost的集成学习模型，通过10个子模型共同预测以提高准确性和稳定性。模型在测试集上达到了约0.93的R²和3.39的RMSE。
+    本模型是基于CatBoost的集成学习模型，通过10个子模型共同预测以提高准确性和稳定性。
+    
+    #### 模型性能指标
+    
+    {("模型在测试集上达到了约0.93的R²和3.39的RMSE。" if st.session_state.selected_model == "Char Yield(%)" else "模型在测试集上的性能根据元数据显示的指标而定。")}
     
     #### 已修复的问题
     
     1. **子模型标准化器问题**: 应用正确加载并应用每个子模型的标准化器，确保特征的标准化与训练时一致。
     2. **输入精度问题**: 允许输入两位小数而不是一位，减少舍入误差。
+    3. **多模型切换功能**: 现在支持在Char和Oil产率预测之间自由切换。
     
     #### 使用建议
     
-    1. 尽量使用在训练范围内的输入值，超出范围的预测可能不准确。
+    1. 尽量使用在训练范围内的输入值，超出范围的预测会通过警告提示，但可能不准确。
     2. 对于生物质热解，温度(PT)和停留时间(RT)是最关键的参数，建议重点关注这些参数的设置。
     3. 如果多个子模型的预测差异较大(标准差>3)，表明当前输入条件下的预测可能不稳定。
     """)
 
 # 温度敏感性分析
 with st.expander("温度敏感性分析", expanded=False):
-    st.markdown("### 分析温度对产率的影响")
+    st.markdown(f"### 分析温度对{st.session_state.selected_model.replace('(%)', '')}的影响")
     
     # 温度范围滑块
     temp_range = st.slider("温度范围(°C)", 
@@ -958,7 +1053,7 @@ with st.expander("温度敏感性分析", expanded=False):
     temp_step = st.selectbox("温度步长", options=[10, 25, 50, 100], index=1)
     
     # 执行分析按钮
-    if st.button("运行温度敏感性分析"):
+    if st.button("运行温度敏感性分析", key="temp_analysis"):
         # 创建温度序列
         temps = np.arange(temp_range[0], temp_range[1] + 1, temp_step)
         
@@ -986,20 +1081,20 @@ with st.expander("温度敏感性分析", expanded=False):
         # 显示结果
         if results:
             # 创建DataFrame
-            result_df = pd.DataFrame(results, columns=['温度(°C)', '预测产率(%)'])
+            result_df = pd.DataFrame(results, columns=['温度(°C)', f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'])
             
             # 显示表格
             st.dataframe(result_df.style.format({
                 '温度(°C)': '{:.0f}',
-                '预测产率(%)': '{:.2f}'
+                f'预测{st.session_state.selected_model.replace("(%)", "")}(%)': '{:.2f}'
             }))
             
             # 绘制曲线
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.plot(result_df['温度(°C)'], result_df['预测产率(%)'], marker='o', linewidth=2)
+            ax.plot(result_df['温度(°C)'], result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'], marker='o', linewidth=2)
             ax.set_xlabel('温度(°C)', fontsize=12)
-            ax.set_ylabel('预测产率(%)', fontsize=12)
-            ax.set_title('温度对产率的影响', fontsize=14)
+            ax.set_ylabel(f'预测{st.session_state.selected_model.replace("(%)", "")}(%)', fontsize=12)
+            ax.set_title(f'温度对{st.session_state.selected_model.replace("(%)", "")}的影响', fontsize=14)
             ax.grid(True, linestyle='--', alpha=0.7)
             
             # 添加当前温度标记
@@ -1008,7 +1103,7 @@ with st.expander("温度敏感性分析", expanded=False):
                 # 找到最接近的预测点
                 closest_idx = np.abs(result_df['温度(°C)'] - current_temp).argmin()
                 closest_temp = result_df.iloc[closest_idx]['温度(°C)']
-                closest_yield = result_df.iloc[closest_idx]['预测产率(%)']
+                closest_yield = result_df.iloc[closest_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
                 
                 # 标记当前温度点
                 ax.scatter([closest_temp], [closest_yield], color='red', s=100, zorder=5, 
@@ -1018,28 +1113,41 @@ with st.expander("温度敏感性分析", expanded=False):
             st.pyplot(fig)
             
             # 找出最大和最小产率点
-            max_idx = result_df['预测产率(%)'].idxmax()
-            min_idx = result_df['预测产率(%)'].idxmin()
+            max_idx = result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'].idxmax()
+            min_idx = result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'].idxmin()
             
             max_temp = result_df.iloc[max_idx]['温度(°C)']
-            max_yield = result_df.iloc[max_idx]['预测产率(%)']
+            max_yield = result_df.iloc[max_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
             
             min_temp = result_df.iloc[min_idx]['温度(°C)']
-            min_yield = result_df.iloc[min_idx]['预测产率(%)']
+            min_yield = result_df.iloc[min_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
             
-            # 显示分析结果
-            st.markdown(f"""
-            ### 分析结果
-            
-            - 在分析范围内，产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
-            - 在分析范围内，产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
-            - 温度变化 1°C 平均导致产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
-            """)
+            # 根据当前模型提供不同的分析结果
+            if st.session_state.selected_model == "Char Yield(%)":
+                st.markdown(f"""
+                ### 分析结果
+                
+                - 在分析范围内，焦炭产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
+                - 在分析范围内，焦炭产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
+                - 温度变化 1°C 平均导致焦炭产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
+                
+                **分析结论**：通常焦炭产率随温度升高而降低，这与热解理论相符，高温会促进更彻底的有机物转化和气化
+                """)
+            else:  # Oil Yield
+                st.markdown(f"""
+                ### 分析结果
+                
+                - 在分析范围内，生物油产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
+                - 在分析范围内，生物油产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
+                - 温度变化 1°C 平均导致生物油产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
+                
+                **分析结论**：生物油产率通常在中等温度区间达到最高值，过低温度导致热解不充分，过高温度会促进油蒸气的二次裂解成气体
+                """)
 
 # 数据验证建议
 with st.expander("数据验证与精度建议", expanded=False):
-    st.markdown("""
-    ### 提高预测精度的建议
+    st.markdown(f"""
+    ### 提高{st.session_state.selected_model.replace('(%)', '')}预测精度的建议
     
     1. **确保数据质量**:
        - 使用两位小数输入可以减少舍入误差
@@ -1056,18 +1164,17 @@ with st.expander("数据验证与精度建议", expanded=False):
     4. **模型的局限性**:
        - 模型主要在训练数据范围内有效
        - 超出范围的预测会通过警告提示，但可能不准确
+       
+    5. **多模型比较**:
+       - 考虑同时预测Char、Oil和Gas产率，验证三者总和是否接近100%
+       - 显著偏离可能表明输入数据或预测结果有问题
     """)
 
 # 页脚
 st.markdown("---")
-st.markdown("""
+st.markdown(f"""
 <div style="text-align: center; color: gray; font-size: 14px;">
-    © 2023 生物质热解产率预测系统 | 模型精度: R² = 0.93, RMSE = 3.39 | 集成 10 个 CatBoost 子模型<br>
-    版本更新: 支持两位小数输入 & 修复子模型标准化器问题
+    © 2023 生物质热解产率预测系统 | 支持预测目标: Char Yield, Oil Yield | 集成 10 个 CatBoost 子模型<br>
+    版本更新: 支持两位小数输入 & 修复子模型标准化器问题 & 添加多模型切换功能
 </div>
 """, unsafe_allow_html=True)
-
-
-
-
-
