@@ -167,6 +167,14 @@ st.markdown(
         margin-top: 20px;
     }
     
+    /* 性能指标样式 */
+    .performance-metrics {
+        background-color: #2E2E2E;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    
     /* 技术说明样式 */
     .tech-info {
         background-color: #2E2E2E;
@@ -627,6 +635,9 @@ elif len(predictor.scalers) > 0:
 else:
     model_info_html += "<p style='color:red'>❌ 未找到子模型标准化器，使用最终标准化器</p>"
 
+# 性能指标区域（将在预测后动态更新）
+model_info_html += "<div id='performance-metrics'></div>"
+
 model_info_html += "</div>"
 st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
 
@@ -639,6 +650,10 @@ if 'warnings' not in st.session_state:
     st.session_state.warnings = []
 if 'individual_predictions' not in st.session_state:
     st.session_state.individual_predictions = []
+if 'rmse' not in st.session_state:
+    st.session_state.rmse = None
+if 'r2' not in st.session_state:
+    st.session_state.r2 = None
 
 # 定义默认值 - 从用户截图中提取
 default_values = {
@@ -809,14 +824,34 @@ with col1:
             st.session_state.individual_predictions = individual_preds
             log(f"预测成功: {st.session_state.prediction_result:.2f}")
             
-            # 保存RMSE和R²值
+            # 计算标准差作为不确定性指标
+            std_dev = np.std(individual_preds)
+            log(f"预测标准差: {std_dev:.4f}")
+            
+            # 计算RMSE和R²（假设我们没有真实值，所以使用模型元数据中的测试值作为参考）
             if predictor.metadata and 'performance' in predictor.metadata:
                 performance = predictor.metadata['performance']
                 st.session_state.rmse = performance.get('test_rmse', 3.39)
                 st.session_state.r2 = performance.get('test_r2', 0.9313)
+                
+                # 更新侧边栏中的性能指标
+                performance_metrics_html = """
+                <div class='performance-metrics'>
+                <h4>性能指标</h4>
+                <p><b>R²</b>: {:.4f}</p>
+                <p><b>RMSE</b>: {:.2f}</p>
+                </div>
+                """.format(st.session_state.r2, st.session_state.rmse)
+                
+                sidebar_metrics = st.sidebar.empty()
+                sidebar_metrics.markdown(performance_metrics_html, unsafe_allow_html=True)
+                
             else:
+                log("警告: 无法从模型元数据获取性能指标")
                 st.session_state.rmse = 3.39  # 默认值
                 st.session_state.r2 = 0.9313  # 默认值
+            
+            log(f"模型性能指标 - RMSE: {st.session_state.rmse:.2f}, R²: {st.session_state.r2:.4f}")
             
         except Exception as e:
             st.session_state.prediction_error = str(e)
@@ -857,172 +892,30 @@ if st.session_state.prediction_result is not None:
             unsafe_allow_html=True
         )
     
-    # 移动技术说明到预测详情位置
-    tech_notes = """
-    <div class='tech-info'>
-    <h3>技术说明</h3>
-    <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭产量。</p>
-    
-    <p><b>关键影响因素：</b></p>
-    <ul>
-        <li>温度(PT)是最重要的影响因素，对焦炭产量有显著负相关性</li>
-        <li>停留时间(RT)是第二重要的因素，延长停留时间会降低焦炭产量</li>
-        <li>固定碳含量(FC)可由100-Ash(%)-VM(%)计算得出，对预测也有重要影响</li>
-    </ul>
-    
-    <p><b>预测准确度：</b></p>
-    <p>模型在测试集上的均方根误差(RMSE)约为3.39%，决定系数(R²)为0.93。对大多数生物质样本，预测误差在±5%以内。</p>
-    
-    <p><b>最近更新：</b></p>
-    <ul>
-        <li>✅ 修复了所有输入值只能精确到一位小数的问题</li>
-        <li>✅ 解决了部分子模型标准化器不匹配的问题</li>
-        <li>✅ 增加了模型切换功能，支持不同产率预测</li>
-    </ul>
-    </div>
-    """
-    st.markdown(tech_notes, unsafe_allow_html=True)
-    
-    # 特征重要性
-    st.markdown("## 特征重要性")
-    if predictor.feature_importance is not None:
-        importance_df = predictor.feature_importance.copy()
-        
-        # 显示表格和可视化
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            # 格式化特征重要性，保留四位小数
-            formatted_importance = importance_df.copy()
-            formatted_importance['Importance'] = formatted_importance['Importance'].map(lambda x: f"{x:.4f}")
-            st.dataframe(formatted_importance, hide_index=True, use_container_width=True)
-        
-        with col2:
-            # 生成特征重要性图
-            fig, ax = plt.subplots(figsize=(8, 5))
-            bars = ax.barh(importance_df['Feature'], importance_df['Importance'])
-            
-            # 设置颜色渐变
-            import matplotlib.cm as cm
-            colors = cm.viridis(importance_df['Importance'] / importance_df['Importance'].max())
-            for i, bar in enumerate(bars):
-                bar.set_color(colors[i])
-            
-            ax.set_xlabel('重要性')
-            ax.set_title('特征重要性')
-            ax.invert_yaxis()  # 最重要的特征在顶部
-            st.pyplot(fig)
-        
-        # 显示重要特征的见解
+    # 技术说明 - 使用折叠式展示
+    with st.expander("技术说明"):
         st.markdown("""
-        <div style='background-color: #2E2E2E; padding: 15px; border-radius: 10px;'>
-        <h4>重要特征见解</h4>
-        <p>温度(PT)和停留时间(RT)是影响产率的最关键因素：</p>
+        <div class='tech-info'>
+        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭产量。</p>
+        
+        <p><b>关键影响因素：</b></p>
         <ul>
-            <li>温度升高会导致产率显著变化</li>
-            <li>停留时间延长通常会改变最终产率</li>
-            <li>生物质成分特性(如VM%和FC%)是影响产率的第二重要因素</li>
+            <li>温度(PT)是最重要的影响因素，对焦炭产量有显著负相关性</li>
+            <li>停留时间(RT)是第二重要的因素，延长停留时间会降低焦炭产量</li>
+            <li>固定碳含量(FC)可由100-Ash(%)-VM(%)计算得出，对预测也有重要影响</li>
+        </ul>
+        
+        <p><b>预测准确度：</b></p>
+        <p>模型在测试集上的均方根误差(RMSE)约为3.39%，决定系数(R²)为0.93。对大多数生物质样本，预测误差在±5%以内。</p>
+        
+        <p><b>最近更新：</b></p>
+        <ul>
+            <li>✅ 修复了所有输入值只能精确到一位小数的问题</li>
+            <li>✅ 解决了部分子模型标准化器不匹配的问题</li>
+            <li>✅ 增加了模型切换功能，支持不同产率预测</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        st.warning("无法加载特征重要性数据")
-    
-    # 性能指标显示
-    st.markdown("## 性能指标")
-    metrics_col1, metrics_col2 = st.columns(2)
-    with metrics_col1:
-        st.markdown("""
-        <div style='background-color: #1E1E1E; padding: 15px; border-radius: 10px; text-align: center;'>
-        <h3 style='margin:0;'>R²</h3>
-        <p style='font-size: 24px; font-weight: bold; margin:0;'>{:.4f}</p>
-        </div>
-        """.format(st.session_state.r2), unsafe_allow_html=True)
-    
-    with metrics_col2:
-        st.markdown("""
-        <div style='background-color: #1E1E1E; padding: 15px; border-radius: 10px; text-align: center;'>
-        <h3 style='margin:0;'>RMSE</h3>
-        <p style='font-size: 24px; font-weight: bold; margin:0;'>{:.2f}</p>
-        </div>
-        """.format(st.session_state.rmse), unsafe_allow_html=True)
-    
-    # 温度敏感性分析
-    st.markdown("## 温度敏感性分析")
-    st.markdown("""
-    <p>温度是影响产率的最重要因素。以下分析展示了在保持其他参数不变的情况下，温度如何影响预测结果。</p>
-    """, unsafe_allow_html=True)
-    
-    temp_range = st.slider(
-        "温度范围 (°C)",
-        min_value=300.00, 
-        max_value=800.00, 
-        value=(400.00, 700.00),
-        step=50.00,
-        format="%.2f"
-    )
-    
-    if st.button("运行温度分析", use_container_width=True):
-        log(f"执行温度敏感性分析: {temp_range[0]}°C - {temp_range[1]}°C")
-        
-        # 创建温度序列
-        temp_steps = np.linspace(temp_range[0], temp_range[1], 9)
-        temp_results = []
-        
-        # 创建基本输入数据框
-        base_input = pd.DataFrame([features])
-        
-        # 对每个温度值进行预测
-        for temp in temp_steps:
-            temp_input = base_input.copy()
-            temp_input["PT(°C)"] = temp
-            
-            try:
-                result = predictor.predict(temp_input)
-                temp_results.append({
-                    "温度 (°C)": f"{temp:.1f}",
-                    f"{st.session_state.selected_model}": f"{float(result[0]):.2f}"
-                })
-            except Exception as e:
-                log(f"温度 {temp}°C 的预测失败: {str(e)}")
-        
-        # 显示结果表格和图表
-        if temp_results:
-            result_df = pd.DataFrame(temp_results)
-            st.dataframe(result_df, hide_index=True, use_container_width=True)
-            
-            # 创建图表
-            fig, ax = plt.subplots(figsize=(10, 6))
-            temps = [float(r["温度 (°C)"]) for r in temp_results]
-            yields = [float(r[st.session_state.selected_model]) for r in temp_results]
-            
-            # 绘制曲线图
-            ax.plot(temps, yields, marker='o', linestyle='-', color='#1f77b4', linewidth=2)
-            
-            # 使用样条拟合添加趋势线
-            from scipy.interpolate import make_interp_spline
-            if len(temps) > 3:  # 需要足够的点来拟合
-                try:
-                    X_Y_Spline = make_interp_spline(temps, yields)
-                    X_ = np.linspace(min(temps), max(temps), 500)
-                    Y_ = X_Y_Spline(X_)
-                    ax.plot(X_, Y_, linestyle='--', color='#ff7f0e', linewidth=1.5, alpha=0.7)
-                except Exception as e:
-                    log(f"拟合趋势线失败: {str(e)}")
-            
-            ax.set_xlabel('温度 (°C)')
-            ax.set_ylabel(f'{st.session_state.selected_model}')
-            ax.set_title(f'温度对{st.session_state.selected_model}的影响')
-            ax.grid(True, linestyle='--', alpha=0.7)
-            
-            # 添加数据标签
-            for i, (x, y) in enumerate(zip(temps, yields)):
-                ax.annotate(f"{y}%", (x, float(y)+0.5), textcoords="offset points", 
-                            xytext=(0,5), ha='center')
-            
-            st.pyplot(fig)
-        else:
-            st.error("温度分析未能生成有效结果")
 
 # 添加页脚
 st.markdown("---")
