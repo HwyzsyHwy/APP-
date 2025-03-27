@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Biomass Pyrolysis Yield Forecast - Minimal Version
+Biomass Pyrolysis Yield Forecast using CatBoost Model
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import joblib
+import sys
+from io import StringIO
+import traceback
 
 # 页面设置
 st.set_page_config(
@@ -88,6 +92,140 @@ if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
+if 'error_message' not in st.session_state:
+    st.session_state.error_message = None
+
+# 定义CatBoost模型的预测类
+class CharYieldPredictor:
+    def __init__(self):
+        # 模型相关文件路径
+        self.model_dir = "Char_Yield_Model"
+        
+        # 特征名称和次序
+        self.feature_names = ["PT(°C)", "RT(min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "HR(℃/min)"]
+        
+        # 加载模型和标准化器
+        self.models = []
+        self.model_weights = None
+        self.scaler = None
+        self.error_message = None
+        
+        try:
+            self._load_components()
+        except Exception as e:
+            self.error_message = f"模型加载失败: {str(e)}"
+            st.error(self.error_message)
+            # 捕获并显示详细错误信息
+            buffer = StringIO()
+            traceback.print_exc(file=buffer)
+            st.code(buffer.getvalue())
+    
+    def _load_components(self):
+        """加载模型和标准化器"""
+        # 检查模型目录是否存在
+        if not os.path.exists(self.model_dir):
+            self.error_message = f"模型目录不存在: {self.model_dir}"
+            raise FileNotFoundError(self.error_message)
+        
+        # 加载模型
+        models_dir = os.path.join(self.model_dir, 'models')
+        if os.path.exists(models_dir):
+            model_files = [f for f in os.listdir(models_dir) if f.startswith('model_') and f.endswith('.joblib')]
+            if model_files:
+                for i in range(len(model_files)):
+                    model_path = os.path.join(models_dir, f'model_{i}.joblib')
+                    if os.path.exists(model_path):
+                        self.models.append(joblib.load(model_path))
+            else:
+                # 尝试加载旧版模型
+                self.error_message = "未找到模型文件，使用备用预测方法"
+        
+        # 加载标准化器
+        scaler_path = os.path.join(self.model_dir, 'final_scaler.joblib')
+        if os.path.exists(scaler_path):
+            self.scaler = joblib.load(scaler_path)
+        else:
+            self.error_message = "标准化器文件未找到，使用备用预测方法"
+        
+        # 加载模型权重
+        weights_path = os.path.join(self.model_dir, 'model_weights.npy')
+        if os.path.exists(weights_path):
+            self.model_weights = np.load(weights_path)
+        else:
+            self.error_message = "模型权重文件未找到，使用备用预测方法"
+    
+    def predict(self, data):
+        """
+        预测炭产率
+        
+        参数:
+            data: 包含特征的DataFrame
+        
+        返回:
+            预测的炭产率 (%)
+        """
+        # 如果模型加载失败，使用备用预测方法
+        if not self.models or self.scaler is None or self.model_weights is None:
+            return self._fallback_predict(data)
+        
+        try:
+            # 确保特征顺序正确
+            if isinstance(data, pd.DataFrame):
+                # 检查特征列
+                if not all(feature in data.columns for feature in self.feature_names):
+                    missing = [f for f in self.feature_names if f not in data.columns]
+                    self.error_message = f"数据缺少特征: {missing}"
+                    return self._fallback_predict(data)
+                
+                # 按正确顺序提取特征
+                data = data[self.feature_names]
+            
+            # 应用标准化
+            X_scaled = self.scaler.transform(data)
+            
+            # 使用所有模型进行预测
+            all_predictions = np.zeros((data.shape[0], len(self.models)))
+            for i, model in enumerate(self.models):
+                all_predictions[:, i] = model.predict(X_scaled)
+            
+            # 计算加权平均
+            weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
+            
+            return weighted_pred
+        
+        except Exception as e:
+            self.error_message = f"预测过程出错: {str(e)}"
+            return self._fallback_predict(data)
+    
+    def _fallback_predict(self, data):
+        """备用预测方法，当模型无法加载或预测出错时使用"""
+        # 简单公式: 基于温度和停留时间
+        try:
+            pt = data["PT(°C)"].values[0]
+            rt = data["RT(min)"].values[0]
+            
+            # 简化公式 - 根据实际数据调整
+            base_yield = 33.0  # 基准值调整为更接近实际的值
+            temp_effect = -0.03 * (pt - 500)  # 温度每高1°C，减少0.03%
+            time_effect = 0.05 * (rt - 20)     # 时间每长1分钟，增加0.05%
+            
+            # 其他因素影响
+            c_content = data["C(%)"].values[0] if "C(%)" in data.columns else 45.0
+            ash_content = data["Ash(%)"].values[0] if "Ash(%)" in data.columns else 5.0
+            
+            c_effect = 0.05 * (c_content - 45)
+            ash_effect = 0.1 * (ash_content - 5)
+            
+            # 计算预测值
+            y_pred = base_yield + temp_effect + time_effect + c_effect + ash_effect
+            
+            # 确保预测值在合理范围内
+            y_pred = max(10.0, min(80.0, y_pred))
+            
+            return np.array([y_pred])
+        except:
+            # 最后的备用方案
+            return np.array([33.0])  # 返回一个合理的默认值
 
 # 定义默认值和范围
 default_values = {
@@ -223,6 +361,7 @@ result_col, button_col = st.columns([3, 1])
 
 with result_col:
     prediction_placeholder = st.empty()
+    error_placeholder = st.empty()
     
 with button_col:
     predict_button = st.button("PUSH", key="predict")
@@ -232,33 +371,28 @@ with button_col:
         st.session_state.clear_pressed = True
         # 清除显示
         st.session_state.prediction_result = None
+        st.session_state.error_message = None
     
     clear_button = st.button("CLEAR", key="clear", on_click=clear_values)
 
-# 处理预测逻辑 - 使用简单模拟而不是实际模型
+# 创建预测器实例
+predictor = CharYieldPredictor()
+
+# 处理预测逻辑
 if predict_button:
     try:
-        # 简单模拟预测 - 基于PT和RT的简单计算
-        pt = features["PT(°C)"]
-        rt = features["RT(min)"]
-        
-        # 简单模型: 较高的温度和较短的停留时间产生较少的炭产率
-        base_yield = 50.0
-        temp_effect = -0.05 * (pt - 500)  # 温度每高1°C，减少0.05%
-        time_effect = 0.1 * (rt - 20)     # 时间每长1分钟，增加0.1%
-        
-        # 加一些其他因素的影响
-        c_effect = 0.1 * (features["C(%)"] - 45)
-        ash_effect = 0.2 * (features["Ash(%)"] - 5)
-        
-        # 计算预测值
-        y_pred = base_yield + temp_effect + time_effect + c_effect + ash_effect
-        
-        # 确保预测值在合理范围内
-        y_pred = max(10.0, min(90.0, y_pred))
+        # 使用预测器进行预测
+        y_pred = predictor.predict(input_data)[0]
         
         # 保存预测结果到session_state
         st.session_state.prediction_result = y_pred
+        
+        # 如果有错误消息，保存它
+        if predictor.error_message:
+            st.session_state.error_message = predictor.error_message
+            error_placeholder.warning(predictor.error_message)
+        else:
+            st.session_state.error_message = None
 
         # 显示预测结果
         prediction_placeholder.markdown(
@@ -267,6 +401,10 @@ if predict_button:
         )
     except Exception as e:
         st.error(f"预测过程中出现错误: {str(e)}")
+        # 捕获并显示详细错误信息
+        buffer = StringIO()
+        traceback.print_exc(file=buffer)
+        st.code(buffer.getvalue())
 
 # 如果有保存的预测结果，显示它
 if st.session_state.prediction_result is not None:
@@ -275,13 +413,31 @@ if st.session_state.prediction_result is not None:
         unsafe_allow_html=True
     )
 
+# 如果有保存的错误消息，显示它
+if st.session_state.error_message is not None:
+    error_placeholder.warning(st.session_state.error_message)
+
 # 添加模型描述
 st.markdown("""
 ### About the Model
-This application uses a simplified regression model to predict char yield in biomass pyrolysis.
+This application uses a CatBoost ensemble model to predict char yield in biomass pyrolysis.
 - Higher pyrolysis temperature generally decreases char yield
 - Longer residence time generally increases char yield
 - Carbon and ash content also affect the final yield
 
-For more accurate predictions, a full CatBoost ensemble model would be used in production.
+The model was trained on experimental data with a cross-validation process and optimized hyperparameters.
 """)
+
+# 调试信息
+with st.expander("Debug Information", expanded=False):
+    st.write("**Input Values:**")
+    st.write(input_data)
+    
+    if predictor.error_message:
+        st.write("**Error Message:**")
+        st.write(predictor.error_message)
+    
+    st.write("**Model Status:**")
+    st.write(f"Models loaded: {len(predictor.models)}")
+    st.write(f"Scaler loaded: {predictor.scaler is not None}")
+    st.write(f"Weights loaded: {predictor.model_weights is not None}")
