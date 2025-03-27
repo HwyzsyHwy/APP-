@@ -148,6 +148,12 @@ st.markdown(
     div[data-testid="stHorizontalBlock"] [data-testid="stButton"] {
         margin: 0 5px;
     }
+    
+    /* 居中显示内容 */
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -212,7 +218,7 @@ if char_button:
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
     log(f"切换到模型: {st.session_state.selected_model}")
-    st.experimental_rerun()
+    st.rerun()  # 使用st.rerun()代替st.experimental_rerun()
 
 if oil_button:
     st.session_state.selected_model = "Oil Yield(%)"
@@ -220,7 +226,7 @@ if oil_button:
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
     log(f"切换到模型: {st.session_state.selected_model}")
-    st.experimental_rerun()
+    st.rerun()  # 使用st.rerun()代替st.experimental_rerun()
 
 st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
@@ -558,44 +564,6 @@ class CorrectedEnsemblePredictor:
             log(traceback.format_exc())
             return np.array([0.0])
     
-    def get_feature_importance_plot(self):
-        """生成特征重要性图"""
-        if self.feature_importance is None or len(self.feature_importance) == 0:
-            return None
-        
-        try:
-            # 创建图表
-            fig, ax = plt.subplots(figsize=(8, 5))
-            
-            # 提取数据
-            importance_df = self.feature_importance.sort_values('Importance', ascending=True)
-            features = importance_df['Feature'].tolist()
-            importance = importance_df['Importance'].tolist()
-            
-            # 创建水平条形图
-            ax.barh(features, importance, color='skyblue')
-            
-            # 添加标题和标签
-            ax.set_title(f'Feature Importance for {self.target_name}', fontsize=14)
-            ax.set_xlabel('Importance Score', fontsize=12)
-            ax.set_ylabel('Feature', fontsize=12)
-            
-            # 调整布局
-            plt.tight_layout()
-            
-            # 将图表转换为图像
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png', dpi=100)
-            buf.seek(0)
-            
-            # 使用PIL打开图像并返回
-            img = Image.open(buf)
-            return img
-            
-        except Exception as e:
-            log(f"创建特征重要性图时出错: {str(e)}")
-            return None
-    
     def get_model_info(self):
         """获取模型信息摘要"""
         info = {
@@ -907,78 +875,12 @@ with result_container:
             display_df = input_df.applymap(lambda x: f"{x:.2f}")
             st.dataframe(display_df)
 
-# 特征重要性和模型信息部分
-col1, col2 = st.columns([1, 1])
+# 关于模型部分 - 移除特征重要性部分，仅保留关于模型的基本信息，并居中显示
+st.subheader("关于模型")
 
-with col1:
-    # 特征重要性部分 - 显示当前选择的模型的特征重要性
-    st.subheader(f"{st.session_state.selected_model}模型特征重要性")
-    
-    if predictor.feature_importance is not None:
-        # 显示特征重要性表格
-        importance_df = predictor.feature_importance.copy()
-        
-        # 格式化重要性分数，使用4位小数
-        formatted_df = importance_df.copy()
-        formatted_df['Importance'] = formatted_df['Importance'].apply(lambda x: f"{x:.4f}")
-        
-        st.dataframe(formatted_df, use_container_width=True)
-        
-        # 显示特征重要性图
-        importance_img = predictor.get_feature_importance_plot()
-        if importance_img:
-            st.image(importance_img, use_column_width=True)
-        
-        # 提供特征重要性的洞察
-        st.markdown("#### 重要特征洞察")
-        
-        # 获取前两个最重要的特征
-        top_features = importance_df['Feature'].tolist()[:2]
-        
-        # 为不同的模型提供特定的洞察
-        if st.session_state.selected_model == "Char Yield(%)":
-            if 'PT(°C)' in top_features:
-                st.info("""
-                📌 **温度(PT)** 是影响焦炭产率的最重要因素，这与热解理论一致：
-                - 较低温度下，生物质降解不完全，导致焦炭产率较高
-                - 随着温度升高，热解反应更彻底，气体和液体产物增加，焦炭产率下降
-                """)
-            
-            if 'RT(min)' in top_features:
-                st.info("""
-                📌 **停留时间(RT)** 显著影响热解程度：
-                - 较短的停留时间可能导致热解不完全，焦炭产率较高
-                - 较长的停留时间允许更多的挥发分释放，减少焦炭产率
-                """)
-        elif st.session_state.selected_model == "Oil Yield(%)":
-            if 'PT(°C)' in top_features:
-                st.info("""
-                📌 **温度(PT)** 对生物油产率有关键影响：
-                - 中等温度(450-550°C)范围内，生物油产率通常达到最大值
-                - 过高温度会导致二次裂解，减少生物油产率并增加气体产物
-                - 过低温度则导致热解不完全，油产率较低
-                """)
-            
-            if 'RT(min)' in top_features:
-                st.info("""
-                📌 **停留时间(RT)** 影响油气二次反应：
-                - 适中的停留时间有利于生物油的形成和收集
-                - 过长的停留时间会促进油蒸气的二次裂解，降低生物油产率
-                """)
-            
-            if 'HR(℃/min)' in top_features:
-                st.info("""
-                📌 **升温速率(HR)** 影响生物油产率和组成：
-                - 快速升温有利于提高液体产物产率，减少焦炭形成
-                - 慢速升温可能导致更多的焦炭形成和气体释放
-                """)
-    else:
-        st.warning(f"无法加载{st.session_state.selected_model}模型的特征重要性数据")
-
+# 居中显示模型信息
+col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    # 关于模型部分
-    st.subheader("关于模型")
-    
     # 获取模型信息
     model_info = predictor.get_model_info()
     
