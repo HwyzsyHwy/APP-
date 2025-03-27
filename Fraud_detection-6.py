@@ -10,7 +10,7 @@ import joblib
 import os
 import sys
 import matplotlib.pyplot as plt
-import seaborn as sns
+# 移除 seaborn 依赖
 from sklearn.metrics import mean_squared_error, r2_score
 import warnings
 warnings.filterwarnings('ignore')
