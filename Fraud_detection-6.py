@@ -106,10 +106,11 @@ class DirectPredictor:
         self.model_weights = None
         self.scaler = None
         self.metadata = None
-        self.feature_names = ['C(%)', 'H(%)', 'O(%)', 'N(%)', 'Ash(%)', 'VM(%)', 'FC(%)', 'PT(°C)', 'HR(℃/min)', 'RT(min)']
+        self.feature_names = None
         self.feature_mapping = {}
         self.train_data_stats = {}
         self.model_dir = None
+        self.ui_feature_order = ["PT(°C)", "RT(min)", "HR(℃/min)", "C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)"]
         
         # 查找并加载模型
         self.load_model_components()
@@ -151,11 +152,7 @@ class DirectPredictor:
             if os.path.exists(metadata_path):
                 with open(metadata_path, 'r') as f:
                     self.metadata = json.load(f)
-                metadata_features = self.metadata.get('feature_names', None)
-                if metadata_features:
-                    # 确保特征顺序与我们期望的一致
-                    if set(metadata_features) == set(self.feature_names):
-                        self.feature_names = metadata_features
+                self.feature_names = self.metadata.get('feature_names', None)
                 log(f"加载元数据，特征名称: {self.feature_names}")
                 
                 # 从元数据中提取性能信息
@@ -164,6 +161,15 @@ class DirectPredictor:
                     log(f"模型性能: R²={self.performance.get('test_r2', 'unknown')}, RMSE={self.performance.get('test_rmse', 'unknown')}")
             else:
                 log(f"未找到元数据文件: {metadata_path}")
+                # 使用默认特征名称
+                self.feature_names = ["C(%)", "H(%)", "O(%)", "N(%)", "Ash(%)", "VM(%)", "FC(%)", "PT(°C)", "HR(℃/min)", "RT(min)"]
+                log(f"使用默认特征名称: {self.feature_names}")
+            
+            # 创建特征映射
+            if self.feature_names and len(self.feature_names) == len(self.ui_feature_order):
+                # 确保UI顺序的特征值能正确映射到模型期望的特征顺序
+                self.feature_mapping = {ui_feat: i for i, ui_feat in enumerate(self.ui_feature_order)}
+                log(f"创建特征顺序映射: {self.feature_mapping}")
             
             # 加载模型
             models_dir = os.path.join(self.model_dir, 'models')
@@ -507,6 +513,8 @@ if 'clear_pressed' not in st.session_state:
 
 # 定义默认值和范围
 default_values = {
+    "PT(°C)": 500.0,
+    "RT(min)": 20.0,
     "C(%)": 45.0,
     "H(%)": 6.0,
     "O(%)": 40.0,
@@ -514,20 +522,20 @@ default_values = {
     "Ash(%)": 5.0,
     "VM(%)": 75.0,
     "FC(%)": 15.0,
-    "PT(°C)": 500.0,
-    "HR(℃/min)": 20.0,
-    "RT(min)": 20.0
+    "HR(℃/min)": 20.0
 }
 
-# 特征分类 - 根据新的要求调整
+# 特征分类
 feature_categories = {
+    "Pyrolysis Conditions": ["PT(°C)", "RT(min)", "HR(℃/min)"],
     "Ultimate Analysis": ["C(%)", "H(%)", "O(%)", "N(%)"],
-    "Proximate Analysis": ["Ash(%)", "VM(%)", "FC(%)"],
-    "Pyrolysis Conditions": ["PT(°C)", "HR(℃/min)", "RT(min)"]
+    "Proximate Analysis": ["Ash(%)", "VM(%)", "FC(%)"]
 }
 
 # 特征范围
 feature_ranges = {
+    "PT(°C)": (300.0, 900.0),
+    "RT(min)": (5.0, 120.0),
     "C(%)": (30.0, 80.0),
     "H(%)": (3.0, 10.0),
     "O(%)": (10.0, 60.0),
@@ -535,9 +543,7 @@ feature_ranges = {
     "Ash(%)": (0.0, 25.0),
     "VM(%)": (40.0, 95.0),
     "FC(%)": (5.0, 40.0),
-    "PT(°C)": (300.0, 900.0),
-    "HR(℃/min)": (5.0, 100.0),
-    "RT(min)": (5.0, 120.0)
+    "HR(℃/min)": (5.0, 100.0)
 }
 
 # 创建三列布局
@@ -546,8 +552,37 @@ col1, col2, col3 = st.columns(3)
 # 使用字典来存储所有输入值
 features = {}
 
-# Ultimate Analysis (黄色区域) - 第一列
+# Pyrolysis Conditions (橙色区域)
 with col1:
+    st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
+    
+    for feature in feature_categories["Pyrolysis Conditions"]:
+        # 重置值或使用现有值
+        if st.session_state.clear_pressed:
+            value = default_values[feature]
+        else:
+            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
+        
+        # 获取该特征的范围
+        min_val, max_val = feature_ranges[feature]
+        
+        # 简单的两列布局
+        col_a, col_b = st.columns([1, 0.5])
+        with col_a:
+            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
+        with col_b:
+            features[feature] = st.number_input(
+                "", 
+                min_value=min_val, 
+                max_value=max_val, 
+                value=value, 
+                key=f"pyrolysis_{feature}", 
+                format="%.1f",
+                label_visibility="collapsed"
+            )
+
+# Ultimate Analysis (黄色区域)
+with col2:
     st.markdown("<div class='section-header' style='background-color: #DAA520;'>Ultimate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Ultimate Analysis"]:
@@ -572,8 +607,8 @@ with col1:
                 label_visibility="collapsed"
             )
 
-# Proximate Analysis (绿色区域) - 第二列
-with col2:
+# Proximate Analysis (绿色区域)
+with col3:
     st.markdown("<div class='section-header' style='background-color: #32CD32;'>Proximate Analysis</div>", unsafe_allow_html=True)
     
     for feature in feature_categories["Proximate Analysis"]:
@@ -594,35 +629,6 @@ with col2:
                 max_value=max_val, 
                 value=value, 
                 key=f"proximate_{feature}", 
-                format="%.1f",
-                label_visibility="collapsed"
-            )
-
-# Pyrolysis Conditions (橙色区域) - 第三列
-with col3:
-    st.markdown("<div class='section-header' style='background-color: #FF7F50;'>Pyrolysis Conditions</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories["Pyrolysis Conditions"]:
-        # 重置值或使用现有值
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.get(f"pyrolysis_{feature}", default_values[feature])
-        
-        # 获取该特征的范围
-        min_val, max_val = feature_ranges[feature]
-        
-        # 简单的两列布局
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: #FF7F50;'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                min_value=min_val, 
-                max_value=max_val, 
-                value=value, 
-                key=f"pyrolysis_{feature}", 
                 format="%.1f",
                 label_visibility="collapsed"
             )
