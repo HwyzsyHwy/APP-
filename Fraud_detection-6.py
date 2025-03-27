@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using CatBoost Ensemble Models
-修复版本 - 解决子模型标准化器问题
+修复版本 - 解决子模型标准化器问题，支持两位小数输入
 """
 
 import streamlit as st
@@ -398,7 +398,7 @@ class CorrectedEnsemblePredictor:
                 value = input_df[feature].iloc[0]
                 # 检查是否超出训练数据的95%置信区间
                 if value < range_info['min'] or value > range_info['max']:
-                    warning = f"{feature}: {value:.1f} (超出训练范围 {range_info['min']:.1f} - {range_info['max']:.1f})"
+                    warning = f"{feature}: {value:.2f} (超出训练范围 {range_info['min']:.2f} - {range_info['max']:.2f})"
                     warnings.append(warning)
                     log(f"警告: {warning}")
         
@@ -562,16 +562,16 @@ if 'individual_predictions' not in st.session_state:
 
 # 定义默认值 - 从用户截图中提取
 default_values = {
-    "C(%)": 38.3,
-    "H(%)": 5.5,
-    "O(%)": 55.2,
-    "N(%)": 0.6,
-    "Ash(%)": 6.6,
-    "VM(%)": 81.1,
-    "FC(%)": 10.3,
-    "PT(°C)": 500.0,  # 使用更合理的默认温度
-    "HR(℃/min)": 10.0,
-    "RT(min)": 60.0
+    "C(%)": 38.34,  # 使用两位小数精度
+    "H(%)": 5.47,
+    "O(%)": 55.22,
+    "N(%)": 0.60,
+    "Ash(%)": 6.63,
+    "VM(%)": 83.08,
+    "FC(%)": 10.29,
+    "PT(°C)": 300.00,  # 使用实际测试值
+    "HR(℃/min)": 10.00,
+    "RT(min)": 60.00
 }
 
 # 特征分类
@@ -616,7 +616,7 @@ with col1:
                 max_value=100.0, 
                 value=value, 
                 key=f"{category}_{feature}", 
-                format="%.1f",
+                format="%.2f",  # 修改为两位小数
                 label_visibility="collapsed"
             )
 
@@ -642,7 +642,7 @@ with col2:
                 max_value=100.0, 
                 value=value, 
                 key=f"{category}_{feature}", 
-                format="%.1f",
+                format="%.2f",  # 修改为两位小数
                 label_visibility="collapsed"
             )
 
@@ -678,7 +678,7 @@ with col3:
                 max_value=max_val, 
                 value=value, 
                 key=f"{category}_{feature}", 
-                format="%.1f",
+                format="%.2f",  # 修改为两位小数
                 label_visibility="collapsed"
             )
 
@@ -818,12 +818,13 @@ with result_container:
                 
                 # 添加输入值列
                 importance_data['输入值'] = importance_data['Feature'].map(input_values)
+                
                 # 调整显示列
                 display_df = importance_data[['排名', 'Feature', '输入值', 'Importance']]
                 display_df.columns = ['排名', '特征', '输入值', '重要性得分']
                 
                 st.dataframe(display_df.style.format({
-                    '输入值': '{:.1f}',
+                    '输入值': '{:.2f}',  # 使用两位小数显示
                     '重要性得分': '{:.4f}'
                 }))
                 
@@ -838,15 +839,15 @@ with result_container:
                 
                 if top_feature == 'PT(°C)':
                     if top_value < 350:
-                        st.info(f"🔍 您的热解温度({top_value}°C)较低，这通常会导致较高的焦炭产率。")
+                        st.info(f"🔍 您的热解温度({top_value:.2f}°C)较低，这通常会导致较高的焦炭产率。")
                     elif top_value > 600:
-                        st.info(f"🔍 您的热解温度({top_value}°C)较高，这通常会导致较低的焦炭产率。")
+                        st.info(f"🔍 您的热解温度({top_value:.2f}°C)较高，这通常会导致较低的焦炭产率。")
                 
                 elif top_feature == 'RT(min)':
                     if top_value > 45:
-                        st.info(f"🔍 您的停留时间({top_value}分钟)较长，这通常会增加焦炭产率。")
+                        st.info(f"🔍 您的停留时间({top_value:.2f}分钟)较长，这通常会增加焦炭产率。")
                     elif top_value < 10:
-                        st.info(f"🔍 您的停留时间({top_value}分钟)较短，这通常会减少焦炭产率。")
+                        st.info(f"🔍 您的停留时间({top_value:.2f}分钟)较短，这通常会减少焦炭产率。")
 
 # 添加模型信息区域
 with st.expander("About the Model", expanded=False):
@@ -912,8 +913,9 @@ with st.expander("About the Model", expanded=False):
 
 # 添加调试信息区域（隐藏但可展开）
 with st.expander("Debug Information", expanded=False):
-    st.write("### 输入特征")
-    st.write(input_data)
+    st.write("### 输入特征（精确到小数点后两位）")
+    # 以两位小数显示输入数据
+    st.dataframe(input_data.style.format("{:.2f}"))
     
     st.write("### 模型信息")
     if hasattr(predictor, 'models') and predictor.models:
@@ -933,7 +935,7 @@ with st.expander("Debug Information", expanded=False):
                 '特征': predictor.feature_names,
                 '均值': predictor.final_scaler.mean_
             })
-            st.dataframe(mean_df)
+            st.dataframe(mean_df.style.format({'均值': '{:.4f}'}))
         
         if hasattr(predictor.final_scaler, 'scale_'):
             st.write("### 最终标准化器标准差")
@@ -941,7 +943,7 @@ with st.expander("Debug Information", expanded=False):
                 '特征': predictor.feature_names,
                 '标准差': predictor.final_scaler.scale_
             })
-            st.dataframe(scale_df)
+            st.dataframe(scale_df.style.format({'标准差': '{:.4f}'}))
     
     # 显示标准化前后的数据
     if hasattr(predictor, 'final_scaler') and predictor.final_scaler is not None:
@@ -956,7 +958,7 @@ with st.expander("Debug Information", expanded=False):
         })
         
         st.dataframe(compare_df.style.format({
-            '原始值': '{:.2f}',
+            '原始值': '{:.2f}',  # 显示两位小数
             '标准化后': '{:.4f}'
         }))
 
@@ -970,9 +972,12 @@ with st.expander("Technical Notes", expanded=False):
     - 实际预测可能会略高或略低于这个范围
     - 特别是在训练数据范围边缘的输入值（如低温或极高温）可能会有更大误差
     
-    ### 预测改进
+    ### 预测精度改进
     
-    此版本修复了子模型标准化器问题，每个模型现在使用其对应的标准化器处理输入数据，这显著提高了预测准确性。
+    此版本实现了两个关键改进：
+    
+    1. **修复子模型标准化器问题**: 每个子模型现在使用其对应的标准化器处理输入数据，显著提高了预测准确性
+    2. **提高输入精度**: 所有输入值现在支持两位小数精度，减少了因截断造成的误差
     
     ### 使用建议
     
@@ -987,7 +992,7 @@ with st.expander("Technical Notes", expanded=False):
         current_result = st.session_state.prediction_result
         
         st.write("### 温度敏感性分析")
-        st.info(f"这将显示在当前温度({current_temp}°C)附近，温度变化对焦炭产率的影响。")
+        st.info(f"这将显示在当前温度({current_temp:.2f}°C)附近，温度变化对焦炭产率的影响。")
         
         temp_range = [-50, -25, 0, 25, 50]
         temp_results = []
@@ -1006,13 +1011,13 @@ with st.expander("Technical Notes", expanded=False):
                     result = predictor.predict(temp_input)[0]
                     temp_results.append((new_temp, result))
                 except Exception as e:
-                    log(f"温度 {new_temp}°C 分析失败: {str(e)}")
+                    log(f"温度 {new_temp:.2f}°C 分析失败: {str(e)}")
             
             if temp_results:
                 # 创建分析表格
                 temp_df = pd.DataFrame(temp_results, columns=['温度(°C)', '预测焦炭产率(%)'])
                 st.dataframe(temp_df.style.format({
-                    '温度(°C)': '{:.1f}',
+                    '温度(°C)': '{:.2f}',
                     '预测焦炭产率(%)': '{:.2f}'
                 }))
                 
@@ -1022,7 +1027,7 @@ with st.expander("Technical Notes", expanded=False):
                         'o-', color='blue', linewidth=2)
                 
                 # 标记当前温度点
-                current_idx = next((i for i, (t, _) in enumerate(temp_results) if t == current_temp), None)
+                current_idx = next((i for i, (t, _) in enumerate(temp_results) if abs(t - current_temp) < 0.01), None)
                 if current_idx is not None:
                     ax.plot(current_temp, temp_results[current_idx][1], 'o', color='red', markersize=10)
                 
@@ -1052,11 +1057,39 @@ with st.expander("Technical Notes", expanded=False):
                     else:
                         st.write("温度对焦炭产率影响较小。")
 
+# 添加数据验证和准确性建议区域
+with st.expander("数据验证与准确性建议", expanded=False):
+    st.write("### 验证预测结果")
+    st.markdown("""
+    为了获得最准确的预测结果，建议关注以下几点：
+    
+    1. **输入精度**：所有特征值现在精确到小数点后两位，请确保输入的数据精度足够
+    
+    2. **热解温度**：这是影响焦炭产率的最重要因素，确保输入的温度尽可能准确
+    
+    3. **子模型标准化**：当前预测使用了每个子模型训练时的对应标准化器，显著提高了预测准确性
+    
+    4. **输入范围验证**：系统会自动检查输入值是否在训练数据范围内，请注意任何超出范围的警告
+    
+    5. **模型一致性**：观察各子模型预测的一致性（标准差），一致性高的预测通常更可靠
+    """)
+    
+    st.write("### 数据问题排查")
+    st.markdown("""
+    如果预测结果与实际值有较大差异，可能的原因包括：
+    
+    - **输入特征精度不足**：确保所有输入保留足够精度（至少两位小数）
+    - **特征值超出训练范围**：特别是温度等关键特征，尽量使用在训练数据范围内的值
+    - **标准化器不匹配**：如果通过其他方法调用模型，确保使用正确的标准化器
+    - **特征顺序错误**：务必按照训练时相同的顺序提供特征
+    """)
+
 # 添加页脚
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: gray; font-size: 14px;">
 © 2023 Biomass Pyrolysis Research Team. All rights reserved.<br>
-使用CatBoost集成模型预测生物质热解产率 | 模型精度: R² = 0.93, RMSE = 3.39
+使用CatBoost集成模型预测生物质热解产率 | 模型精度: R² = 0.93, RMSE = 3.39<br>
+最近更新: 添加两位小数精度支持 & 修复子模型标准化器问题
 </div>
 """, unsafe_allow_html=True)
