@@ -18,6 +18,12 @@ from datetime import datetime
 import io
 from PIL import Image
 
+# 清除缓存，强制重新渲染
+if "debug" not in st.session_state:
+    st.cache_data.clear()
+    st.session_state.debug = True
+    st.session_state.decimal_test = 46.12  # 测试两位小数
+
 # 页面设置
 st.set_page_config(
     page_title='Biomass Pyrolysis Yield Prediction',
@@ -25,6 +31,9 @@ st.set_page_config(
     layout='wide',
     initial_sidebar_state='expanded'
 )
+
+# 添加调试信息
+st.sidebar.write(f"调试信息: 支持两位小数测试值 = {st.session_state.decimal_test:.2f}")
 
 # 自定义样式
 st.markdown(
@@ -168,9 +177,13 @@ def log(message):
         unsafe_allow_html=True
     )
 
+# 记录启动日志
+log("应用启动 - 支持两位小数和模型切换功能")
+
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield(%)"
+    log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
 st.markdown("<h1 class='main-title'>Prediction of crop biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
@@ -682,6 +695,9 @@ with col1:
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
+            
+            # 调试显示
+            st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # Proximate Analysis - 第二列
 with col2:
@@ -710,6 +726,9 @@ with col2:
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
+            
+            # 调试显示
+            st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions - 第三列
 with col3:
@@ -748,6 +767,9 @@ with col3:
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
+            
+            # 调试显示
+            st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # 重置状态
 if st.session_state.clear_pressed:
@@ -769,6 +791,7 @@ with col2:
         st.session_state.prediction_result = None
         st.session_state.warnings = []
         st.session_state.individual_predictions = []
+        log("清除所有输入和预测结果")
     
     clear_button = st.button("CLEAR", on_click=clear_values)
 
@@ -801,6 +824,7 @@ if predict_button:
     except Exception as e:
         log(f"预测过程中出错: {str(e)}")
         st.error(f"预测失败: {str(e)}")
+        st.error(traceback.format_exc())
 
 # 显示结果
 with result_container:
