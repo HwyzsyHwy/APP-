@@ -758,17 +758,6 @@ if 'current_r2' not in st.session_state:
 if 'prediction_error' not in st.session_state:
     st.session_state.prediction_error = None
 
-# 如果有性能指标数据，显示在侧边栏
-if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
-    performance_metrics_html = """
-    <div class='performance-metrics'>
-    <h4>性能指标</h4>
-    <p><b>R²</b>: {:.4f}</p>
-    <p><b>RMSE</b>: {:.2f}</p>
-    </div>
-    """.format(st.session_state.current_r2, st.session_state.current_rmse)
-    performance_container.markdown(performance_metrics_html, unsafe_allow_html=True)
-
 # 定义默认值 - 从用户截图中提取
 default_values = {
     "C(%)": 46.00,  # 使用两位小数精度
@@ -948,17 +937,6 @@ with col1:
                 log("警告: 预测结果为空")
                 st.session_state.prediction_result = 0.0
                 st.session_state.individual_predictions = []
-            
-            # 性能指标显示在侧边栏
-            if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
-                performance_metrics_html = """
-                <div class='performance-metrics'>
-                <h4>性能指标</h4>
-                <p><b>R²</b>: {:.4f}</p>
-                <p><b>RMSE</b>: {:.2f}</p>
-                </div>
-                """.format(st.session_state.current_r2, st.session_state.current_rmse)
-                performance_container.markdown(performance_metrics_html, unsafe_allow_html=True)
             
         except Exception as e:
             st.session_state.prediction_error = str(e)
