@@ -1001,36 +1001,6 @@ if st.session_state.prediction_result is not None:
             unsafe_allow_html=True
         )
     
-    # 显示输入特征表格
-    st.markdown("### 输入特征")
-    formatted_features = {}
-    for feature, value in features.items():
-        formatted_features[feature] = f"{value:.2f}"
-    
-    # 转换为DataFrame并显示
-    input_df = pd.DataFrame([formatted_features])
-    st.dataframe(input_df, use_container_width=True)
-    
-    # 显示性能指标
-    if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
-        st.markdown("## 性能指标")
-        metrics_col1, metrics_col2 = st.columns(2)
-        with metrics_col1:
-            st.markdown("""
-            <div style='background-color: #1E1E1E; padding: 15px; border-radius: 10px; text-align: center;'>
-            <h3 style='margin:0;'>R²</h3>
-            <p style='font-size: 24px; font-weight: bold; margin:0;'>{:.4f}</p>
-            </div>
-            """.format(st.session_state.current_r2), unsafe_allow_html=True)
-        
-        with metrics_col2:
-            st.markdown("""
-            <div style='background-color: #1E1E1E; padding: 15px; border-radius: 10px; text-align: center;'>
-            <h3 style='margin:0;'>RMSE</h3>
-            <p style='font-size: 24px; font-weight: bold; margin:0;'>{:.2f}</p>
-            </div>
-            """.format(st.session_state.current_rmse), unsafe_allow_html=True)
-    
     # 技术说明部分 - 使用折叠式展示
     with st.expander("技术说明"):
         st.markdown("""
