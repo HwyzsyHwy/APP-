@@ -220,7 +220,7 @@ if 'selected_model' not in st.session_state:
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>基于Catboost集成模型的生物质产物热解预测系统</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>基于Catboost集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
 
 # 添加模型选择区域 - 修改为三个按钮一排
 st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
