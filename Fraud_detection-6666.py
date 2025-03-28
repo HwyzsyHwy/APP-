@@ -2,7 +2,7 @@
 """
 Biomass Pyrolysis Yield Forecast using CatBoost Ensemble Models
 修复版本 - 解决小数精度问题和子模型标准化器问题
-添加多模型切换功能 - 支持Char和Oil产率预测
+添加多模型切换功能 - 支持Char、Oil和Gas产率预测
 """
 
 import streamlit as st
@@ -212,7 +212,7 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 支持两位小数和模型切换功能")
+log("应用启动 - 支持两位小数和多模型切换功能")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -222,10 +222,10 @@ if 'selected_model' not in st.session_state:
 # 更新主标题以显示当前选定的模型
 st.markdown("<h1 class='main-title'>Prediction of biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
 
-# 添加模型选择区域
+# 添加模型选择区域 - 修改为三个按钮一排
 st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
 st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     char_button = st.button("🔥 Char Yield", 
                            key="char_button", 
@@ -238,6 +238,12 @@ with col2:
                           help="预测生物油产率 (%)", 
                           use_container_width=True,
                           type="primary" if st.session_state.selected_model == "Oil Yield(%)" else "secondary")
+with col3:
+    gas_button = st.button("💨 Gas Yield", 
+                          key="gas_button", 
+                          help="预测气体产率 (%)", 
+                          use_container_width=True,
+                          type="primary" if st.session_state.selected_model == "Gas Yield(%)" else "secondary")
 
 # 处理模型选择
 if char_button:
@@ -250,6 +256,14 @@ if char_button:
 
 if oil_button:
     st.session_state.selected_model = "Oil Yield(%)"
+    st.session_state.prediction_result = None
+    st.session_state.warnings = []
+    st.session_state.individual_predictions = []
+    log(f"切换到模型: {st.session_state.selected_model}")
+    st.rerun()
+
+if gas_button:
+    st.session_state.selected_model = "Gas Yield(%)"
     st.session_state.prediction_result = None
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
@@ -983,7 +997,7 @@ if st.session_state.prediction_result is not None:
     with st.expander("技术说明"):
         st.markdown("""
         <div class='tech-info'>
-        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭和生物油产量。</p>
+        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭、生物油和气体产量。</p>
         
         <p><b>关键影响因素：</b></p>
         <ul>
@@ -1006,6 +1020,7 @@ if st.session_state.prediction_result is not None:
             <li>✅ 移除了子模型预测结果柱状图显示</li>
             <li>✅ 改进了模型加载失败时的错误处理和提示</li>
             <li>✅ 增强了对不同目录结构的兼容性</li>
+            <li>✅ 增加了Gas Yield模型，现在支持三种产率预测</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1014,8 +1029,8 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.2.0</p>
-<p>本应用支持两位小数输入精度 | 已集成Char和Oil产率预测模型</p>
+<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.3.0</p>
+<p>本应用支持两位小数输入精度 | 已集成Char、Oil和Gas产率预测模型</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
