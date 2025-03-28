@@ -1,0 +1,24 @@
+{
+    "creation_date": "2025-03-27 21:39:47",
+    "version": "1.0",
+    "description": "CatBoost\u6a21\u578b\u96c6\u6210\u7cfb\u7edf",
+    "feature_names": [
+        "C(%)",
+        "H(%)",
+        "O(%)",
+        "N(%)",
+        "Ash(%)",
+        "VM(%)",
+        "FC(%)",
+        "PT(\u00b0C)",
+        "HR(\u2103/min)",
+        "RT(min)"
+    ],
+    "target_name": "Gas Yield(%)",
+    "performance": {
+        "train_rmse": 2.736512247388445,
+        "train_r2": 0.9548419230524299,
+        "test_rmse": 2.760059649036784,
+        "test_r2": 0.929101399591611
+    }
+}
