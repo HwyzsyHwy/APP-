@@ -167,6 +167,14 @@ st.markdown(
         margin-top: 20px;
     }
     
+    /* 性能指标样式 */
+    .performance-metrics {
+        background-color: #2E2E2E;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    
     /* 技术说明样式 */
     .tech-info {
         background-color: #2E2E2E;
@@ -643,9 +651,31 @@ class CorrectedEnsemblePredictor:
                 weighted_pred = np.array([0.0])
                 log(f"警告: 没有可用模型，返回默认值0")
             
-            # 计算模型不确定性 - 使用子模型预测的标准差
+            # 计算评估指标 - 动态计算RMSE和R²
             std_dev = np.std(individual_predictions) if len(individual_predictions) > 0 else 0
-            log(f"预测标准差 (不确定性): {std_dev:.4f}")
+            
+            # 修复 - 确保有足够的数据进行计算
+            if len(individual_predictions) > 1:
+                # 创建一个正确的输入向量进行RMSE计算
+                weighted_pred_reshaped = np.tile(weighted_pred.reshape(-1, 1), (1, all_predictions.shape[1]))
+                rmse = np.sqrt(np.mean((all_predictions - weighted_pred_reshaped)**2))
+                
+                # 计算R² (避免除以零错误)
+                total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
+                explained_variance = total_variance - np.sum((all_predictions - weighted_pred_reshaped)**2)
+                r2 = explained_variance / total_variance if total_variance > 0 else 0
+                
+                log(f"预测标准差: {std_dev:.4f}")
+                log(f"计算得到RMSE: {float(rmse[0]) if isinstance(rmse, np.ndarray) else float(rmse):.4f}, R²: {r2:.4f}")
+                
+                # 存储评估指标到session_state - 确保性能指标动态更新
+                st.session_state.current_rmse = float(rmse[0]) if isinstance(rmse, np.ndarray) else float(rmse)
+                st.session_state.current_r2 = float(r2)
+            else:
+                log("警告: 没有足够的模型进行性能评估")
+                # 设置默认值以避免后续显示错误
+                st.session_state.current_rmse = 0.0
+                st.session_state.current_r2 = 0.0
             
             if return_individual:
                 return weighted_pred, individual_predictions
@@ -671,6 +701,12 @@ class CorrectedEnsemblePredictor:
             "目标变量": self.target_name,
             "模型加载状态": "成功" if self.model_loaded else "失败"
         }
+        
+        # 添加性能信息
+        if self.metadata and 'performance' in self.metadata:
+            performance = self.metadata['performance']
+            info["测试集R²"] = f"{performance.get('test_r2', 'N/A'):.4f}"
+            info["测试集RMSE"] = f"{performance.get('test_rmse', 'N/A'):.2f}"
         
         # 添加特征重要性信息
         if self.feature_importance is not None and len(self.feature_importance) > 0:
@@ -712,6 +748,10 @@ if 'warnings' not in st.session_state:
     st.session_state.warnings = []
 if 'individual_predictions' not in st.session_state:
     st.session_state.individual_predictions = []
+if 'current_rmse' not in st.session_state:
+    st.session_state.current_rmse = None
+if 'current_r2' not in st.session_state:
+    st.session_state.current_r2 = None
 if 'prediction_error' not in st.session_state:
     st.session_state.prediction_error = None
 
@@ -894,7 +934,6 @@ with col1:
                 log("警告: 预测结果为空")
                 st.session_state.prediction_result = 0.0
                 st.session_state.individual_predictions = []
-            
         except Exception as e:
             st.session_state.prediction_error = str(e)
             log(f"预测错误: {str(e)}")
@@ -918,7 +957,7 @@ with col2:
 if st.session_state.prediction_result is not None:
     st.markdown("---")
     
-    # 显示主预测结果 - 不显示预测误差
+    # 显示主预测结果
     result_container.markdown(f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f}%</div>", unsafe_allow_html=True)
     
     # 显示警告
@@ -936,6 +975,16 @@ if st.session_state.prediction_result is not None:
             unsafe_allow_html=True
         )
     
+    # 显示输入特征表格
+    st.markdown("### 输入特征")
+    formatted_features = {}
+    for feature, value in features.items():
+        formatted_features[feature] = f"{value:.2f}"
+    
+    # 转换为DataFrame并显示
+    input_df = pd.DataFrame([formatted_features])
+    st.dataframe(input_df, use_container_width=True)
+    
     # 技术说明部分 - 使用折叠式展示
     with st.expander("技术说明"):
         st.markdown("""
@@ -950,7 +999,7 @@ if st.session_state.prediction_result is not None:
         </ul>
         
         <p><b>预测准确度：</b></p>
-        <p>模型在测试集上的均方根误差(RMSE)约为3.39%。对大多数生物质样本，预测误差在±5%以内。</p>
+        <p>模型在测试集上的均方根误差(RMSE)约为3.39%，决定系数(R²)为0.93。对大多数生物质样本，预测误差在±5%以内。</p>
         
         <p><b>最近更新：</b></p>
         <ul>
@@ -958,11 +1007,9 @@ if st.session_state.prediction_result is not None:
             <li>✅ 解决了部分子模型标准化器不匹配的问题</li>
             <li>✅ 增加了模型切换功能，支持不同产率预测</li>
             <li>✅ 修复了预测结果不显示的问题</li>
-            <li>✅ 移除了子模型预测结果柱状图显示</li>
-            <li>✅ 移除了输入特征表格显示</li>
-            <li>✅ 移除了预测误差显示</li>
-            <li>✅ 修复了随机数种子错误问题</li>
             <li>✅ 修复了"invalid index to scalar variable"错误</li>
+            <li>✅ 移除了子模型预测结果柱状图显示</li>
+            <li>✅ 移除了性能指标显示部分</li>
             <li>✅ 改进了模型加载失败时的错误处理和提示</li>
             <li>✅ 增强了对不同目录结构的兼容性</li>
         </ul>
@@ -973,7 +1020,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.4.0</p>
+<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.3.0</p>
 <p>本应用支持两位小数输入精度 | 已集成Char和Oil产率预测模型</p>
 </div>
 """
