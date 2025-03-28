@@ -220,7 +220,7 @@ if 'selected_model' not in st.session_state:
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>Prediction of biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>基于Catboost集成模型的生物质产物热解预测系统</h1>", unsafe_allow_html=True)
 
 # 添加模型选择区域 - 修改为三个按钮一排
 st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
@@ -997,30 +997,12 @@ if st.session_state.prediction_result is not None:
     with st.expander("技术说明"):
         st.markdown("""
         <div class='tech-info'>
-        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭、生物油和气体产量。</p>
+        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
         
-        <p><b>关键影响因素：</b></p>
+        <p><b>特别提醒：</b></p>
         <ul>
-            <li>温度(PT)是最重要的影响因素，对焦炭产量有显著负相关性</li>
-            <li>停留时间(RT)是第二重要的因素，延长停留时间会降低焦炭产量</li>
-            <li>固定碳含量(FC)可由100-Ash(%)-VM(%)计算得出，对预测也有重要影响</li>
-        </ul>
-        
-        <p><b>预测准确度：</b></p>
-        <p>模型在测试集上的均方根误差(RMSE)约为3.39%，决定系数(R²)为0.93。对大多数生物质样本，预测误差在±5%以内。</p>
-        
-        <p><b>最近更新：</b></p>
-        <ul>
-            <li>✅ 修复了所有输入值只能精确到一位小数的问题</li>
-            <li>✅ 解决了部分子模型标准化器不匹配的问题</li>
-            <li>✅ 增加了模型切换功能，支持不同产率预测</li>
-            <li>✅ 修复了预测结果不显示的问题</li>
-            <li>✅ 修复了性能指标不显示的问题</li>
-            <li>✅ 修复了"invalid index to scalar variable"错误</li>
-            <li>✅ 移除了子模型预测结果柱状图显示</li>
-            <li>✅ 改进了模型加载失败时的错误处理和提示</li>
-            <li>✅ 增强了对不同目录结构的兼容性</li>
-            <li>✅ 增加了Gas Yield模型，现在支持三种产率预测</li>
+            <li>输入参数应该满足设定好的范围内，因为这样符合模型训练数据的分布范围，可以保证软件的预测精度，如果超过范围，会有文字提醒</li>
+            <li>由于模型训练时FC(%)通过100-Ash(%)-VM(%)公式转换得出，所以用户使用此软件进行预测时也需要使用100-Ash(%)-VM(%)公式对FC(%)进行转换，以保证预测的准确性。</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1029,7 +1011,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Nanomaterials and Intelligent Equipment Laboratory. 版本: 2.3.0</p>
+<p>© 2023 生物质纳米材料与智能装备实验室团队. 版本: 2.3.0</p>
 <p>本应用支持两位小数输入精度 | 已集成Char、Oil和Gas产率预测模型</p>
 </div>
 """
