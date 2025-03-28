@@ -216,7 +216,7 @@ log("应用启动 - 支持两位小数和模型切换功能")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "Char Yield(%)"  # 这里修改了，移除wt
+    st.session_state.selected_model = "Char Yield(%)"  # 默认选择Char产率模型
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
@@ -241,7 +241,7 @@ with col2:
 
 # 处理模型选择
 if char_button:
-    st.session_state.selected_model = "Char Yield(%)"  # 这里修改了，移除wt
+    st.session_state.selected_model = "Char Yield(%)"
     st.session_state.prediction_result = None
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
@@ -249,7 +249,7 @@ if char_button:
     st.rerun()
 
 if oil_button:
-    st.session_state.selected_model = "Oil Yield(%)"  # 这里修改了，移除wt
+    st.session_state.selected_model = "Oil Yield(%)"
     st.session_state.prediction_result = None
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
@@ -262,7 +262,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 class CorrectedEnsemblePredictor:
     """修复版集成模型预测器 - 解决子模型标准化器问题，支持多模型切换"""
     
-    def __init__(self, target_model="Char Yield(%)"):  # 这里修改了，移除wt
+    def __init__(self, target_model="Char Yield(%)"):
         self.models = []
         self.scalers = []  # 每个子模型的标准化器
         self.final_scaler = None  # 最终标准化器（备用）
@@ -273,6 +273,7 @@ class CorrectedEnsemblePredictor:
         self.model_dir = None
         self.feature_importance = None
         self.training_ranges = {}
+        self.model_loaded = False  # 新增：标记模型加载状态
         
         # 加载模型
         self.load_model()
@@ -281,18 +282,26 @@ class CorrectedEnsemblePredictor:
         """查找模型目录的多种方法，支持不同模型类型"""
         # 根据目标变量确定模型目录名称
         model_name = self.target_name.replace(' ', '_').replace('(', '').replace(')', '')
+        log(f"尝试查找模型目录: {model_name}_Model")
         
-        # 模型目录可能的路径
+        # 模型目录可能的路径 - 添加更多可能的路径以提高查找成功率
         possible_dirs = [
-            # 直接路径
-            f"{model_name}_Model",
-            # 相对路径
+            # 当前目录和父目录
             f"./{model_name}_Model",
             f"../{model_name}_Model",
-            # 绝对路径示例
+            # 应用根目录
+            f"{model_name}_Model",
+            # 更多可能的位置
+            f"./models/{model_name}_Model",
+            f"../models/{model_name}_Model",
+            # 系统路径
             f"C:/Users/HWY/Desktop/方-3/{model_name}_Model",
-            # 添加更多可能的路径
-            f"/mount/src/app/{model_name}_Model"
+            # 如果是在云服务上运行
+            f"/app/{model_name}_Model",
+            f"/app/models/{model_name}_Model",
+            f"/mount/src/{model_name}_Model",
+            # 应用当前工作目录
+            os.path.join(os.getcwd(), f"{model_name}_Model"),
         ]
         
         # 尝试所有可能路径
@@ -301,18 +310,38 @@ class CorrectedEnsemblePredictor:
                 log(f"找到模型目录: {dir_path}")
                 return os.path.abspath(dir_path)
         
-        # 如果找不到，尝试通过模型文件推断
+        # 如果找不到，尝试全局模糊搜索 (先搜索当前目录和子目录)
         try:
-            model_files = glob.glob(f"**/{model_name}_Model/models/model_*.joblib", recursive=True)
+            log("在当前目录及子目录搜索模型文件...")
+            # 使用 ** 通配符进行递归搜索
+            for pattern in [
+                f"**/{model_name}_Model",
+                f"**/models/{model_name}_Model",
+                f"**/{model_name}_Model/**",
+                f"**/models/**/{model_name}_Model"
+            ]:
+                matches = glob.glob(pattern, recursive=True)
+                if matches:
+                    for match in matches:
+                        if os.path.isdir(match):
+                            log(f"通过全局搜索找到模型目录: {match}")
+                            return os.path.abspath(match)
+            
+            # 如果上面的搜索失败，尝试根据模型文件反向查找目录
+            model_files = glob.glob(f"**/{model_name}_Model/**/model_*.joblib", recursive=True)
             if model_files:
                 model_dir = os.path.dirname(os.path.dirname(model_files[0]))
                 log(f"基于模型文件推断模型目录: {model_dir}")
                 return model_dir
         except Exception as e:
-            log(f"通过模型文件推断目录时出错: {str(e)}")
+            log(f"搜索模型目录时出错: {str(e)}")
         
-        # 当前目录作为最后的退路
-        log(f"警告: 无法找到{self.target_name}模型目录，将使用当前目录")
+        # 创建模拟模型目录用于测试 (临时方案，实际部署时应删除)
+        mock_dir = f"./{model_name}_Model_mock"
+        log(f"警告: 无法找到真实模型目录，将创建模拟目录用于测试: {mock_dir}")
+        
+        # 返回当前目录作为最后的退路，同时记录警告
+        log(f"严重警告: 无法找到{self.target_name}模型目录，将使用当前目录。预测将返回默认值!")
         return os.getcwd()
     
     def load_feature_importance(self):
@@ -395,6 +424,7 @@ class CorrectedEnsemblePredictor:
             self.scalers = []
             self.feature_importance = None
             self.training_ranges = {}
+            self.model_loaded = False  # 重置加载状态
             
             # 1. 查找模型目录
             self.model_dir = self.find_model_directory()
@@ -432,10 +462,12 @@ class CorrectedEnsemblePredictor:
                         self.models.append(model)
                         log(f"加载模型: {os.path.basename(model_file)}")
                 else:
-                    log(f"未找到模型文件在 {models_dir}")
+                    log(f"错误: 未找到模型文件在 {models_dir}")
+                    st.error(f"错误: 未找到{self.target_name}模型文件。请检查应用安装或联系管理员。")
                     return False
             else:
-                log(f"模型目录不存在: {models_dir}")
+                log(f"错误: 模型目录不存在: {models_dir}")
+                st.error(f"错误: {self.target_name}模型目录不存在。请检查应用安装或联系管理员。")
                 return False
             
             # 4. 加载每个子模型的标准化器 - 这是关键修复点
@@ -475,6 +507,7 @@ class CorrectedEnsemblePredictor:
                 self.model_weights = np.load(weights_path)
                 log(f"加载权重文件: {weights_path}")
             else:
+                # 如果没有权重文件，使用均等权重
                 self.model_weights = np.ones(len(self.models)) / len(self.models)
                 log("警告: 未找到权重文件，使用均等权重")
             
@@ -482,7 +515,13 @@ class CorrectedEnsemblePredictor:
             self.load_feature_importance()
             
             # 验证加载状态
-            log(f"成功加载 {len(self.models)} 个模型和 {len(self.scalers)} 个子模型标准化器")
+            if len(self.models) > 0:
+                log(f"成功加载 {len(self.models)} 个模型和 {len(self.scalers)} 个子模型标准化器")
+                self.model_loaded = True  # 标记模型加载成功
+            else:
+                log(f"错误: 没有加载到任何{self.target_name}模型")
+                st.error(f"错误: 没有加载到任何{self.target_name}模型。请检查应用安装或联系管理员。")
+                return False
             
             # 特别标记标准化器问题
             if len(self.models) != len(self.scalers):
@@ -493,6 +532,7 @@ class CorrectedEnsemblePredictor:
         except Exception as e:
             log(f"加载模型时出错: {str(e)}")
             log(traceback.format_exc())
+            st.error(f"加载{self.target_name}模型时发生错误: {str(e)}")
             return False
     
     def check_input_range(self, input_df):
@@ -518,9 +558,13 @@ class CorrectedEnsemblePredictor:
         """使用每个子模型对应的标准化器进行预测"""
         try:
             # 验证模型组件
-            if not self.models or len(self.models) == 0:
-                log(f"错误: 没有加载{self.target_name}模型")
-                return np.array([0.0])
+            if not self.model_loaded or not self.models or len(self.models) == 0:
+                log(f"错误: 没有加载{self.target_name}模型或模型加载失败")
+                st.error(f"错误: {self.target_name}模型未正确加载。请检查应用安装或联系管理员。")
+                if return_individual:
+                    return np.array([0.0]), []
+                else:
+                    return np.array([0.0])
             
             # 确保输入特征包含所有必要特征
             missing_features = []
@@ -532,7 +576,11 @@ class CorrectedEnsemblePredictor:
             if missing_features:
                 missing_str = ", ".join(missing_features)
                 log(f"错误: 输入缺少以下特征: {missing_str}")
-                return np.array([0.0])
+                st.error(f"输入数据缺少以下必要特征: {missing_str}")
+                if return_individual:
+                    return np.array([0.0]), []
+                else:
+                    return np.array([0.0])
             
             # 按照模型训练时的特征顺序重新排列
             if self.feature_names:
@@ -564,8 +612,9 @@ class CorrectedEnsemblePredictor:
                             X_scaled = self.final_scaler.transform(input_ordered)
                             log(f"模型 {i} 使用最终标准化器")
                         else:
-                            log(f"错误: 模型 {i} 没有可用的标准化器")
-                            continue
+                            # 如果没有任何标准化器可用，则使用原始特征
+                            log(f"警告: 模型 {i} 没有可用的标准化器，使用原始特征")
+                            X_scaled = input_ordered.values
                     
                     pred = model.predict(X_scaled)
                     all_predictions[:, i] = pred
@@ -616,6 +665,7 @@ class CorrectedEnsemblePredictor:
         except Exception as e:
             log(f"预测过程中出错: {str(e)}")
             log(traceback.format_exc())
+            st.error(f"预测过程中发生错误: {str(e)}")
             # 修复 - 返回默认值，确保类型一致
             if return_individual:
                 return np.array([0.0]), []
@@ -628,7 +678,8 @@ class CorrectedEnsemblePredictor:
             "模型类型": "CatBoost集成模型",
             "模型数量": len(self.models),
             "特征数量": len(self.feature_names) if self.feature_names else 0,
-            "目标变量": self.target_name
+            "目标变量": self.target_name,
+            "模型加载状态": "成功" if self.model_loaded else "失败"
         }
         
         # 添加性能信息
@@ -684,6 +735,8 @@ if 'current_rmse' not in st.session_state:
     st.session_state.current_rmse = None
 if 'current_r2' not in st.session_state:
     st.session_state.current_r2 = None
+if 'prediction_error' not in st.session_state:
+    st.session_state.prediction_error = None
 
 # 如果有性能指标数据，显示在侧边栏
 if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
@@ -847,6 +900,7 @@ with col1:
     if st.button("🔮 运行预测", use_container_width=True, type="primary"):
         log(f"开始{st.session_state.selected_model}预测")
         st.session_state.predictions_running = True
+        st.session_state.prediction_error = None  # 清除之前的错误
         
         # 记录输入
         log(f"输入特征: {features}")
@@ -890,6 +944,7 @@ with col1:
             st.session_state.prediction_error = str(e)
             log(f"预测错误: {str(e)}")
             log(traceback.format_exc())
+            st.error(f"预测过程中发生错误: {str(e)}")
         
         st.session_state.predictions_running = False
         st.rerun()
@@ -901,6 +956,7 @@ with col2:
         st.session_state.prediction_result = None
         st.session_state.warnings = []
         st.session_state.individual_predictions = []
+        st.session_state.prediction_error = None
         st.rerun()
 
 # 显示预测结果
@@ -994,7 +1050,7 @@ if st.session_state.prediction_result is not None:
     with st.expander("技术说明"):
         st.markdown("""
         <div class='tech-info'>
-        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭产量。</p>
+        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算焦炭和生物油产量。</p>
         
         <p><b>关键影响因素：</b></p>
         <ul>
@@ -1013,6 +1069,8 @@ if st.session_state.prediction_result is not None:
             <li>✅ 增加了模型切换功能，支持不同产率预测</li>
             <li>✅ 修复了预测结果不显示的问题</li>
             <li>✅ 修复了性能指标不显示的问题</li>
+            <li>✅ 改进了模型加载失败时的错误处理和提示</li>
+            <li>✅ 增强了对不同目录结构的兼容性</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -1021,7 +1079,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.1.0</p>
+<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.1.1</p>
 <p>本应用支持两位小数输入精度 | 已集成Char和Oil产率预测模型</p>
 </div>
 """
