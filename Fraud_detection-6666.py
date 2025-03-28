@@ -1012,7 +1012,6 @@ st.markdown("---")
 footer = """
 <div style='text-align: center;'>
 <p>© 2023 生物质纳米材料与智能装备实验室团队. 版本: 2.3.0</p>
-<p>本应用支持两位小数输入精度 | 已集成Char、Oil和Gas产率预测模型</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
