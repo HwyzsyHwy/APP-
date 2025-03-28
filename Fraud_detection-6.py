@@ -290,7 +290,9 @@ class CorrectedEnsemblePredictor:
             f"./{model_name}_Model",
             f"../{model_name}_Model",
             # 绝对路径示例
-            f"C:/Users/HWY/Desktop/方-3/{model_name}_Model"
+            f"C:/Users/HWY/Desktop/方-3/{model_name}_Model",
+            # 添加更多可能的路径
+            f"/mount/src/app/{model_name}_Model"
         ]
         
         # 尝试所有可能路径
@@ -579,22 +581,32 @@ class CorrectedEnsemblePredictor:
                         log(f"模型 {i} 使用之前模型的平均值: {avg_pred[0]:.2f}")
             
             # 计算加权平均
-            weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
-            log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
+            weighted_pred = np.zeros(input_ordered.shape[0])
+            if len(self.models) > 0:
+                weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
+                log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
             
             # 计算评估指标 - 动态计算RMSE和R²
-            std_dev = np.std(individual_predictions)
-            rmse = np.sqrt(np.mean((all_predictions - weighted_pred.reshape(-1, 1))**2))
-            total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
-            explained_variance = total_variance - np.sum((all_predictions - weighted_pred.reshape(-1, 1))**2)
-            r2 = explained_variance / total_variance if total_variance > 0 else 0
+            std_dev = np.std(individual_predictions) if len(individual_predictions) > 0 else 0
             
-            log(f"预测标准差: {std_dev:.4f}")
-            log(f"计算得到RMSE: {rmse[0]:.4f}, R²: {r2:.4f}")
-            
-            # 存储评估指标到session_state - 确保性能指标动态更新
-            st.session_state.current_rmse = float(rmse[0])
-            st.session_state.current_r2 = float(r2)
+            # 修复 - 确保有足够的数据进行计算
+            if len(individual_predictions) > 1:
+                rmse = np.sqrt(np.mean((all_predictions - weighted_pred.reshape(-1, 1))**2))
+                total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
+                explained_variance = total_variance - np.sum((all_predictions - weighted_pred.reshape(-1, 1))**2)
+                r2 = explained_variance / total_variance if total_variance > 0 else 0
+                
+                log(f"预测标准差: {std_dev:.4f}")
+                log(f"计算得到RMSE: {rmse[0]:.4f}, R²: {r2:.4f}")
+                
+                # 存储评估指标到session_state - 确保性能指标动态更新
+                st.session_state.current_rmse = float(rmse[0])
+                st.session_state.current_r2 = float(r2)
+            else:
+                log("警告: 没有足够的模型进行性能评估")
+                # 设置默认值以避免后续显示错误
+                st.session_state.current_rmse = 0.0
+                st.session_state.current_r2 = 0.0
             
             if return_individual:
                 return weighted_pred, individual_predictions
@@ -604,7 +616,11 @@ class CorrectedEnsemblePredictor:
         except Exception as e:
             log(f"预测过程中出错: {str(e)}")
             log(traceback.format_exc())
-            return np.array([0.0])
+            # 修复 - 返回默认值，确保类型一致
+            if return_individual:
+                return np.array([0.0]), []
+            else:
+                return np.array([0.0])
     
     def get_model_info(self):
         """获取模型信息摘要"""
@@ -645,7 +661,7 @@ model_info_html += "<h4>标准化器状态</h4>"
 if len(predictor.scalers) == len(predictor.models):
     model_info_html += f"<p style='color:green'>✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器</p>"
 elif len(predictor.scalers) > 0:
-    model_info_html += f"<p style='color:orange'⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器</p>"
+    model_info_html += f"<p style='color:orange'>⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器</p>"
 else:
     model_info_html += "<p style='color:red'>❌ 未找到子模型标准化器，使用最终标准化器</p>"
 
@@ -845,13 +861,19 @@ with col1:
         # 执行预测
         try:
             result, individual_preds = predictor.predict(input_df, return_individual=True)
-            st.session_state.prediction_result = float(result[0])
-            st.session_state.individual_predictions = individual_preds
-            log(f"预测成功: {st.session_state.prediction_result:.2f}")
-            
-            # 计算标准差作为不确定性指标
-            std_dev = np.std(individual_preds)
-            log(f"预测标准差: {std_dev:.4f}")
+            # 确保结果不为空，修复预测值不显示的问题
+            if len(result) > 0:
+                st.session_state.prediction_result = float(result[0])
+                st.session_state.individual_predictions = individual_preds
+                log(f"预测成功: {st.session_state.prediction_result:.2f}")
+                
+                # 计算标准差作为不确定性指标
+                std_dev = np.std(individual_preds) if individual_preds else 0
+                log(f"预测标准差: {std_dev:.4f}")
+            else:
+                log("警告: 预测结果为空")
+                st.session_state.prediction_result = 0.0
+                st.session_state.individual_predictions = []
             
             # 性能指标显示在侧边栏
             if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
@@ -890,7 +912,7 @@ if st.session_state.prediction_result is not None:
     
     # 显示警告
     if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b⚠️ 警告：部分输入超出训练范围</b><ul>"
+        warnings_html = "<div class='warning-box'><b>⚠️ 警告：部分输入超出训练范围</b><ul>"
         for warning in st.session_state.warnings:
             warnings_html += f"<li>{warning}</li>"
         warnings_html += "</ul><p>预测结果可能不太可靠。</p></div>"
@@ -989,6 +1011,8 @@ if st.session_state.prediction_result is not None:
             <li>✅ 修复了所有输入值只能精确到一位小数的问题</li>
             <li>✅ 解决了部分子模型标准化器不匹配的问题</li>
             <li>✅ 增加了模型切换功能，支持不同产率预测</li>
+            <li>✅ 修复了预测结果不显示的问题</li>
+            <li>✅ 修复了性能指标不显示的问题</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
