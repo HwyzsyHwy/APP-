@@ -1029,7 +1029,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.3.0</p>
+<p>© 2023 Biomass Nanomaterials and Intelligent Equipment Laboratory. 版本: 2.3.0</p>
 <p>本应用支持两位小数输入精度 | 已集成Char、Oil和Gas产率预测模型</p>
 </div>
 """
