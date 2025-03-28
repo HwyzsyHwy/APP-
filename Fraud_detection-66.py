@@ -1001,50 +1001,15 @@ if st.session_state.prediction_result is not None:
             unsafe_allow_html=True
         )
     
-    # 预测详情 - 使用柱状图显示各个模型的预测结果
-    if st.session_state.individual_predictions:
-        st.markdown("## 预测详情")
-        
-        # 创建各个模型预测结果的图表
-        fig, ax = plt.subplots(figsize=(10, 5))
-        model_indices = list(range(1, len(st.session_state.individual_predictions) + 1))
-        model_names = [f"模型 {i}" for i in model_indices]
-        
-        # 绘制柱状图
-        bars = ax.bar(model_names, st.session_state.individual_predictions)
-        
-        # 添加水平线表示最终预测结果
-        ax.axhline(y=st.session_state.prediction_result, color='r', linestyle='-', label=f'最终预测: {st.session_state.prediction_result:.2f}%')
-        
-        # 添加数据标签
-        for i, bar in enumerate(bars):
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
-                    f'{height:.2f}%', ha='center', va='bottom', rotation=0)
-        
-        ax.set_ylabel(f'{st.session_state.selected_model}')
-        ax.set_title('各子模型预测结果')
-        ax.legend()
-        
-        # 确保y轴从0开始，但上限根据数据动态调整
-        max_value = max(st.session_state.individual_predictions) * 1.1  # 比最大值高10%
-        ax.set_ylim(0, max_value)
-        
-        # 显示图表
-        st.pyplot(fig)
-        
-        # 创建输入特征的数据框
-        features_df = pd.DataFrame([features])
-        
-        # 显示格式化的输入特征表格
-        st.markdown("### 输入特征")
-        formatted_features = {}
-        for feature, value in features.items():
-            formatted_features[feature] = f"{value:.2f}"
-        
-        # 转换为DataFrame并显示
-        input_df = pd.DataFrame([formatted_features])
-        st.dataframe(input_df, use_container_width=True)
+    # 显示输入特征表格
+    st.markdown("### 输入特征")
+    formatted_features = {}
+    for feature, value in features.items():
+        formatted_features[feature] = f"{value:.2f}"
+    
+    # 转换为DataFrame并显示
+    input_df = pd.DataFrame([formatted_features])
+    st.dataframe(input_df, use_container_width=True)
     
     # 显示性能指标
     if st.session_state.current_rmse is not None and st.session_state.current_r2 is not None:
@@ -1089,8 +1054,9 @@ if st.session_state.prediction_result is not None:
             <li>✅ 增加了模型切换功能，支持不同产率预测</li>
             <li>✅ 修复了预测结果不显示的问题</li>
             <li>✅ 修复了性能指标不显示的问题</li>
+            <li>✅ 修复了"invalid index to scalar variable"错误</li>
+            <li>✅ 移除了子模型预测结果柱状图显示</li>
             <li>✅ 改进了模型加载失败时的错误处理和提示</li>
-            <li>✅ 修复了"invalid index to scalar variable"数组索引错误</li>
             <li>✅ 增强了对不同目录结构的兼容性</li>
         </ul>
         </div>
@@ -1100,7 +1066,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.1.2</p>
+<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.2.0</p>
 <p>本应用支持两位小数输入精度 | 已集成Char和Oil产率预测模型</p>
 </div>
 """
