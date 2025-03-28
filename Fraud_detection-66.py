@@ -302,6 +302,8 @@ class CorrectedEnsemblePredictor:
             f"/mount/src/{model_name}_Model",
             # 应用当前工作目录
             os.path.join(os.getcwd(), f"{model_name}_Model"),
+            # 特定路径 (从截图中看到的)
+            f"/source/src/app/{model_name}_Model"
         ]
         
         # 尝试所有可能路径
@@ -335,10 +337,6 @@ class CorrectedEnsemblePredictor:
                 return model_dir
         except Exception as e:
             log(f"搜索模型目录时出错: {str(e)}")
-        
-        # 创建模拟模型目录用于测试 (临时方案，实际部署时应删除)
-        mock_dir = f"./{model_name}_Model_mock"
-        log(f"警告: 无法找到真实模型目录，将创建模拟目录用于测试: {mock_dir}")
         
         # 返回当前目录作为最后的退路，同时记录警告
         log(f"严重警告: 无法找到{self.target_name}模型目录，将使用当前目录。预测将返回默认值!")
@@ -616,40 +614,62 @@ class CorrectedEnsemblePredictor:
                             log(f"警告: 模型 {i} 没有可用的标准化器，使用原始特征")
                             X_scaled = input_ordered.values
                     
+                    # 执行预测并确保返回的是标量值 (修复 invalid index to scalar variable 错误)
                     pred = model.predict(X_scaled)
-                    all_predictions[:, i] = pred
-                    individual_predictions.append(float(pred[0]))
-                    log(f"模型 {i} 预测结果: {pred[0]:.2f}")
+                    # 确保预测值是标量，不是数组
+                    pred_value = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
+                    all_predictions[:, i] = pred_value
+                    individual_predictions.append(pred_value)
+                    log(f"模型 {i} 预测结果: {pred_value:.2f}")
                 except Exception as e:
                     log(f"模型 {i} 预测时出错: {str(e)}")
                     # 如果某个模型失败，使用其他模型的平均值
                     if i > 0:
                         avg_pred = np.mean(all_predictions[:, :i], axis=1)
-                        all_predictions[:, i] = avg_pred
-                        individual_predictions.append(float(avg_pred[0]))
-                        log(f"模型 {i} 使用之前模型的平均值: {avg_pred[0]:.2f}")
+                        avg_value = float(avg_pred[0]) if len(avg_pred) > 0 else 0.0
+                        all_predictions[:, i] = avg_value
+                        individual_predictions.append(avg_value)
+                        log(f"模型 {i} 使用之前模型的平均值: {avg_value:.2f}")
             
-            # 计算加权平均
-            weighted_pred = np.zeros(input_ordered.shape[0])
+            # 计算加权平均 - 修复：确保不会出现维度不匹配的问题
             if len(self.models) > 0:
-                weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
+                # 确保权重数组维度正确
+                weights = self.model_weights
+                if weights.ndim == 1:
+                    weights = weights.reshape(1, -1)
+                
+                # 确保权重和预测维度匹配
+                if weights.shape[1] != all_predictions.shape[1]:
+                    log(f"警告: 权重维度 {weights.shape} 与预测维度 {all_predictions.shape} 不匹配，使用平均值")
+                    weighted_pred = np.mean(all_predictions, axis=1)
+                else:
+                    # 正确计算加权平均
+                    weighted_pred = np.sum(all_predictions * weights, axis=1)
+                
                 log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
+            else:
+                weighted_pred = np.array([0.0])
+                log(f"警告: 没有可用模型，返回默认值0")
             
             # 计算评估指标 - 动态计算RMSE和R²
             std_dev = np.std(individual_predictions) if len(individual_predictions) > 0 else 0
             
             # 修复 - 确保有足够的数据进行计算
             if len(individual_predictions) > 1:
-                rmse = np.sqrt(np.mean((all_predictions - weighted_pred.reshape(-1, 1))**2))
+                # 创建一个正确的输入向量进行RMSE计算
+                weighted_pred_reshaped = np.tile(weighted_pred.reshape(-1, 1), (1, all_predictions.shape[1]))
+                rmse = np.sqrt(np.mean((all_predictions - weighted_pred_reshaped)**2))
+                
+                # 计算R² (避免除以零错误)
                 total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
-                explained_variance = total_variance - np.sum((all_predictions - weighted_pred.reshape(-1, 1))**2)
+                explained_variance = total_variance - np.sum((all_predictions - weighted_pred_reshaped)**2)
                 r2 = explained_variance / total_variance if total_variance > 0 else 0
                 
                 log(f"预测标准差: {std_dev:.4f}")
-                log(f"计算得到RMSE: {rmse[0]:.4f}, R²: {r2:.4f}")
+                log(f"计算得到RMSE: {float(rmse[0]) if isinstance(rmse, np.ndarray) else float(rmse):.4f}, R²: {r2:.4f}")
                 
                 # 存储评估指标到session_state - 确保性能指标动态更新
-                st.session_state.current_rmse = float(rmse[0])
+                st.session_state.current_rmse = float(rmse[0]) if isinstance(rmse, np.ndarray) else float(rmse)
                 st.session_state.current_r2 = float(r2)
             else:
                 log("警告: 没有足够的模型进行性能评估")
@@ -916,7 +936,7 @@ with col1:
         try:
             result, individual_preds = predictor.predict(input_df, return_individual=True)
             # 确保结果不为空，修复预测值不显示的问题
-            if len(result) > 0:
+            if result is not None and len(result) > 0:
                 st.session_state.prediction_result = float(result[0])
                 st.session_state.individual_predictions = individual_preds
                 log(f"预测成功: {st.session_state.prediction_result:.2f}")
@@ -1070,6 +1090,7 @@ if st.session_state.prediction_result is not None:
             <li>✅ 修复了预测结果不显示的问题</li>
             <li>✅ 修复了性能指标不显示的问题</li>
             <li>✅ 改进了模型加载失败时的错误处理和提示</li>
+            <li>✅ 修复了"invalid index to scalar variable"数组索引错误</li>
             <li>✅ 增强了对不同目录结构的兼容性</li>
         </ul>
         </div>
@@ -1079,7 +1100,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.1.1</p>
+<p>© 2023 Biomass Pyrolysis Modeling Team. 版本: 2.1.2</p>
 <p>本应用支持两位小数输入精度 | 已集成Char和Oil产率预测模型</p>
 </div>
 """
