@@ -2,7 +2,7 @@
 """
 Biomass Pyrolysis Yield Forecast using CatBoost Ensemble Models
 修复版本 - 解决小数精度问题和子模型标准化器问题
-添加多模型切换功能 - 支持Char和Oil产率预测
+添加多模型切换功能 - 支持Char、Oil和Gas产率预测
 """
 
 import streamlit as st
@@ -31,9 +31,6 @@ st.set_page_config(
     layout='wide',
     initial_sidebar_state='expanded'
 )
-
-# 添加调试信息
-st.sidebar.write(f"调试信息: 支持两位小数测试值 = {st.session_state.decimal_test:.2f}")
 
 # 自定义样式
 st.markdown(
@@ -148,6 +145,43 @@ st.markdown(
     div[data-testid="stHorizontalBlock"] [data-testid="stButton"] {
         margin: 0 5px;
     }
+    
+    /* 填满屏幕 */
+    .stApp {
+        width: 100%;
+        min-width: 100%;
+        margin: 0 auto;
+    }
+    
+    .main .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 100%;
+    }
+    
+    /* 侧边栏模型信息样式 */
+    .sidebar-model-info {
+        background-color: #2E2E2E;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+    
+    /* 性能指标样式 */
+    .performance-metrics {
+        background-color: #2E2E2E;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    
+    /* 技术说明样式 */
+    .tech-info {
+        background-color: #2E2E2E;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -178,32 +212,38 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 支持两位小数和模型切换功能")
+log("应用启动 - 支持两位小数和多模型切换功能")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "Char Yield(%)"
+    st.session_state.selected_model = "Char Yield(%)"  # 默认选择Char产率模型
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>Prediction of crop biomass pyrolysis yield based on CatBoost ensemble modeling</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>基于Catboost集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
 
-# 添加模型选择区域
+# 添加模型选择区域 - 修改为三个按钮一排
 st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
 st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     char_button = st.button("🔥 Char Yield", 
                            key="char_button", 
-                           help="预测焦炭产率 (wt%)", 
+                           help="预测焦炭产率 (%)", 
                            use_container_width=True,
                            type="primary" if st.session_state.selected_model == "Char Yield(%)" else "secondary")
 with col2:
     oil_button = st.button("💧 Oil Yield", 
                           key="oil_button", 
-                          help="预测生物油产率 (wt%)", 
+                          help="预测生物油产率 (%)", 
                           use_container_width=True,
                           type="primary" if st.session_state.selected_model == "Oil Yield(%)" else "secondary")
+with col3:
+    gas_button = st.button("💨 Gas Yield", 
+                          key="gas_button", 
+                          help="预测气体产率 (%)", 
+                          use_container_width=True,
+                          type="primary" if st.session_state.selected_model == "Gas Yield(%)" else "secondary")
 
 # 处理模型选择
 if char_button:
@@ -212,7 +252,7 @@ if char_button:
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
     log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()  # 修改：使用st.rerun()代替st.experimental_rerun()
+    st.rerun()
 
 if oil_button:
     st.session_state.selected_model = "Oil Yield(%)"
@@ -220,7 +260,15 @@ if oil_button:
     st.session_state.warnings = []
     st.session_state.individual_predictions = []
     log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()  # 修改：使用st.rerun()代替st.experimental_rerun()
+    st.rerun()
+
+if gas_button:
+    st.session_state.selected_model = "Gas Yield(%)"
+    st.session_state.prediction_result = None
+    st.session_state.warnings = []
+    st.session_state.individual_predictions = []
+    log(f"切换到模型: {st.session_state.selected_model}")
+    st.rerun()
 
 st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
@@ -239,6 +287,7 @@ class CorrectedEnsemblePredictor:
         self.model_dir = None
         self.feature_importance = None
         self.training_ranges = {}
+        self.model_loaded = False  # 新增：标记模型加载状态
         
         # 加载模型
         self.load_model()
@@ -247,16 +296,28 @@ class CorrectedEnsemblePredictor:
         """查找模型目录的多种方法，支持不同模型类型"""
         # 根据目标变量确定模型目录名称
         model_name = self.target_name.replace(' ', '_').replace('(', '').replace(')', '')
+        log(f"尝试查找模型目录: {model_name}_Model")
         
-        # 模型目录可能的路径
+        # 模型目录可能的路径 - 添加更多可能的路径以提高查找成功率
         possible_dirs = [
-            # 直接路径
-            f"{model_name}_Model",
-            # 相对路径
+            # 当前目录和父目录
             f"./{model_name}_Model",
             f"../{model_name}_Model",
-            # 绝对路径示例
-            f"C:/Users/HWY/Desktop/方-3/{model_name}_Model"
+            # 应用根目录
+            f"{model_name}_Model",
+            # 更多可能的位置
+            f"./models/{model_name}_Model",
+            f"../models/{model_name}_Model",
+            # 系统路径
+            f"C:/Users/HWY/Desktop/方-3/{model_name}_Model",
+            # 如果是在云服务上运行
+            f"/app/{model_name}_Model",
+            f"/app/models/{model_name}_Model",
+            f"/mount/src/{model_name}_Model",
+            # 应用当前工作目录
+            os.path.join(os.getcwd(), f"{model_name}_Model"),
+            # 特定路径 (从截图中看到的)
+            f"/source/src/app/{model_name}_Model"
         ]
         
         # 尝试所有可能路径
@@ -265,18 +326,34 @@ class CorrectedEnsemblePredictor:
                 log(f"找到模型目录: {dir_path}")
                 return os.path.abspath(dir_path)
         
-        # 如果找不到，尝试通过模型文件推断
+        # 如果找不到，尝试全局模糊搜索 (先搜索当前目录和子目录)
         try:
-            model_files = glob.glob(f"**/{model_name}_Model/models/model_*.joblib", recursive=True)
+            log("在当前目录及子目录搜索模型文件...")
+            # 使用 ** 通配符进行递归搜索
+            for pattern in [
+                f"**/{model_name}_Model",
+                f"**/models/{model_name}_Model",
+                f"**/{model_name}_Model/**",
+                f"**/models/**/{model_name}_Model"
+            ]:
+                matches = glob.glob(pattern, recursive=True)
+                if matches:
+                    for match in matches:
+                        if os.path.isdir(match):
+                            log(f"通过全局搜索找到模型目录: {match}")
+                            return os.path.abspath(match)
+            
+            # 如果上面的搜索失败，尝试根据模型文件反向查找目录
+            model_files = glob.glob(f"**/{model_name}_Model/**/model_*.joblib", recursive=True)
             if model_files:
                 model_dir = os.path.dirname(os.path.dirname(model_files[0]))
                 log(f"基于模型文件推断模型目录: {model_dir}")
                 return model_dir
         except Exception as e:
-            log(f"通过模型文件推断目录时出错: {str(e)}")
+            log(f"搜索模型目录时出错: {str(e)}")
         
-        # 当前目录作为最后的退路
-        log(f"警告: 无法找到{self.target_name}模型目录，将使用当前目录")
+        # 返回当前目录作为最后的退路，同时记录警告
+        log(f"严重警告: 无法找到{self.target_name}模型目录，将使用当前目录。预测将返回默认值!")
         return os.getcwd()
     
     def load_feature_importance(self):
@@ -323,33 +400,46 @@ class CorrectedEnsemblePredictor:
             return False
     
     def extract_training_ranges(self):
-        """从标准化器中提取训练数据范围"""
-        if not hasattr(self.final_scaler, 'mean_') or not hasattr(self.final_scaler, 'scale_'):
-            log("警告: 标准化器没有均值或标准差信息")
-            return
+        """从元数据中提取训练数据的真实范围"""
+        # 修复: 优先使用元数据中保存的实际特征范围
+        if self.metadata and 'feature_ranges' in self.metadata:
+            self.training_ranges = self.metadata['feature_ranges']
+            log(f"从元数据加载训练数据真实范围，包含 {len(self.training_ranges)} 个特征")
+            
+            # 打印一些范围信息以验证
+            for feature, range_info in self.training_ranges.items():
+                log(f"{feature}: (训练范围 {range_info['min']:.2f} - {range_info['max']:.2f})")
+            return True
+            
+        # 备选方案: 如果元数据中没有实际范围，再尝试从标准化器估算
+        elif hasattr(self.final_scaler, 'mean_') and hasattr(self.final_scaler, 'scale_'):
+            log("警告: 元数据中没有特征范围信息，尝试从标准化器估算")
+            if not self.feature_names:
+                log("警告: 无法获取特征名称")
+                return False
+            
+            # 提取特征的均值和标准差
+            means = self.final_scaler.mean_
+            stds = self.final_scaler.scale_
+            
+            # 计算每个特征的95%置信区间 (均值±2标准差)
+            for i, feature in enumerate(self.feature_names):
+                if i < len(means) and i < len(stds):
+                    mean_val = means[i]
+                    std_val = stds[i]
+                    self.training_ranges[feature] = {
+                        'mean': mean_val,
+                        'std': std_val,
+                        'min': mean_val - 2 * std_val,  # 近似95%置信区间下限
+                        'max': mean_val + 2 * std_val,  # 近似95%置信区间上限
+                    }
+            
+            if self.training_ranges:
+                log(f"从标准化器估算特征范围，包含 {len(self.training_ranges)} 个特征")
+                return True
         
-        if not self.feature_names:
-            log("警告: 无法获取特征名称")
-            return
-        
-        # 提取特征的均值和标准差
-        means = self.final_scaler.mean_
-        stds = self.final_scaler.scale_
-        
-        # 计算每个特征的95%置信区间 (均值±2标准差)
-        for i, feature in enumerate(self.feature_names):
-            if i < len(means) and i < len(stds):
-                mean_val = means[i]
-                std_val = stds[i]
-                self.training_ranges[feature] = {
-                    'mean': mean_val,
-                    'std': std_val,
-                    'min': mean_val - 2 * std_val,  # 近似95%置信区间下限
-                    'max': mean_val + 2 * std_val,  # 近似95%置信区间上限
-                }
-        
-        if self.training_ranges:
-            log(f"已提取 {len(self.training_ranges)} 个特征的训练范围")
+        log("警告: 无法获取训练数据范围")
+        return False
     
     def load_model(self):
         """加载所有模型组件，包括每个子模型的标准化器"""
@@ -359,6 +449,7 @@ class CorrectedEnsemblePredictor:
             self.scalers = []
             self.feature_importance = None
             self.training_ranges = {}
+            self.model_loaded = False  # 重置加载状态
             
             # 1. 查找模型目录
             self.model_dir = self.find_model_directory()
@@ -396,10 +487,12 @@ class CorrectedEnsemblePredictor:
                         self.models.append(model)
                         log(f"加载模型: {os.path.basename(model_file)}")
                 else:
-                    log(f"未找到模型文件在 {models_dir}")
+                    log(f"错误: 未找到模型文件在 {models_dir}")
+                    st.error(f"错误: 未找到{self.target_name}模型文件。请检查应用安装或联系管理员。")
                     return False
             else:
-                log(f"模型目录不存在: {models_dir}")
+                log(f"错误: 模型目录不存在: {models_dir}")
+                st.error(f"错误: {self.target_name}模型目录不存在。请检查应用安装或联系管理员。")
                 return False
             
             # 4. 加载每个子模型的标准化器 - 这是关键修复点
@@ -427,9 +520,6 @@ class CorrectedEnsemblePredictor:
                     log(f"特征均值: {self.final_scaler.mean_}")
                 if hasattr(self.final_scaler, 'scale_'):
                     log(f"特征标准差: {self.final_scaler.scale_}")
-                
-                # 提取训练数据范围
-                self.extract_training_ranges()
             else:
                 log(f"警告: 未找到最终标准化器文件 {final_scaler_path}")
             
@@ -439,14 +529,24 @@ class CorrectedEnsemblePredictor:
                 self.model_weights = np.load(weights_path)
                 log(f"加载权重文件: {weights_path}")
             else:
+                # 如果没有权重文件，使用均等权重
                 self.model_weights = np.ones(len(self.models)) / len(self.models)
                 log("警告: 未找到权重文件，使用均等权重")
             
-            # 7. 加载特征重要性
+            # 7. 提取训练数据范围
+            self.extract_training_ranges()
+            
+            # 8. 加载特征重要性
             self.load_feature_importance()
             
             # 验证加载状态
-            log(f"成功加载 {len(self.models)} 个模型和 {len(self.scalers)} 个子模型标准化器")
+            if len(self.models) > 0:
+                log(f"成功加载 {len(self.models)} 个模型和 {len(self.scalers)} 个子模型标准化器")
+                self.model_loaded = True  # 标记模型加载成功
+            else:
+                log(f"错误: 没有加载到任何{self.target_name}模型")
+                st.error(f"错误: 没有加载到任何{self.target_name}模型。请检查应用安装或联系管理员。")
+                return False
             
             # 特别标记标准化器问题
             if len(self.models) != len(self.scalers):
@@ -457,6 +557,7 @@ class CorrectedEnsemblePredictor:
         except Exception as e:
             log(f"加载模型时出错: {str(e)}")
             log(traceback.format_exc())
+            st.error(f"加载{self.target_name}模型时发生错误: {str(e)}")
             return False
     
     def check_input_range(self, input_df):
@@ -470,9 +571,12 @@ class CorrectedEnsemblePredictor:
         for feature, range_info in self.training_ranges.items():
             if feature in input_df.columns:
                 value = input_df[feature].iloc[0]
-                # 检查是否超出训练数据的95%置信区间
-                if value < range_info['min'] or value > range_info['max']:
-                    warning = f"{feature}: {value:.2f} (超出训练范围 {range_info['min']:.2f} - {range_info['max']:.2f})"
+                # 修复: 使用元数据中的min和max进行检查，而不是估算的置信区间
+                min_val = range_info['min']
+                max_val = range_info['max']
+                
+                if value < min_val or value > max_val:
+                    warning = f"{feature}: {value:.2f} (超出训练范围 {min_val:.2f} - {max_val:.2f})"
                     warnings.append(warning)
                     log(f"警告: {warning}")
         
@@ -482,9 +586,13 @@ class CorrectedEnsemblePredictor:
         """使用每个子模型对应的标准化器进行预测"""
         try:
             # 验证模型组件
-            if not self.models or len(self.models) == 0:
-                log(f"错误: 没有加载{self.target_name}模型")
-                return np.array([0.0])
+            if not self.model_loaded or not self.models or len(self.models) == 0:
+                log(f"错误: 没有加载{self.target_name}模型或模型加载失败")
+                st.error(f"错误: {self.target_name}模型未正确加载。请检查应用安装或联系管理员。")
+                if return_individual:
+                    return np.array([0.0]), []
+                else:
+                    return np.array([0.0])
             
             # 确保输入特征包含所有必要特征
             missing_features = []
@@ -496,7 +604,11 @@ class CorrectedEnsemblePredictor:
             if missing_features:
                 missing_str = ", ".join(missing_features)
                 log(f"错误: 输入缺少以下特征: {missing_str}")
-                return np.array([0.0])
+                st.error(f"输入数据缺少以下必要特征: {missing_str}")
+                if return_individual:
+                    return np.array([0.0]), []
+                else:
+                    return np.array([0.0])
             
             # 按照模型训练时的特征顺序重新排列
             if self.feature_names:
@@ -528,25 +640,72 @@ class CorrectedEnsemblePredictor:
                             X_scaled = self.final_scaler.transform(input_ordered)
                             log(f"模型 {i} 使用最终标准化器")
                         else:
-                            log(f"错误: 模型 {i} 没有可用的标准化器")
-                            continue
+                            # 如果没有任何标准化器可用，则使用原始特征
+                            log(f"警告: 模型 {i} 没有可用的标准化器，使用原始特征")
+                            X_scaled = input_ordered.values
                     
+                    # 执行预测并确保返回的是标量值 (修复 invalid index to scalar variable 错误)
                     pred = model.predict(X_scaled)
-                    all_predictions[:, i] = pred
-                    individual_predictions.append(float(pred[0]))
-                    log(f"模型 {i} 预测结果: {pred[0]:.2f}")
+                    # 确保预测值是标量，不是数组
+                    pred_value = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
+                    all_predictions[:, i] = pred_value
+                    individual_predictions.append(pred_value)
+                    log(f"模型 {i} 预测结果: {pred_value:.2f}")
                 except Exception as e:
                     log(f"模型 {i} 预测时出错: {str(e)}")
                     # 如果某个模型失败，使用其他模型的平均值
                     if i > 0:
                         avg_pred = np.mean(all_predictions[:, :i], axis=1)
-                        all_predictions[:, i] = avg_pred
-                        individual_predictions.append(float(avg_pred[0]))
-                        log(f"模型 {i} 使用之前模型的平均值: {avg_pred[0]:.2f}")
+                        avg_value = float(avg_pred[0]) if len(avg_pred) > 0 else 0.0
+                        all_predictions[:, i] = avg_value
+                        individual_predictions.append(avg_value)
+                        log(f"模型 {i} 使用之前模型的平均值: {avg_value:.2f}")
             
-            # 计算加权平均
-            weighted_pred = np.sum(all_predictions * self.model_weights.reshape(1, -1), axis=1)
-            log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
+            # 计算加权平均 - 修复：确保不会出现维度不匹配的问题
+            if len(self.models) > 0:
+                # 确保权重数组维度正确
+                weights = self.model_weights
+                if weights.ndim == 1:
+                    weights = weights.reshape(1, -1)
+                
+                # 确保权重和预测维度匹配
+                if weights.shape[1] != all_predictions.shape[1]:
+                    log(f"警告: 权重维度 {weights.shape} 与预测维度 {all_predictions.shape} 不匹配，使用平均值")
+                    weighted_pred = np.mean(all_predictions, axis=1)
+                else:
+                    # 正确计算加权平均
+                    weighted_pred = np.sum(all_predictions * weights, axis=1)
+                
+                log(f"{self.target_name}最终加权预测结果: {weighted_pred[0]:.2f}")
+            else:
+                weighted_pred = np.array([0.0])
+                log(f"警告: 没有可用模型，返回默认值0")
+            
+            # 计算评估指标 - 动态计算RMSE和R²
+            std_dev = np.std(individual_predictions) if len(individual_predictions) > 0 else 0
+            
+            # 修复 - 确保有足够的数据进行计算
+            if len(individual_predictions) > 1:
+                # 创建一个正确的输入向量进行RMSE计算
+                weighted_pred_reshaped = np.tile(weighted_pred.reshape(-1, 1), (1, all_predictions.shape[1]))
+                rmse = np.sqrt(np.mean((all_predictions - weighted_pred_reshaped)**2))
+                
+                # 计算R² (避免除以零错误)
+                total_variance = np.sum((all_predictions - np.mean(all_predictions))**2)
+                explained_variance = total_variance - np.sum((all_predictions - weighted_pred_reshaped)**2)
+                r2 = explained_variance / total_variance if total_variance > 0 else 0
+                
+                log(f"预测标准差: {std_dev:.4f}")
+                log(f"计算得到RMSE: {float(rmse[0]) if isinstance(rmse, np.ndarray) else float(rmse):.4f}, R²: {r2:.4f}")
+                
+                # 存储评估指标到session_state - 确保性能指标动态更新
+                st.session_state.current_rmse = float(rmse[0]) if isinstance(rmse, np.ndarray) else float(rmse)
+                st.session_state.current_r2 = float(r2)
+            else:
+                log("警告: 没有足够的模型进行性能评估")
+                # 设置默认值以避免后续显示错误
+                st.session_state.current_rmse = 0.0
+                st.session_state.current_r2 = 0.0
             
             if return_individual:
                 return weighted_pred, individual_predictions
@@ -556,45 +715,12 @@ class CorrectedEnsemblePredictor:
         except Exception as e:
             log(f"预测过程中出错: {str(e)}")
             log(traceback.format_exc())
-            return np.array([0.0])
-    
-    def get_feature_importance_plot(self):
-        """生成特征重要性图"""
-        if self.feature_importance is None or len(self.feature_importance) == 0:
-            return None
-        
-        try:
-            # 创建图表
-            fig, ax = plt.subplots(figsize=(8, 5))
-            
-            # 提取数据
-            importance_df = self.feature_importance.sort_values('Importance', ascending=True)
-            features = importance_df['Feature'].tolist()
-            importance = importance_df['Importance'].tolist()
-            
-            # 创建水平条形图
-            ax.barh(features, importance, color='skyblue')
-            
-            # 添加标题和标签
-            ax.set_title(f'Feature Importance for {self.target_name}', fontsize=14)
-            ax.set_xlabel('Importance Score', fontsize=12)
-            ax.set_ylabel('Feature', fontsize=12)
-            
-            # 调整布局
-            plt.tight_layout()
-            
-            # 将图表转换为图像
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png', dpi=100)
-            buf.seek(0)
-            
-            # 使用PIL打开图像并返回
-            img = Image.open(buf)
-            return img
-            
-        except Exception as e:
-            log(f"创建特征重要性图时出错: {str(e)}")
-            return None
+            st.error(f"预测过程中发生错误: {str(e)}")
+            # 修复 - 返回默认值，确保类型一致
+            if return_individual:
+                return np.array([0.0]), []
+            else:
+                return np.array([0.0])
     
     def get_model_info(self):
         """获取模型信息摘要"""
@@ -602,7 +728,8 @@ class CorrectedEnsemblePredictor:
             "模型类型": "CatBoost集成模型",
             "模型数量": len(self.models),
             "特征数量": len(self.feature_names) if self.feature_names else 0,
-            "目标变量": self.target_name
+            "目标变量": self.target_name,
+            "模型加载状态": "成功" if self.model_loaded else "失败"
         }
         
         # 添加性能信息
@@ -624,6 +751,27 @@ class CorrectedEnsemblePredictor:
 # 初始化预测器 - 使用当前选择的模型
 predictor = CorrectedEnsemblePredictor(target_model=st.session_state.selected_model)
 
+# 在侧边栏添加模型信息
+model_info = predictor.get_model_info()
+model_info_html = "<div class='sidebar-model-info'><h3>关于模型</h3>"
+for key, value in model_info.items():
+    model_info_html += f"<p><b>{key}</b>: {value}</p>"
+
+# 标准化器状态
+model_info_html += "<h4>标准化器状态</h4>"
+if len(predictor.scalers) == len(predictor.models):
+    model_info_html += f"<p style='color:green'>✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器</p>"
+elif len(predictor.scalers) > 0:
+    model_info_html += f"<p style='color:orange'>⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器</p>"
+else:
+    model_info_html += "<p style='color:red'>❌ 未找到子模型标准化器，使用最终标准化器</p>"
+
+model_info_html += "</div>"
+st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
+
+# 性能指标显示区域（在预测后动态更新）
+performance_container = st.sidebar.container()
+
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
     st.session_state.clear_pressed = False
@@ -633,6 +781,12 @@ if 'warnings' not in st.session_state:
     st.session_state.warnings = []
 if 'individual_predictions' not in st.session_state:
     st.session_state.individual_predictions = []
+if 'current_rmse' not in st.session_state:
+    st.session_state.current_rmse = None
+if 'current_r2' not in st.session_state:
+    st.session_state.current_r2 = None
+if 'prediction_error' not in st.session_state:
+    st.session_state.prediction_error = None
 
 # 定义默认值 - 从用户截图中提取
 default_values = {
@@ -779,426 +933,101 @@ if st.session_state.clear_pressed:
 result_container = st.container()
 
 # 预测按钮区域
-col1, col2 = st.columns([5, 1])
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    if st.button("🔮 运行预测", use_container_width=True, type="primary"):
+        log(f"开始{st.session_state.selected_model}预测")
+        st.session_state.predictions_running = True
+        st.session_state.prediction_error = None  # 清除之前的错误
+        
+        # 记录输入
+        log(f"输入特征: {features}")
+        
+        # 创建输入数据框
+        input_df = pd.DataFrame([features])
+        
+        # 检查输入范围
+        warnings = predictor.check_input_range(input_df)
+        st.session_state.warnings = warnings
+        
+        # 执行预测
+        try:
+            result, individual_preds = predictor.predict(input_df, return_individual=True)
+            # 确保结果不为空，修复预测值不显示的问题
+            if result is not None and len(result) > 0:
+                st.session_state.prediction_result = float(result[0])
+                st.session_state.individual_predictions = individual_preds
+                log(f"预测成功: {st.session_state.prediction_result:.2f}")
+                
+                # 计算标准差作为不确定性指标
+                std_dev = np.std(individual_preds) if individual_preds else 0
+                log(f"预测标准差: {std_dev:.4f}")
+            else:
+                log("警告: 预测结果为空")
+                st.session_state.prediction_result = 0.0
+                st.session_state.individual_predictions = []
+            
+        except Exception as e:
+            st.session_state.prediction_error = str(e)
+            log(f"预测错误: {str(e)}")
+            log(traceback.format_exc())
+            st.error(f"预测过程中发生错误: {str(e)}")
+        
+        st.session_state.predictions_running = False
+        st.rerun()
 
 with col2:
-    # 预测按钮
-    predict_button = st.button("PUSH", type="primary")
-    
-    # Clear按钮
-    def clear_values():
+    if st.button("🔄 重置输入", use_container_width=True):
+        log("重置所有输入值")
         st.session_state.clear_pressed = True
         st.session_state.prediction_result = None
         st.session_state.warnings = []
         st.session_state.individual_predictions = []
-        log("清除所有输入和预测结果")
-    
-    clear_button = st.button("CLEAR", on_click=clear_values)
+        st.session_state.prediction_error = None
+        st.rerun()
 
-# 创建输入数据DataFrame
-input_data = pd.DataFrame([features])
-
-# 预测流程
-if predict_button:
-    log("="*40)
-    log(f"开始新的{st.session_state.selected_model}预测")
+# 显示预测结果
+if st.session_state.prediction_result is not None:
+    st.markdown("---")
     
-    try:
-        # 确保使用正确的模型
-        if predictor.target_name != st.session_state.selected_model:
-            log(f"重新加载{st.session_state.selected_model}模型")
-            predictor = CorrectedEnsemblePredictor(target_model=st.session_state.selected_model)
-        
-        # 检查输入范围
-        warnings = predictor.check_input_range(input_data)
-        st.session_state.warnings = warnings
-        
-        # 执行预测 - 现在使用每个子模型对应的标准化器
-        result, individual_preds = predictor.predict(input_data, return_individual=True)
-        
-        # 保存结果
-        st.session_state.prediction_result = float(result[0])
-        st.session_state.individual_predictions = individual_preds
-        
-        log(f"{st.session_state.selected_model}预测成功完成: {st.session_state.prediction_result:.2f}")
-    except Exception as e:
-        log(f"预测过程中出错: {str(e)}")
-        st.error(f"预测失败: {str(e)}")
-        st.error(traceback.format_exc())
-
-# 显示结果
-with result_container:
-    # 主预测结果 - 显示当前选择的模型结果
-    st.subheader(f"{st.session_state.selected_model.replace('(%)', '')} (wt%)")
+    # 显示主预测结果
+    result_container.markdown(f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f}%</div>", unsafe_allow_html=True)
     
-    if st.session_state.prediction_result is not None:
-        # 显示预测结果
-        st.markdown(
-            f"<div class='yield-result'>{st.session_state.prediction_result:.2f}</div>",
-            unsafe_allow_html=True
-        )
-        
-        # 显示警告
-        if st.session_state.warnings:
-            warning_html = "<div class='warning-box'><b>⚠️ 警告:</b> 以下输入值超出训练范围，可能影响预测准确性:<ul>"
-            for warning in st.session_state.warnings:
-                warning_html += f"<li>{warning}</li>"
-            warning_html += "</ul></div>"
-            st.markdown(warning_html, unsafe_allow_html=True)
-        
-        # 标准化器状态提示
-        if len(predictor.scalers) == len(predictor.models):
-            st.markdown(
-                "<div class='success-box'>✅ 每个子模型都使用了对应的标准化器，预测结果可靠度高。</div>",
-                unsafe_allow_html=True
-            )
-        elif len(predictor.scalers) > 0:
-            st.markdown(
-                "<div class='warning-box'>⚠️ 部分子模型使用了对应的标准化器，部分使用了最终标准化器，预测结果可能存在轻微偏差。</div>",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                "<div class='error-box'>❌ 没有找到子模型对应的标准化器，所有模型使用最终标准化器，预测结果可能存在较大偏差。</div>",
-                unsafe_allow_html=True
-            )
-        
-        # 模型详细信息区域
-        with st.expander("预测详情", expanded=False):
-            # 显示各个模型的预测结果
-            if st.session_state.individual_predictions:
-                col1, col2 = st.columns([3, 2])
-                
-                with col1:
-                    st.write("### 各子模型预测值")
-                    pred_df = pd.DataFrame({
-                        '模型': [f"模型 {i+1}" for i in range(len(st.session_state.individual_predictions))],
-                        '预测值': st.session_state.individual_predictions,
-                        '偏差': [p - st.session_state.prediction_result for p in st.session_state.individual_predictions]
-                    })
-                    st.dataframe(pred_df.style.format({
-                        '预测值': '{:.2f}',
-                        '偏差': '{:.2f}'
-                    }))
-                    
-                    # 计算标准差
-                    std_dev = np.std(st.session_state.individual_predictions)
-                    st.write(f"模型间预测标准差: {std_dev:.2f}")
-                    if std_dev > 3.0:
-                        st.warning("⚠️ 标准差较大，表示模型预测一致性较低")
-                    elif std_dev < 1.0:
-                        st.success("✅ 标准差较小，表示模型预测一致性高")
-                with col2:
-                    # 显示子模型预测分布图
-                    st.write("### 预测分布")
-                    fig, ax = plt.subplots(figsize=(5, 3))
-                    ax.hist(st.session_state.individual_predictions, bins=5, alpha=0.7, color='skyblue')
-                    ax.axvline(st.session_state.prediction_result, color='red', linestyle='--', linewidth=2, label='最终预测')
-                    ax.set_xlabel('预测值')
-                    ax.set_ylabel('频率')
-                    ax.legend()
-                    st.pyplot(fig)
-            
-            # 显示输入特征表
-            st.write("### 输入特征")
-            input_df = pd.DataFrame([features])
-            
-            # 格式化为两位小数显示
-            display_df = input_df.applymap(lambda x: f"{x:.2f}")
-            st.dataframe(display_df)
-
-# 特征重要性和模型信息部分
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    # 特征重要性部分 - 显示当前选择的模型的特征重要性
-    st.subheader(f"{st.session_state.selected_model}模型特征重要性")
-    
-    if predictor.feature_importance is not None:
-        # 显示特征重要性表格
-        importance_df = predictor.feature_importance.copy()
-        
-        # 格式化重要性分数，使用4位小数
-        formatted_df = importance_df.copy()
-        formatted_df['Importance'] = formatted_df['Importance'].apply(lambda x: f"{x:.4f}")
-        
-        st.dataframe(formatted_df, use_container_width=True)
-        
-        # 显示特征重要性图
-        importance_img = predictor.get_feature_importance_plot()
-        if importance_img:
-            st.image(importance_img, use_column_width=True)
-        
-        # 提供特征重要性的洞察
-        st.markdown("#### 重要特征洞察")
-        
-        # 获取前两个最重要的特征
-        top_features = importance_df['Feature'].tolist()[:2]
-        
-        # 为不同的模型提供特定的洞察
-        if st.session_state.selected_model == "Char Yield(%)":
-            if 'PT(°C)' in top_features:
-                st.info("""
-                📌 **温度(PT)** 是影响焦炭产率的最重要因素，这与热解理论一致：
-                - 较低温度下，生物质降解不完全，导致焦炭产率较高
-                - 随着温度升高，热解反应更彻底，气体和液体产物增加，焦炭产率下降
-                """)
-            
-            if 'RT(min)' in top_features:
-                st.info("""
-                📌 **停留时间(RT)** 显著影响热解程度：
-                - 较短的停留时间可能导致热解不完全，焦炭产率较高
-                - 较长的停留时间允许更多的挥发分释放，减少焦炭产率
-                """)
-        elif st.session_state.selected_model == "Oil Yield(%)":
-            if 'PT(°C)' in top_features:
-                st.info("""
-                📌 **温度(PT)** 对生物油产率有关键影响：
-                - 中等温度(450-550°C)范围内，生物油产率通常达到最大值
-                - 过高温度会导致二次裂解，减少生物油产率并增加气体产物
-                - 过低温度则导致热解不完全，油产率较低
-                """)
-            
-            if 'RT(min)' in top_features:
-                st.info("""
-                📌 **停留时间(RT)** 影响油气二次反应：
-                - 适中的停留时间有利于生物油的形成和收集
-                - 过长的停留时间会促进油蒸气的二次裂解，降低生物油产率
-                """)
-            
-            if 'HR(℃/min)' in top_features:
-                st.info("""
-                📌 **升温速率(HR)** 影响生物油产率和组成：
-                - 快速升温有利于提高液体产物产率，减少焦炭形成
-                - 慢速升温可能导致更多的焦炭形成和气体释放
-                """)
-    else:
-        st.warning(f"无法加载{st.session_state.selected_model}模型的特征重要性数据")
-
-with col2:
-    # 关于模型部分
-    st.subheader("关于模型")
-    
-    # 获取模型信息
-    model_info = predictor.get_model_info()
-    
-    # 创建信息表
-    for key, value in model_info.items():
-        st.markdown(f"**{key}**: {value}")
+    # 显示警告
+    if st.session_state.warnings:
+        warnings_html = "<div class='warning-box'><b>⚠️ 警告：部分输入超出训练范围</b><ul>"
+        for warning in st.session_state.warnings:
+            warnings_html += f"<li>{warning}</li>"
+        warnings_html += "</ul><p>预测结果可能不太可靠。</p></div>"
+        result_container.markdown(warnings_html, unsafe_allow_html=True)
     
     # 标准化器状态
-    st.markdown("#### 标准化器状态")
-    if len(predictor.scalers) == len(predictor.models):
-        st.success(f"✅ 所有 {len(predictor.models)} 个子模型都使用了对应的标准化器")
-    elif len(predictor.scalers) > 0:
-        st.warning(f"⚠️ 找到 {len(predictor.scalers)}/{len(predictor.models)} 个子模型标准化器")
-    else:
-        st.error("❌ 未找到子模型标准化器，使用最终标准化器")
+    if len(predictor.scalers) < len(predictor.models):
+        result_container.markdown(
+            "<div class='warning-box'><b>⚠️ 注意：</b> 部分模型使用了最终标准化器而非其对应的子模型标准化器，这可能影响预测精度。</div>", 
+            unsafe_allow_html=True
+        )
     
-    # 子模型与标准差可视化
-    st.markdown("#### 预测标准差")
-    if st.session_state.individual_predictions:
-        std_dev = np.std(st.session_state.individual_predictions)
+    # 技术说明部分 - 使用折叠式展示
+    with st.expander("技术说明"):
+        st.markdown("""
+        <div class='tech-info'>
+        <p>本模型基于多个CatBoost模型集成创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
         
-        # 创建进度条表示标准差
-        st.progress(min(std_dev / 5.0, 1.0))  # 标准化到0-1范围
-        
-        # 根据标准差大小显示不同消息
-        if std_dev < 1.0:
-            st.success(f"预测一致性高 (标准差 = {std_dev:.2f})")
-        elif std_dev < 3.0:
-            st.info(f"预测一致性中等 (标准差 = {std_dev:.2f})")
-        else:
-            st.warning(f"预测一致性低 (标准差 = {std_dev:.2f})")
+        <p><b>特别提醒：</b></p>
+        <ul>
+            <li>热解温度(PT)和停留时间(RT)是影响热解产物产率的两个关键因素，当PT升高时，焦炭产率通常会降低，而气体产率会增加。</li>
+            <li>固定碳含量(FC)需要通过公式FC(%) = 100 - VM(%) - Ash(%)进行转换。</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
-# 调试信息区域
-with st.expander("调试信息", expanded=False):
-    st.markdown("### 输入特征详情")
-    # 显示带两位小数格式的输入特征
-    formatted_features = {k: f"{v:.2f}" for k, v in features.items()}
-    st.json(formatted_features)
-    
-    st.markdown("### 模型信息")
-    st.json({
-        "当前模型目标": st.session_state.selected_model,
-        "模型数量": len(predictor.models),
-        "标准化器数量": len(predictor.scalers),
-        "特征数量": len(predictor.feature_names) if predictor.feature_names else 0,
-        "特征列表": predictor.feature_names,
-        "模型目录": predictor.model_dir
-    })
-    
-    st.markdown("### 标准化器信息")
-    if predictor.final_scaler and hasattr(predictor.final_scaler, 'mean_'):
-        scaler_info = {
-            "均值": predictor.final_scaler.mean_.tolist(),
-            "标准差": predictor.final_scaler.scale_.tolist() if hasattr(predictor.final_scaler, 'scale_') else None
-        }
-        st.json(scaler_info)
-    else:
-        st.warning("最终标准化器信息不可用")
-
-# 技术说明区域
-with st.expander("技术说明", expanded=False):
-    st.markdown(f"""
-    ### {st.session_state.selected_model}预测模型精度说明
-    
-    本模型是基于CatBoost的集成学习模型，通过10个子模型共同预测以提高准确性和稳定性。
-    
-    #### 模型性能指标
-    
-    {("模型在测试集上达到了约0.93的R²和3.39的RMSE。" if st.session_state.selected_model == "Char Yield(%)" else "模型在测试集上的性能根据元数据显示的指标而定。")}
-    
-    #### 已修复的问题
-    
-    1. **子模型标准化器问题**: 应用正确加载并应用每个子模型的标准化器，确保特征的标准化与训练时一致。
-    2. **输入精度问题**: 允许输入两位小数而不是一位，减少舍入误差。
-    3. **多模型切换功能**: 现在支持在Char和Oil产率预测之间自由切换。
-    
-    #### 使用建议
-    
-    1. 尽量使用在训练范围内的输入值，超出范围的预测会通过警告提示，但可能不准确。
-    2. 对于生物质热解，温度(PT)和停留时间(RT)是最关键的参数，建议重点关注这些参数的设置。
-    3. 如果多个子模型的预测差异较大(标准差>3)，表明当前输入条件下的预测可能不稳定。
-    """)
-
-# 温度敏感性分析
-with st.expander("温度敏感性分析", expanded=False):
-    st.markdown(f"### 分析温度对{st.session_state.selected_model.replace('(%)', '')}的影响")
-    
-    # 温度范围滑块
-    temp_range = st.slider("温度范围(°C)", 
-                          min_value=200, 
-                          max_value=900, 
-                          value=(300, 700),
-                          step=50)
-    
-    # 温度步长
-    temp_step = st.selectbox("温度步长", options=[10, 25, 50, 100], index=1)
-    
-    # 执行分析按钮
-    if st.button("运行温度敏感性分析", key="temp_analysis"):
-        # 创建温度序列
-        temps = np.arange(temp_range[0], temp_range[1] + 1, temp_step)
-        
-        # 创建保存当前输入特征的副本
-        base_features = features.copy()
-        
-        # 结果容器
-        results = []
-        
-        # 执行预测
-        for temp in temps:
-            temp_features = base_features.copy()
-            temp_features['PT(°C)'] = temp
-            
-            # 创建输入DataFrame
-            temp_input = pd.DataFrame([temp_features])
-            
-            # 预测
-            try:
-                pred = predictor.predict(temp_input)
-                results.append((temp, float(pred[0])))
-            except Exception as e:
-                st.error(f"温度 {temp}°C 预测失败: {str(e)}")
-        
-        # 显示结果
-        if results:
-            # 创建DataFrame
-            result_df = pd.DataFrame(results, columns=['温度(°C)', f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'])
-            
-            # 显示表格
-            st.dataframe(result_df.style.format({
-                '温度(°C)': '{:.0f}',
-                f'预测{st.session_state.selected_model.replace("(%)", "")}(%)': '{:.2f}'
-            }))
-            
-            # 绘制曲线
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.plot(result_df['温度(°C)'], result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'], marker='o', linewidth=2)
-            ax.set_xlabel('温度(°C)', fontsize=12)
-            ax.set_ylabel(f'预测{st.session_state.selected_model.replace("(%)", "")}(%)', fontsize=12)
-            ax.set_title(f'温度对{st.session_state.selected_model.replace("(%)", "")}的影响', fontsize=14)
-            ax.grid(True, linestyle='--', alpha=0.7)
-            
-            # 添加当前温度标记
-            current_temp = base_features['PT(°C)']
-            if temp_range[0] <= current_temp <= temp_range[1]:
-                # 找到最接近的预测点
-                closest_idx = np.abs(result_df['温度(°C)'] - current_temp).argmin()
-                closest_temp = result_df.iloc[closest_idx]['温度(°C)']
-                closest_yield = result_df.iloc[closest_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
-                
-                # 标记当前温度点
-                ax.scatter([closest_temp], [closest_yield], color='red', s=100, zorder=5, 
-                           label=f'当前温度: {current_temp:.0f}°C')
-                ax.legend()
-            
-            st.pyplot(fig)
-            
-            # 找出最大和最小产率点
-            max_idx = result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'].idxmax()
-            min_idx = result_df[f'预测{st.session_state.selected_model.replace("(%)", "")}(%)'].idxmin()
-            
-            max_temp = result_df.iloc[max_idx]['温度(°C)']
-            max_yield = result_df.iloc[max_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
-            
-            min_temp = result_df.iloc[min_idx]['温度(°C)']
-            min_yield = result_df.iloc[min_idx][f'预测{st.session_state.selected_model.replace("(%)", "")}(%)']
-            
-            # 根据当前模型提供不同的分析结果
-            if st.session_state.selected_model == "Char Yield(%)":
-                st.markdown(f"""
-                ### 分析结果
-                
-                - 在分析范围内，焦炭产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
-                - 在分析范围内，焦炭产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
-                - 温度变化 1°C 平均导致焦炭产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
-                
-                **分析结论**：通常焦炭产率随温度升高而降低，这与热解理论相符，高温会促进更彻底的有机物转化和气化
-                """)
-            else:  # Oil Yield
-                st.markdown(f"""
-                ### 分析结果
-                
-                - 在分析范围内，生物油产率最高点为: **{max_yield:.2f}%** (温度 = {max_temp:.0f}°C)
-                - 在分析范围内，生物油产率最低点为: **{min_yield:.2f}%** (温度 = {min_temp:.0f}°C)
-                - 温度变化 1°C 平均导致生物油产率变化约 {abs(max_yield - min_yield) / abs(max_temp - min_temp):.4f}%
-                
-                **分析结论**：生物油产率通常在中等温度区间达到最高值，过低温度导致热解不充分，过高温度会促进油蒸气的二次裂解成气体
-                """)
-
-# 数据验证建议
-with st.expander("数据验证与精度建议", expanded=False):
-    st.markdown(f"""
-    ### 提高{st.session_state.selected_model.replace('(%)', '')}预测精度的建议
-    
-    1. **确保数据质量**:
-       - 使用两位小数输入可以减少舍入误差
-       - 通过实验验证输入的分析数据
-    
-    2. **优先关注重要特征**:
-       - 热解温度(PT)是最关键的参数，确保其准确性
-       - 停留时间(RT)是第二重要的参数，需要精确控制
-    
-    3. **注意特征之间的相关性**:
-       - C、H、O含量通常相关，确保它们的总和合理
-       - VM和FC含量也应与元素分析结果相符
-    
-    4. **模型的局限性**:
-       - 模型主要在训练数据范围内有效
-       - 超出范围的预测会通过警告提示，但可能不准确
-       
-    5. **多模型比较**:
-       - 考虑同时预测Char、Oil和Gas产率，验证三者总和是否接近100%
-       - 显著偏离可能表明输入数据或预测结果有问题
-    """)
-
-# 页脚
+# 添加页脚
 st.markdown("---")
-st.markdown(f"""
-<div style="text-align: center; color: gray; font-size: 14px;">
-    © 2023 生物质热解产率预测系统 | 支持预测目标: Char Yield, Oil Yield | 集成 10 个 CatBoost 子模型<br>
-    版本更新: 支持两位小数输入 & 修复子模型标准化器问题 & 添加多模型切换功能
+footer = """
+<div style='text-align: center;'>
+<p>© 2023 生物质纳米材料与智能装备实验室团队. 版本: 2.3.0</p>
 </div>
-""", unsafe_allow_html=True)
+"""
+st.markdown(footer, unsafe_allow_html=True)
