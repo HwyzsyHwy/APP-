@@ -32,6 +32,7 @@ class Gas_Yield%Predictor:
         self.feature_names = None
         self.metadata = None
         self.target_name = "Gas Yield(%)"
+        self.expected_value = None  # 为SHAP分析添加预期值
         
         # 加载所有需要的模型组件
         self._load_all_components()
@@ -45,6 +46,10 @@ class Gas_Yield%Predictor:
                 self.metadata = json.load(f)
             self.feature_names = self.metadata.get('feature_names', None)
             self.performance = self.metadata.get('performance', {})
+            
+            # 加载SHAP兼容性信息
+            shap_compatibility = self.metadata.get('shap_compatibility', {})
+            self.expected_value = shap_compatibility.get('expected_value', 50.0)
         else:
             raise FileNotFoundError(f"元数据文件未找到: {metadata_path}")
         
@@ -133,15 +138,14 @@ class Gas_Yield%Predictor:
                   label=f'RMSE: {rmse:.2f}, R²: {r2:.2f}', 
                   alpha=0.7, s=50, edgecolor='w', linewidth=0.5)
         
-        # 确定图表范围
-        min_val = min(np.min(y_true), np.min(y_pred))
-        max_val = max(np.max(y_true), np.max(y_pred))
-        margin = (max_val - min_val) * 0.1
-        plot_min = min_val - margin
-        plot_max = max_val + margin
+        # 设置一致的轴范围（从10到100，步长为10）
+        ax.set_xlim([10, 100])
+        ax.set_ylim([10, 100])
+        ax.set_xticks(np.arange(20, 101, 10))
+        ax.set_yticks(np.arange(20, 101, 10))
         
         # 绘制理想拟合线
-        ax.plot([plot_min, plot_max], [plot_min, plot_max], 'k--', color='black', label='Ideal fit')
+        ax.plot([10, 100], [10, 100], 'k--', color='black', label='Ideal fit')
         
         # 添加直方图
         ax_histx = ax.inset_axes([0, 1, 1, 0.1])  # x轴上的直方图
@@ -159,10 +163,6 @@ class Gas_Yield%Predictor:
         ax.set_xlabel(f'True {self.target_name}', fontsize=12, fontweight='normal')
         ax.set_ylabel(f'Predicted {self.target_name}', fontsize=12, fontweight='normal')
         ax.tick_params(axis='both', which='major', width=1, color='black')
-        
-        # 设置轴范围
-        ax.set_xlim([plot_min, plot_max])
-        ax.set_ylim([plot_min, plot_max])
         
         # 添加图例
         ax.legend(fontsize=10, loc='upper left', framealpha=0.6)
@@ -219,6 +219,9 @@ class Gas_Yield%Predictor:
             print(f"  训练集 R²: {self.performance.get('train_r2', 'unknown'):.4f}")
             print(f"  测试集 RMSE: {self.performance.get('test_rmse', 'unknown'):.2f}")
             print(f"  测试集 R²: {self.performance.get('test_r2', 'unknown'):.4f}")
+        
+        # 为SHAP分析添加预期值信息
+        print(f"SHAP预期值: {self.expected_value:.2f}")
 
 
 # 简单使用示例:
