@@ -793,9 +793,9 @@ feature_categories = {
 
 # 颜色配置
 category_colors = {
-    "Ultimate Analysis": "#DAA520",  # 黄色
-    "Proximate Analysis": "#32CD32",  # 绿色
-    "Pyrolysis Conditions": "#FF7F50"  # 橙色
+    "Ultimate Analysis": "#501d8a",  
+    "Proximate Analysis": "#1c8041",  
+    "Pyrolysis Conditions": "#e55709" 
 }
 
 # 创建三列布局
@@ -1009,7 +1009,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 生物质纳米材料与智能装备实验室团队. 版本: 2.3.0</p>
+<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 2.3.0</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
