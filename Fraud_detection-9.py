@@ -227,19 +227,19 @@ st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
 st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 with col1:
-    char_button = st.button("🔥 Char Yield", 
+    char_button = st.button(" Char Yield", 
                            key="char_button", 
                            help="预测焦炭产率 (%)", 
                            use_container_width=True,
                            type="primary" if st.session_state.selected_model == "Char Yield(%)" else "secondary")
 with col2:
-    oil_button = st.button("💧 Oil Yield", 
+    oil_button = st.button(" Oil Yield", 
                           key="oil_button", 
                           help="预测生物油产率 (%)", 
                           use_container_width=True,
                           type="primary" if st.session_state.selected_model == "Oil Yield(%)" else "secondary")
 with col3:
-    gas_button = st.button("💨 Gas Yield", 
+    gas_button = st.button(" Gas Yield", 
                           key="gas_button", 
                           help="预测气体产率 (%)", 
                           use_container_width=True,
