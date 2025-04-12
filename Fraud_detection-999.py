@@ -762,7 +762,6 @@ with col3:
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
-
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
@@ -771,7 +770,7 @@ with col3:
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"{category}_{feature
+                key=f"{category}_{feature}", 
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
