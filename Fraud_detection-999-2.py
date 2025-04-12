@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using GBDT Ensemble Models
-紧急修复版本 - 强制预测模式
+修复版本 - 确保Pipeline正确预测
 支持Char、Oil和Gas产率预测
 """
 
@@ -11,17 +11,9 @@ import numpy as np
 import os
 import glob
 import joblib
-import json
 import traceback
 import matplotlib.pyplot as plt
 from datetime import datetime
-import io
-from PIL import Image
-import pickle
-import sys
-import base64
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import StandardScaler, RobustScaler
 
 # 清除缓存，强制重新渲染
 st.cache_data.clear()
@@ -214,8 +206,8 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 紧急修复版本")
-log("使用统一Pipeline预测模式")
+log("应用启动 - 修复版本")
+log("已修复特征名称和列顺序问题")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -277,80 +269,30 @@ if gas_button and st.session_state.selected_model != "Gas Yield":
 st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-# 定义一个备选的模拟预测函数
-def mock_predict(features, model_name):
-    """
-    模拟预测函数 - 当实际模型不可用或表现不正常时使用
-    基于真实模型的逻辑，但绕过任何加载或标准化问题
-    """
-    # 使用特征值的加权和模拟预测结果
-    weights = {
-        "Char Yield": {
-            'M(wt%)': 0.25, 'Ash(wt%)': 0.35, 'VM(wt%)': -0.18, 'FC(wt%)': 0.3, 
-            'C(wt%)': 0.15, 'H(wt%)': -0.20, 'N(wt%)': 0.05, 'O(wt%)': -0.1,
-            'PS(mm)': 0.05, 'SM(g)': 0.03, 'FT(°C)': 0.18, 'HR(°C/min)': -0.12,
-            'FR(mL/min)': 0.05, 'RT(min)': 0.08
-        },
-        "Oil Yield": {
-            'M(wt%)': -0.15, 'Ash(wt%)': -0.3, 'VM(wt%)': 0.25, 'FC(wt%)': -0.2, 
-            'C(wt%)': 0.2, 'H(wt%)': 0.35, 'N(wt%)': -0.05, 'O(wt%)': 0.2,
-            'PS(mm)': -0.1, 'SM(g)': -0.05, 'FT(°C)': -0.15, 'HR(°C/min)': 0.15,
-            'FR(mL/min)': -0.05, 'RT(min)': -0.08
-        },
-        "Gas Yield": {
-            'M(wt%)': -0.1, 'Ash(wt%)': -0.1, 'VM(wt%)': -0.05, 'FC(wt%)': -0.1, 
-            'C(wt%)': -0.3, 'H(wt%)': -0.15, 'N(wt%)': 0.05, 'O(wt%)': 0.3,
-            'PS(mm)': 0.05, 'SM(g)': 0.03, 'FT(°C)': 0.2, 'HR(°C/min)': 0.15,
-            'FR(mL/min)': 0.05, 'RT(min)': 0.1
-        }
-    }
-    
-    # 基础值 - 基于常见的产率范围
-    base_values = {
-        "Char Yield": 22.5,
-        "Oil Yield": 32.0,
-        "Gas Yield": 21.8
-    }
-    
-    # 计算加权和
-    weighted_sum = 0
-    for feature, value in features.items():
-        weighted_sum += value * weights[model_name].get(feature, 0)
-    
-    # 应用最终计算
-    result = base_values[model_name] + weighted_sum / 10
-    
-    # 确保结果在合理范围内
-    min_val = 5.0
-    max_val = {
-        "Char Yield": 45.0,
-        "Oil Yield": 70.0,
-        "Gas Yield": 60.0
-    }[model_name]
-    
-    result = max(min_val, min(result, max_val))
-    
-    log(f"模拟{model_name}预测结果: {result:.2f}")
-    return result
-
 class ModelPredictor:
-    """优化的预测器类 - 统一使用Pipeline进行预测"""
+    """优化的预测器类 - 修复特征名称和顺序问题"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
+        
+        # 定义正确的特征顺序（与训练时一致）
         self.feature_names = [
             'M(wt%)', 'Ash(wt%)', 'VM(wt%)', 'FC(wt%)', 
             'C(wt%)', 'H(wt%)', 'N(wt%)', 'O(wt%)', 
-            'PS(mm)', 'SM(g)', 'FT(°C)', 'HR(°C/min)', 
+            'PS(mm)', 'SM(g)', 'FT(℃)', 'HR(℃/min)', 
             'FR(mL/min)', 'RT(min)'
         ]
         
-        # 定义特征映射关系(解决特征名称不一致问题)
-        self.feature_mapping = {
-            'FT(°C)': 'FT(℃)',  # 解决训练和部署时特征名称不一致问题
-            'HR(°C/min)': 'HR(℃/min)'
+        # 定义UI到模型的特征映射关系
+        self.ui_to_model_mapping = {
+            'FT(°C)': 'FT(℃)',        # UI上显示为°C，而模型使用℃
+            'HR(°C/min)': 'HR(℃/min)'  # UI上显示为°C/min，而模型使用℃/min
         }
         
+        # 反向映射，用于显示
+        self.model_to_ui_mapping = {v: k for k, v in self.ui_to_model_mapping.items()}
+        
+        # 训练范围不变
         self.training_ranges = self._set_training_ranges()
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
@@ -417,7 +359,7 @@ class ModelPredictor:
         """加载Pipeline模型"""
         if not self.model_path:
             log("模型路径为空，无法加载")
-            return
+            return False
         
         try:
             log(f"加载Pipeline模型: {self.model_path}")
@@ -435,18 +377,21 @@ class ModelPredictor:
                 if hasattr(self.pipeline, 'named_steps'):
                     components = list(self.pipeline.named_steps.keys())
                     log(f"Pipeline组件: {', '.join(components)}")
+                return True
             else:
                 log("加载的对象没有predict方法，不能用于预测")
                 self.model_loaded = False
+                return False
                 
         except Exception as e:
             log(f"加载模型出错: {str(e)}")
             log(traceback.format_exc())
             self.model_loaded = False
+            return False
     
     def _set_training_ranges(self):
-        """设置训练数据的范围"""
-        return {
+        """设置训练数据的范围 - 使用正确的特征名称"""
+        ranges = {
             'M(wt%)': {'min': 2.750, 'max': 12.640},
             'Ash(wt%)': {'min': 0.780, 'max': 29.510},
             'VM(wt%)': {'min': 51.640, 'max': 89.500},
@@ -457,19 +402,30 @@ class ModelPredictor:
             'O(wt%)': {'min': 34.000, 'max': 73.697},
             'PS(mm)': {'min': 0.075, 'max': 10.000},
             'SM(g)': {'min': 3.000, 'max': 125.000},
-            'FT(°C)': {'min': 250.000, 'max': 900.000},
-            'HR(°C/min)': {'min': 1.000, 'max': 100.000},
             'FR(mL/min)': {'min': 0.000, 'max': 600.000},
             'RT(min)': {'min': 15.000, 'max': 90.000}
         }
+        
+        # 添加映射后的特征范围
+        ranges['FT(℃)'] = {'min': 250.000, 'max': 900.000}
+        ranges['HR(℃/min)'] = {'min': 1.000, 'max': 100.000}
+        
+        # 为UI特征也添加相同的范围
+        ranges['FT(°C)'] = ranges['FT(℃)']
+        ranges['HR(°C/min)'] = ranges['HR(℃/min)']
+        
+        return ranges
     
     def check_input_range(self, features):
         """检查输入值是否在训练数据范围内"""
         warnings = []
         
-        for feature, range_info in self.training_ranges.items():
-            if feature in features:
-                value = features[feature]
+        for feature, value in features.items():
+            # 获取映射后的特征名
+            mapped_feature = self.ui_to_model_mapping.get(feature, feature)
+            range_info = self.training_ranges.get(mapped_feature)
+            
+            if range_info:
                 if value < range_info['min'] or value > range_info['max']:
                     warning = f"{feature}: {value:.2f} (超出训练范围 {range_info['min']:.2f} - {range_info['max']:.2f})"
                     warnings.append(warning)
@@ -478,24 +434,29 @@ class ModelPredictor:
         return warnings
     
     def _prepare_features(self, features):
-        """准备特征，处理特征名称映射"""
-        # 创建一个副本，防止修改原始字典
-        mapped_features = features.copy()
+        """准备特征，处理特征名称映射和顺序"""
+        # 创建一个空的DataFrame，所有特征初始化为0
+        model_features = {feature: 0.0 for feature in self.feature_names}
         
-        # 映射特征名称以匹配训练模型中的名称
-        for ui_name, model_name in self.feature_mapping.items():
-            if ui_name in mapped_features:
-                value = mapped_features.pop(ui_name)
-                mapped_features[model_name] = value
-                log(f"特征映射: '{ui_name}' -> '{model_name}'")
+        # 首先将UI特征映射到模型特征名称
+        for ui_feature, value in features.items():
+            model_feature = self.ui_to_model_mapping.get(ui_feature, ui_feature)
+            if model_feature in self.feature_names:
+                model_features[model_feature] = value
+                if ui_feature != model_feature:
+                    log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
         
-        # 创建DataFrame并确保列顺序正确
-        df = pd.DataFrame([mapped_features])
-        log(f"准备好的特征: {list(df.columns)}")
+        # 创建DataFrame并按照正确顺序排列列
+        df = pd.DataFrame([model_features])
+        
+        # 确保列顺序与训练时一致
+        df = df[self.feature_names]
+        
+        log(f"准备好的特征，列顺序: {list(df.columns)}")
         return df
     
     def predict(self, features):
-        """统一的预测方法 - 先尝试Pipeline预测，失败时使用备选方法"""
+        """预测方法 - 确保特征名称和顺序正确"""
         # 检查输入是否有变化
         features_changed = False
         if self.last_features:
@@ -531,13 +492,20 @@ class ModelPredictor:
             except Exception as e:
                 log(f"Pipeline预测失败: {str(e)}")
                 log(traceback.format_exc())
-                # 预测失败，继续使用备选方法
+                # 如果加载失败，则尝试重新加载模型
+                if self._load_pipeline():
+                    try:
+                        # 再次尝试预测
+                        result = float(self.pipeline.predict(features_df)[0])
+                        log(f"重新加载后预测结果: {result:.2f}")
+                        self.last_result = result
+                        return result
+                    except Exception as new_e:
+                        log(f"重新加载后预测仍然失败: {str(new_e)}")
         
-        # 备选预测方法
-        log("使用备选预测方法")
-        result = mock_predict(features, self.target_name)
-        self.last_result = result
-        return result
+        # 如果到这里，说明预测失败，返回错误提示
+        log("所有预测尝试都失败，请检查模型文件和特征名称")
+        raise ValueError("模型预测失败。请确保模型文件存在且特征格式正确。")
     
     def get_model_info(self):
         """获取模型信息摘要"""
@@ -552,9 +520,19 @@ class ModelPredictor:
             if hasattr(self.pipeline, 'named_steps'):
                 pipeline_steps = list(self.pipeline.named_steps.keys())
                 info["Pipeline组件"] = ", ".join(pipeline_steps)
-        
-        info["预测模式"] = "Pipeline统一预测" if self.model_loaded else "备选预测"
-        
+                
+                # 如果有模型组件，显示其参数
+                if 'model' in self.pipeline.named_steps:
+                    model = self.pipeline.named_steps['model']
+                    model_type = type(model).__name__
+                    info["回归器类型"] = model_type
+                    
+                    # 显示部分关键超参数
+                    if hasattr(model, 'n_estimators'):
+                        info["树的数量"] = model.n_estimators
+                    if hasattr(model, 'max_depth'):
+                        info["最大深度"] = model.max_depth
+                    
         return info
 
 # 初始化预测器 - 使用当前选择的模型
@@ -637,9 +615,10 @@ with col1:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
-            # 设置范围根据训练数据
-            min_val = predictor.training_ranges[feature]['min']
-            max_val = predictor.training_ranges[feature]['max']
+            # 设置范围根据训练数据 - 使用适当的映射获取范围
+            mapped_feature = predictor.ui_to_model_mapping.get(feature, feature)
+            min_val = predictor.training_ranges[mapped_feature]['min']
+            max_val = predictor.training_ranges[mapped_feature]['max']
             
             # 确保每个输入控件有唯一键名
             features[feature] = st.number_input(
@@ -669,8 +648,9 @@ with col2:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
-            min_val = predictor.training_ranges[feature]['min']
-            max_val = predictor.training_ranges[feature]['max']
+            mapped_feature = predictor.ui_to_model_mapping.get(feature, feature)
+            min_val = predictor.training_ranges[mapped_feature]['min']
+            max_val = predictor.training_ranges[mapped_feature]['max']
             
             features[feature] = st.number_input(
                 "", 
@@ -695,8 +675,9 @@ with col3:
         else:
             value = st.session_state.feature_values.get(feature, default_values[feature])
         
-        min_val = predictor.training_ranges[feature]['min']
-        max_val = predictor.training_ranges[feature]['max']
+        mapped_feature = predictor.ui_to_model_mapping.get(feature, feature)
+        min_val = predictor.training_ranges[mapped_feature]['min']
+        max_val = predictor.training_ranges[mapped_feature]['max']
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
@@ -713,8 +694,15 @@ with col3:
                 label_visibility="collapsed"
             )
 
+# 补充计算提示
+st.markdown("""
+<div class='warning-box'>
+<b>FC(wt%) 自动计算提示：</b> 固定碳应通过 FC(wt%) = 100 - Ash(wt%) - VM(wt%) 计算获得。
+</div>
+""", unsafe_allow_html=True)
+
 # 调试信息：显示所有当前输入值
-with st.expander("显示当前输入值", expanded=True):
+with st.expander("显示当前输入值", expanded=False):
     debug_info = "<ul style='columns: 3;'>"
     for feature, value in features.items():
         debug_info += f"<li>{feature}: {value:.2f}</li>"
@@ -751,15 +739,34 @@ with col1:
         warnings = predictor.check_input_range(features)
         st.session_state.warnings = warnings
         
+        # 计算FC(wt%)是否满足FC(wt%) = 100 - Ash(wt%) - VM(wt%)的约束
+        calculated_fc = 100 - features['Ash(wt%)'] - features['VM(wt%)']
+        if abs(calculated_fc - features['FC(wt%)']) > 0.5:  # 允许0.5%的误差
+            st.session_state.warnings.append(
+                f"FC(wt%)值 ({features['FC(wt%)']:.2f}) 与计算值 (100 - Ash - VM = {calculated_fc:.2f}) 不符，这可能影响预测准确性。"
+            )
+            log(f"警告: FC(wt%)值与计算值不符: {features['FC(wt%)']:.2f} vs {calculated_fc:.2f}")
+        
         # 执行预测
         try:
+            # 确保预测器已正确初始化
+            if not predictor.model_loaded:
+                log("模型未加载，尝试重新加载")
+                if predictor._find_model_file() and predictor._load_pipeline():
+                    log("重新加载模型成功")
+                else:
+                    st.error("无法加载模型。请确保模型文件存在于正确位置。")
+                    st.session_state.prediction_error = "模型加载失败"
+                    st.rerun()
+            
             result = predictor.predict(features)
             if result is not None:
                 st.session_state.prediction_result = float(result)
                 log(f"预测成功: {st.session_state.prediction_result:.2f}")
+                st.session_state.prediction_error = None
             else:
                 log("警告: 预测结果为空")
-                st.session_state.prediction_result = 0.0
+                st.session_state.prediction_error = "预测结果为空"
         except Exception as e:
             st.session_state.prediction_error = str(e)
             log(f"预测错误: {str(e)}")
@@ -785,16 +792,16 @@ if st.session_state.prediction_result is not None:
     # 显示模型信息
     if not predictor.model_loaded:
         result_container.markdown(
-            "<div class='warning-box'><b>⚠️ 注意：</b> 正在使用备选预测方法。实际模型未成功加载，但系统仍能提供合理的预测结果。</div>", 
+            "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查模型文件是否存在。</div>", 
             unsafe_allow_html=True
         )
     
     # 显示警告
     if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b>⚠️ 警告：部分输入超出训练范围</b><ul>"
+        warnings_html = "<div class='warning-box'><b>⚠️ 警告：部分输入可能影响预测精度</b><ul>"
         for warning in st.session_state.warnings:
             warnings_html += f"<li>{warning}</li>"
-        warnings_html += "</ul><p>预测结果可能不太可靠。</p></div>"
+        warnings_html += "</ul><p>请根据提示调整输入值以获得更准确的预测。</p></div>"
         result_container.markdown(warnings_html, unsafe_allow_html=True)
     
     # 显示预测信息
@@ -802,7 +809,7 @@ if st.session_state.prediction_result is not None:
         st.markdown(f"""
         - **目标变量:** {st.session_state.selected_model}
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
-        - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "备选预测模型"}
+        - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "未能加载模型"}
         """)
     
     # 技术说明部分 - 使用折叠式展示
@@ -820,11 +827,27 @@ if st.session_state.prediction_result is not None:
         </div>
         """, unsafe_allow_html=True)
 
+elif st.session_state.prediction_error is not None:
+    st.markdown("---")
+    error_html = f"""
+    <div class='error-box'>
+        <h3>预测失败</h3>
+        <p>{st.session_state.prediction_error}</p>
+        <p>请检查：</p>
+        <ul>
+            <li>确保模型文件 (.joblib) 存在于正确位置</li>
+            <li>确保输入数据符合模型要求</li>
+            <li>检查FC(wt%)是否满足 100-Ash(wt%)-VM(wt%) 约束</li>
+        </ul>
+    </div>
+    """
+    st.markdown(error_html, unsafe_allow_html=True)
+
 # 添加页脚
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 5.0.0</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 5.1.0</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
