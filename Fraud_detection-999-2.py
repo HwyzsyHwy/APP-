@@ -3,6 +3,7 @@
 Biomass Pyrolysis Yield Forecast using GBDT Ensemble Models
 修复版本 - 解决小数精度问题和子模型标准化器问题
 添加多模型切换功能 - 支持Char、Oil和Gas产率预测
+修复所有输入参数对预测结果的影响问题
 """
 
 import streamlit as st
@@ -213,6 +214,7 @@ def log(message):
 
 # 记录启动日志
 log("应用启动 - 支持两位小数和多模型切换功能")
+log("修复版本 - 解决所有输入参数对预测结果的影响问题")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -715,7 +717,7 @@ with col1:
                 label_visibility="collapsed"
             )
             
-            # 调试显示
+            # 显示输入值，方便调试
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # Ultimate Analysis - 第二列
@@ -751,7 +753,7 @@ with col2:
                 label_visibility="collapsed"
             )
             
-            # 调试显示
+            # 显示输入值，方便调试
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # Pyrolysis Conditions - 第三列
@@ -787,11 +789,13 @@ with col3:
                     label_visibility="collapsed"
                 )
                 
-                # 调试显示
+                # 显示输入值，方便调试
                 st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
-# 实时更新输入值到会话状态中 - 这是关键改进
+# 关键修复：将所有最新输入存储到会话状态，确保每个输入都能影响预测
+# 这是解决只有PS(mm)影响预测的关键修复点
 for feature, value in features.items():
+    # 保存所有特征的当前值到会话状态
     st.session_state.latest_input_values[feature] = value
 
 # 重置状态
@@ -811,25 +815,22 @@ with col1:
     # 预测按钮 - 修复预测逻辑，确保每次使用最新输入值
     predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
     if predict_clicked:
-        # 确保使用当前页面上的最新输入值，而不是会话状态中的缓存值
+        # 确保使用当前页面上的最新输入值
         log("开始预测，获取当前最新输入值...")
         current_features = {}
         
-        # 直接从页面控件中获取当前值
-        for category, feature_list in feature_categories.items():
-            for feature in feature_list:
-                widget_key = f"{category}_{feature}"
-                current_value = st.session_state[widget_key]
-                current_features[feature] = current_value
-                log(f"获取当前输入: {feature} = {current_features[feature]}")
+        # 关键修复：直接从字典中获取所有输入值
+        # 这样可以确保所有参数都被正确考虑，而不仅仅是PS(mm)
+        for feature, value in features.items():
+            current_features[feature] = value
+            log(f"获取当前输入: {feature} = {current_features[feature]}")
         
         # 保存当前输入到会话状态供下次使用
         st.session_state.feature_values = current_features.copy()
         
         log(f"开始{st.session_state.selected_model}预测")
-        log(f"当前输入特征: {current_features}")
         
-        # 创建输入数据框
+        # 创建输入数据框 - 使用完整的特征字典
         input_df = pd.DataFrame([current_features])
         
         # 检查输入范围
@@ -850,8 +851,6 @@ with col1:
             log(f"预测错误: {str(e)}")
             log(traceback.format_exc())
             st.error(f"预测过程中发生错误: {str(e)}")
-        
-        # 不再需要重新运行应用，因为我们直接更新会话状态
 
 with col2:
     if st.button("🔄 重置输入", use_container_width=True):
@@ -904,7 +903,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 3.0.0</p>
+<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 3.0.1</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
