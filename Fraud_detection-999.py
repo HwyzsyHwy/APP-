@@ -297,71 +297,121 @@ class GBDTPredictor:
     
     def find_model_files(self):
         """查找模型文件"""
-        # 根据目标变量确定模型文件名
-        model_name = self.target_name.replace(' ', '-')
+        # 根据目标变量确定模型文件名 - 修改模型命名方式
+        model_name = self.target_name.replace(' ', '-').lower()
         model_file = f"GBDT-{model_name}-improved.joblib"
         scaler_file = f"GBDT-{model_name}-scaler-improved.joblib"
         
         log(f"尝试查找模型文件: {model_file}")
         
-        # 可能的路径列表
-        possible_paths = [
-            # 当前目录
-            "./",
-            # 父目录
-            "../",
-            # 应用根目录
-            "./models/",
-            "../models/",
-            # 更多可能的位置
-            "C:/Users/HWY/Desktop/方-3/",
-            "/app/",
-            "/app/models/",
-            "/mount/src/",
-            os.getcwd(),
-            os.path.join(os.getcwd(), "models")
-        ]
-        
-        model_path = None
-        scaler_path = None
-        
-        # 搜索模型文件
-        for path in possible_paths:
-            potential_model_path = os.path.join(path, model_file)
-            potential_scaler_path = os.path.join(path, scaler_file)
-            
-            if os.path.exists(potential_model_path):
-                model_path = potential_model_path
-                log(f"找到模型文件: {model_path}")
-            
-            if os.path.exists(potential_scaler_path):
-                scaler_path = potential_scaler_path
-                log(f"找到标准化器文件: {scaler_path}")
-            
-            if model_path and scaler_path:
-                return model_path, scaler_path
-        
-        # 如果没有找到，尝试全局搜索
+        # 获取当前目录
         try:
-            log("在当前目录及子目录搜索模型文件...")
-            model_matches = glob.glob(f"**/{model_file}", recursive=True)
-            scaler_matches = glob.glob(f"**/{scaler_file}", recursive=True)
-            
-            if model_matches:
-                model_path = model_matches[0]
-                log(f"通过全局搜索找到模型文件: {model_path}")
-            
-            if scaler_matches:
-                scaler_path = scaler_matches[0]
-                log(f"通过全局搜索找到标准化器文件: {scaler_path}")
+            current_dir = os.getcwd()
+            log(f"当前工作目录: {current_dir}")
         except Exception as e:
-            log(f"搜索模型文件时出错: {str(e)}")
+            log(f"获取当前目录时出错: {str(e)}")
+            current_dir = "."
         
-        # 如果找不到文件，返回None
+        # 直接在当前目录查找模型文件
+        model_path = os.path.join(current_dir, model_file)
+        scaler_path = os.path.join(current_dir, scaler_file)
+        
+        if os.path.exists(model_path):
+            log(f"找到模型文件: {model_path}")
+        else:
+            log(f"当前目录未找到模型文件: {model_path}")
+            model_path = None
+            
+        if os.path.exists(scaler_path):
+            log(f"找到标准化器文件: {scaler_path}")
+        else:
+            log(f"当前目录未找到标准化器文件: {scaler_path}")
+            scaler_path = None
+            
+        # 如果当前目录没找到，再尝试其他常见位置
+        if not model_path or not scaler_path:
+            # 替代名称 - 尝试不同命名格式
+            alt_model_files = [
+                f"GBDT-{model_name}-improved.joblib",
+                f"GBDT-{self.target_name.replace(' ', '-')}-improved.joblib",
+                f"GBDT-{self.target_name.split(' ')[0]}-improved.joblib"
+            ]
+            
+            alt_scaler_files = [
+                f"GBDT-{model_name}-scaler-improved.joblib",
+                f"GBDT-{self.target_name.replace(' ', '-')}-scaler-improved.joblib",
+                f"GBDT-{self.target_name.split(' ')[0]}-scaler-improved.joblib"
+            ]
+            
+            # 可能的路径列表 - 根据常见部署位置添加
+            possible_dirs = [
+                ".",
+                "./models",
+                "../models",
+                os.path.join(current_dir, "models"),
+                os.path.dirname(current_dir)
+            ]
+            
+            # 搜索模型和标准化器
+            for directory in possible_dirs:
+                for m_file in alt_model_files:
+                    potential_path = os.path.join(directory, m_file)
+                    if os.path.exists(potential_path):
+                        model_path = potential_path
+                        log(f"在目录 {directory} 中找到模型文件: {model_path}")
+                        break
+                
+                for s_file in alt_scaler_files:
+                    potential_path = os.path.join(directory, s_file)
+                    if os.path.exists(potential_path):
+                        scaler_path = potential_path
+                        log(f"在目录 {directory} 中找到标准化器文件: {scaler_path}")
+                        break
+                
+                if model_path and scaler_path:
+                    break
+        
+        # 如果仍未找到，尝试查找模型文件的不区分大小写版本
+        if not model_path or not scaler_path:
+            log("使用不区分大小写方式搜索模型文件...")
+            try:
+                for directory in possible_dirs:
+                    if os.path.exists(directory):
+                        files = os.listdir(directory)
+                        for file in files:
+                            if file.lower().startswith("gbdt") and file.lower().endswith(".joblib"):
+                                # 检查是否匹配目标模型类型
+                                model_type = self.target_name.split(' ')[0].lower()
+                                if model_type in file.lower():
+                                    if "scaler" in file.lower() and not scaler_path:
+                                        scaler_path = os.path.join(directory, file)
+                                        log(f"通过不区分大小写搜索找到标准化器文件: {scaler_path}")
+                                    elif "scaler" not in file.lower() and not model_path:
+                                        model_path = os.path.join(directory, file)
+                                        log(f"通过不区分大小写搜索找到模型文件: {model_path}")
+            except Exception as e:
+                log(f"在搜索模型文件时发生错误: {str(e)}")
+        
+        # 最后一次尝试: 搜索所有.joblib文件
         if not model_path:
-            log(f"严重警告: 未找到模型文件 {model_file}")
+            try:
+                joblib_files = []
+                for directory in possible_dirs:
+                    if os.path.exists(directory):
+                        for file in glob.glob(os.path.join(directory, "*.joblib")):
+                            joblib_files.append(file)
+                
+                if joblib_files:
+                    log(f"找到以下.joblib文件: {', '.join(joblib_files)}")
+            except Exception as e:
+                log(f"列出joblib文件时出错: {str(e)}")
+        
+        # 检查结果并返回
+        if not model_path:
+            log(f"错误: 未找到{self.target_name}模型文件，请确保模型文件与应用程序在同一目录")
+        
         if not scaler_path:
-            log(f"严重警告: 未找到标准化器文件 {scaler_file}")
+            log(f"警告: 未找到{self.target_name}标准化器文件，将使用未标准化数据进行预测")
         
         return model_path, scaler_path
     
@@ -373,26 +423,47 @@ class GBDTPredictor:
             
             # 加载模型
             if model_path and os.path.exists(model_path):
-                self.model = joblib.load(model_path)
-                log(f"成功加载模型: {model_path}")
+                try:
+                    loaded_model = joblib.load(model_path)
+                    # 检查是否为Pipeline，如果是则获取模型部分
+                    if hasattr(loaded_model, 'named_steps') and 'model' in loaded_model.named_steps:
+                        self.model = loaded_model.named_steps['model']
+                        log(f"从Pipeline加载模型组件: {model_path}")
+                    else:
+                        self.model = loaded_model
+                        log(f"直接加载模型: {model_path}")
+                    
+                    log(f"成功加载模型: {model_path}")
+                except Exception as e:
+                    log(f"加载模型失败: {str(e)}")
+                    return False
             else:
-                log(f"错误: 未找到{self.target_name}模型文件")
                 st.error(f"错误: 未找到{self.target_name}模型文件。请检查应用安装或联系管理员。")
                 return False
             
             # 加载标准化器
             if scaler_path and os.path.exists(scaler_path):
-                self.scaler = joblib.load(scaler_path)
-                log(f"成功加载标准化器: {scaler_path}")
+                try:
+                    loaded_scaler = joblib.load(scaler_path)
+                    # 检查是否直接是标准化器或在Pipeline中
+                    if hasattr(loaded_scaler, 'transform'):
+                        self.scaler = loaded_scaler
+                    elif hasattr(loaded_scaler, 'named_steps') and 'scaler' in loaded_scaler.named_steps:
+                        self.scaler = loaded_scaler.named_steps['scaler']
+                    log(f"成功加载标准化器: {scaler_path}")
+                except Exception as e:
+                    log(f"加载标准化器失败: {str(e)}，将使用未标准化数据进行预测")
+                    self.scaler = None
             else:
-                log(f"警告: 未找到{self.target_name}标准化器文件")
+                log(f"未找到{self.target_name}标准化器文件，将使用未标准化数据进行预测")
                 
             # 设置训练数据范围
             self.set_training_ranges()
             
             # 标记模型加载成功
-            self.model_loaded = True
-            return True
+            self.model_loaded = True if self.model is not None else False
+            log(f"模型加载状态: {'成功' if self.model_loaded else '失败'}")
+            return self.model_loaded
             
         except Exception as e:
             log(f"加载模型时出错: {str(e)}")
@@ -471,19 +542,28 @@ class GBDTPredictor:
             
             # 使用标准化器（如果可用）
             if self.scaler:
-                X_scaled = self.scaler.transform(input_ordered)
-                log(f"已使用标准化器进行特征缩放")
+                try:
+                    X_scaled = self.scaler.transform(input_ordered)
+                    log(f"已使用标准化器进行特征缩放")
+                except Exception as e:
+                    log(f"标准化器转换失败: {str(e)}，使用原始特征")
+                    X_scaled = input_ordered.values
             else:
                 log(f"警告: 没有可用的标准化器，使用原始特征")
                 X_scaled = input_ordered.values
             
             # 执行预测
-            pred = self.model.predict(X_scaled)
-            # 确保返回标量值
-            pred_value = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
-            log(f"{self.target_name}预测结果: {pred_value:.2f}")
-            
-            return np.array([pred_value])
+            try:
+                pred = self.model.predict(X_scaled)
+                # 确保返回标量值
+                pred_value = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
+                log(f"{self.target_name}预测结果: {pred_value:.2f}")
+                
+                return np.array([pred_value])
+            except Exception as e:
+                log(f"模型预测失败: {str(e)}")
+                st.error(f"模型预测时出错: {str(e)}")
+                return np.array([0.0])
             
         except Exception as e:
             log(f"预测过程中出错: {str(e)}")
@@ -505,6 +585,23 @@ class GBDTPredictor:
 
 # 初始化预测器 - 使用当前选择的模型
 predictor = GBDTPredictor(target_model=st.session_state.selected_model)
+
+# 如果模型加载失败，显示上传模型提示
+if not predictor.model_loaded:
+    st.error(f"错误: 未找到{st.session_state.selected_model}模型文件。请检查应用安装或联系管理员。")
+    
+    st.markdown("""
+    <div class='error-box'>
+    <h3>模型文件缺失</h3>
+    <p>未能找到模型文件。请确保以下文件存在于应用程序目录:</p>
+    <ul>
+    <li>GBDT-char-yield-improved.joblib (Char Yield模型)</li>
+    <li>GBDT-oil-yield-improved.joblib (Oil Yield模型)</li>
+    <li>GBDT-gas-yield-improved.joblib (Gas Yield模型)</li>
+    </ul>
+    <p>以及对应的标准化器文件。</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 在侧边栏添加模型信息
 model_info = predictor.get_model_info()
@@ -665,6 +762,7 @@ with col3:
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
+
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
             features[feature] = st.number_input(
