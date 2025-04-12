@@ -215,7 +215,7 @@ def log(message):
 
 # 记录启动日志
 log("应用启动 - 紧急修复版本")
-log("强制使用新模型和预测方法")
+log("使用统一Pipeline预测模式")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -329,8 +329,8 @@ def mock_predict(features, model_name):
     log(f"模拟{model_name}预测结果: {result:.2f}")
     return result
 
-class EmergencyPredictor:
-    """紧急预测器 - 使用多种方法尝试进行预测"""
+class ModelPredictor:
+    """优化的预测器类 - 统一使用Pipeline进行预测"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
@@ -344,107 +344,67 @@ class EmergencyPredictor:
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
         
-        # 尝试加载模型文件，但不依赖它
-        self.model_path = self._find_model_file()
-        self.model = None
-        self.scaler = None
+        # 查找并加载模型
+        self.pipeline = None
         self.model_loaded = False
+        self.model_path = self._find_model_file()
         
         if self.model_path:
-            self._try_load_model()
+            self._load_pipeline()
     
     def _find_model_file(self):
-        """查找模型文件"""
-        model_name = self.target_name.replace(' ', '-').lower()
-        possible_names = [
-            f"GBDT-{model_name}-improved.joblib",
-            f"GBDT-{model_name}.joblib",
-            f"GBDT_{model_name}.joblib",
-            f"gbdt_{model_name}.joblib",
-            f"gbdt-{model_name}.joblib"
-        ]
+        """查找模型文件 - 简化版本"""
+        # 获取模型名称标识符
+        model_id = self.target_name.split(" ")[0].lower()
         
-        # 获取当前目录
-        try:
-            current_dir = os.getcwd()
-            log(f"查找模型文件 - 当前目录: {current_dir}")
-        except Exception as e:
-            log(f"获取当前目录出错: {str(e)}")
-            current_dir = "."
+        # 尝试常见的模型文件名和路径
+        search_dirs = [".", "./models", "../models", "/app/models", "/app"]
         
-        # 可能的目录列表
-        possible_dirs = [
-            current_dir,
-            os.path.join(current_dir, "models"),
-            os.path.dirname(current_dir),
-            "/mount/src/app",
-            "/app",
-            "."
-        ]
+        # 在当前目录搜索模型文件
+        log(f"搜索{model_id}模型文件...")
         
-        # 搜索所有可能的文件名和路径
-        for directory in possible_dirs:
+        # 首先尝试精确匹配的文件
+        for directory in search_dirs:
             if not os.path.exists(directory):
                 continue
                 
-            # 尝试具体的文件名
-            for name in possible_names:
-                file_path = os.path.join(directory, name)
-                if os.path.exists(file_path):
-                    log(f"找到模型文件: {file_path}")
-                    return file_path
-            
-            # 列出目录中的所有.joblib文件
+            # 检查目录中的所有.joblib文件
             try:
-                joblib_files = [f for f in os.listdir(directory) if f.endswith('.joblib')]
-                if joblib_files:
-                    model_type = self.target_name.split(' ')[0].lower()
-                    for file in joblib_files:
-                        if model_type in file.lower() and 'scaler' not in file.lower():
-                            file_path = os.path.join(directory, file)
-                            log(f"找到模型文件: {file_path}")
-                            return file_path
-            except Exception:
-                pass
+                for file in os.listdir(directory):
+                    if file.endswith('.joblib') and model_id in file.lower():
+                        if 'scaler' not in file.lower():  # 排除单独保存的标准化器
+                            model_path = os.path.join(directory, file)
+                            log(f"找到模型文件: {model_path}")
+                            return model_path
+            except Exception as e:
+                log(f"搜索目录{directory}时出错: {str(e)}")
         
-        log(f"无法找到{self.target_name}模型文件")
+        log(f"未找到{self.target_name}模型文件")
         return None
     
-    def _try_load_model(self):
-        """尝试加载模型，但不保证成功"""
-        try:
-            log(f"尝试加载模型: {self.model_path}")
-            loaded_obj = joblib.load(self.model_path)
-            log(f"成功加载对象: {type(loaded_obj).__name__}")
-            
-            # 检查是否为Pipeline
-            if hasattr(loaded_obj, 'named_steps'):
-                log(f"检测到Pipeline结构")
-                
-                # 尝试获取模型和标准化器
-                for name, step in loaded_obj.named_steps.items():
-                    step_type = type(step).__name__
-                    if any(x in step_type.lower() for x in ['scaler', 'normalizer']):
-                        self.scaler = step
-                        log(f"找到标准化器: {step_type}")
-                    
-                    if any(x in step_type.lower() for x in ['regressor', 'boost', 'forest']):
-                        self.model = step
-                        log(f"找到模型: {step_type}")
-                
-                # 如果未找到模型，使用整个Pipeline
-                if not self.model:
-                    self.model = loaded_obj
-                    log("使用整个Pipeline作为模型")
-            else:
-                # 直接使用加载的对象
-                self.model = loaded_obj
-                log(f"直接使用加载的对象: {type(loaded_obj).__name__}")
-            
-            self.model_loaded = self.model is not None
-            log(f"模型加载状态: {'成功' if self.model_loaded else '失败'}")
-            log(f"标准化器状态: {'已找到' if self.scaler else '未找到'}")
+    def _load_pipeline(self):
+        """加载Pipeline模型"""
+        if not self.model_path:
+            log("模型路径为空，无法加载")
+            return
         
+        try:
+            log(f"加载Pipeline模型: {self.model_path}")
+            self.pipeline = joblib.load(self.model_path)
+            
+            # 验证是否能进行预测
+            if hasattr(self.pipeline, 'predict'):
+                log(f"模型加载成功，类型: {type(self.pipeline).__name__}")
+                self.model_loaded = True
+                
+                # 尝试识别Pipeline的组件
+                if hasattr(self.pipeline, 'named_steps'):
+                    components = list(self.pipeline.named_steps.keys())
+                    log(f"Pipeline组件: {', '.join(components)}")
+            else:
+                log("加载的对象没有predict方法，不能用于预测")
+                self.model_loaded = False
+                
         except Exception as e:
             log(f"加载模型出错: {str(e)}")
             log(traceback.format_exc())
@@ -483,51 +443,14 @@ class EmergencyPredictor:
         
         return warnings
     
-    def _model_predict(self, features_df):
-        """尝试使用加载的模型进行预测"""
-        try:
-            if not self.model_loaded:
-                log("模型未加载，无法使用实际模型预测")
-                return None
-            
-            # 详细记录输入数据
-            for feature, value in features_df.iloc[0].to_dict().items():
-                log(f"模型输入 {feature}: {value:.2f}")
-            
-            if hasattr(self.model, 'predict'):
-                log("使用模型predict方法")
-                
-                # 如果有标准化器，先转换数据
-                if self.scaler:
-                    log("应用标准化器")
-                    X_scaled = self.scaler.transform(features_df.values)
-                    pred = self.model.predict(X_scaled)
-                else:
-                    # 直接预测
-                    log("直接预测，无标准化")
-                    pred = self.model.predict(features_df.values)
-                
-                result = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
-                log(f"模型预测结果: {result:.2f}")
-                return result
-            else:
-                log(f"错误: 模型对象没有predict方法")
-                return None
-                
-        except Exception as e:
-            log(f"模型预测出错: {str(e)}")
-            log(traceback.format_exc())
-            return None
-    
     def predict(self, features):
-        """使用多种方法尝试预测"""
+        """统一的预测方法 - 先尝试Pipeline预测，失败时使用备选方法"""
         # 检查输入是否有变化
         features_changed = False
         if self.last_features:
             for feature, value in features.items():
                 if feature in self.last_features and abs(self.last_features[feature] - value) > 0.001:
                     features_changed = True
-                    log(f"检测到输入变化: {feature} 从 {self.last_features[feature]:.2f} 到 {value:.2f}")
                     break
         else:
             # 第一次预测
@@ -541,43 +464,52 @@ class EmergencyPredictor:
         # 保存当前特征
         self.last_features = features.copy()
         
-        # 创建数据框
+        # 创建输入数据框
         features_df = pd.DataFrame([features])
         
-        # 方法1: 尝试使用加载的模型预测
-        log("方法1: 使用加载的模型预测")
-        result = self._model_predict(features_df)
+        # 记录输入特征
+        log(f"预测输入: {len(features)}个特征")
         
-        # 方法2: 如果模型预测失败，使用备选预测
-        if result is None:
-            log("方法2: 模型预测失败，使用备选预测方法")
-            result = mock_predict(features, self.target_name)
+        # 尝试使用Pipeline进行预测
+        if self.model_loaded and self.pipeline is not None:
+            try:
+                log("使用Pipeline模型预测")
+                # 直接使用Pipeline进行预测，包含所有预处理步骤
+                result = float(self.pipeline.predict(features_df)[0])
+                log(f"Pipeline预测结果: {result:.2f}")
+                self.last_result = result
+                return result
+            except Exception as e:
+                log(f"Pipeline预测失败: {str(e)}")
+                log(traceback.format_exc())
+                # 预测失败，继续使用备选方法
         
-        # 保存结果用于下次比较
+        # 备选预测方法
+        log("使用备选预测方法")
+        result = mock_predict(features, self.target_name)
         self.last_result = result
-        
         return result
     
     def get_model_info(self):
         """获取模型信息摘要"""
         info = {
-            "模型类型": type(self.model).__name__ if self.model else "未知",
+            "模型类型": "GBDT集成模型",
             "目标变量": self.target_name,
             "特征数量": len(self.feature_names),
-            "模型加载状态": "成功" if self.model_loaded else "失败"
+            "模型状态": "已加载" if self.model_loaded else "未加载"
         }
         
         if self.model_loaded:
-            info["标准化器状态"] = "已找到" if self.scaler else "未找到"
-            if self.scaler:
-                info["标准化器类型"] = type(self.scaler).__name__
+            if hasattr(self.pipeline, 'named_steps'):
+                pipeline_steps = list(self.pipeline.named_steps.keys())
+                info["Pipeline组件"] = ", ".join(pipeline_steps)
         
-        info["备选预测"] = "可用" if not self.model_loaded else "备用"
+        info["预测模式"] = "Pipeline统一预测" if self.model_loaded else "备选预测"
         
         return info
 
 # 初始化预测器 - 使用当前选择的模型
-predictor = EmergencyPredictor(target_model=st.session_state.selected_model)
+predictor = ModelPredictor(target_model=st.session_state.selected_model)
 
 # 在侧边栏添加模型信息
 model_info = predictor.get_model_info()
@@ -802,11 +734,6 @@ if st.session_state.prediction_result is not None:
             "<div class='warning-box'><b>⚠️ 注意：</b> 正在使用备选预测方法。实际模型未成功加载，但系统仍能提供合理的预测结果。</div>", 
             unsafe_allow_html=True
         )
-    elif not predictor.scaler:
-        result_container.markdown(
-            "<div class='warning-box'><b>⚠️ 注意：</b> 未找到标准化器，这可能影响预测精度。</div>", 
-            unsafe_allow_html=True
-        )
     
     # 显示警告
     if st.session_state.warnings:
@@ -821,8 +748,7 @@ if st.session_state.prediction_result is not None:
         st.markdown(f"""
         - **目标变量:** {st.session_state.selected_model}
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
-        - **使用模型:** {"实际模型" if predictor.model_loaded else "备选预测模型"}
-        - **标准化器:** {"已应用" if predictor.scaler else "未应用"}
+        - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "备选预测模型"}
         """)
     
     # 技术说明部分 - 使用折叠式展示
@@ -839,12 +765,3 @@ if st.session_state.prediction_result is not None:
         </ul>
         </div>
         """, unsafe_allow_html=True)
-
-# 添加页脚
-st.markdown("---")
-footer = """
-<div style='text-align: center;'>
-<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 5.0.0</p>
-</div>
-"""
-st.markdown(footer, unsafe_allow_html=True)
