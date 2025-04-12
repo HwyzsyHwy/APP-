@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using GBDT Ensemble Models
-完全修复版本 - 解决所有输入参数对预测结果无影响的问题
+深度修复版本 - 解决参数输入无效和标准化器识别问题
 支持Char、Oil和Gas产率预测
 """
 
@@ -212,8 +212,8 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 完全修复版本")
-log("修复所有输入参数对预测结果无影响的问题")
+log("应用启动 - 深度修复版本")
+log("解决参数输入无效和标准化器识别问题")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -280,11 +280,14 @@ class GBDTPredictor:
     def __init__(self, target_model="Char Yield"):
         self.pipeline = None  # 完整的Pipeline，包含标准化器和模型
         self.target_name = target_model  # 设置目标变量名称
+        self.model = None  # 单独存储模型组件
+        self.scaler = None  # 单独存储标准化器组件
         self.metadata = {}
         self.model_dir = None
         self.feature_importance = None
         self.training_ranges = {}
         self.model_loaded = False  # 标记模型加载状态
+        self.has_scaler = False  # 标记是否有标准化器
         self.feature_names = [
             'M(wt%)', 'Ash(wt%)', 'VM(wt%)', 'FC(wt%)', 
             'C(wt%)', 'H(wt%)', 'N(wt%)', 'O(wt%)', 
@@ -325,7 +328,9 @@ class GBDTPredictor:
         alt_model_files = [
             f"GBDT-{model_name}-improved.joblib",
             f"GBDT-{self.target_name.replace(' ', '-')}-improved.joblib",
-            f"GBDT-{self.target_name.split(' ')[0]}-improved.joblib"
+            f"GBDT-{self.target_name.split(' ')[0]}-improved.joblib",
+            f"GBDT-{model_name.lower()}.joblib",
+            f"GBDT_{model_name.lower()}.joblib"
         ]
         
         # 可能的路径列表 - 根据常见部署位置添加
@@ -389,20 +394,65 @@ class GBDTPredictor:
             # 加载模型
             if model_path and os.path.exists(model_path):
                 try:
-                    # 关键修改：直接加载完整的Pipeline，不再分离模型和标准化器
+                    # 直接加载Pipeline
                     self.pipeline = joblib.load(model_path)
-                    log(f"成功加载模型Pipeline: {model_path}")
+                    log(f"成功加载模型文件: {model_path}")
                     
-                    # 检查是否为Pipeline
+                    # 检查并获取Pipeline组件
                     if hasattr(self.pipeline, 'named_steps'):
                         log(f"加载的是一个Pipeline，包含 {len(self.pipeline.named_steps)} 个组件")
-                        for step_name in self.pipeline.named_steps.keys():
-                            log(f"  - Pipeline包含组件: {step_name}")
+                        
+                        # 记录所有Pipeline组件便于调试
+                        for step_name, step_obj in self.pipeline.named_steps.items():
+                            log(f"  - Pipeline组件: {step_name} (类型: {type(step_obj).__name__})")
+                            
+                        # 尝试多种可能的标准化器名称
+                        scaler_names = ['scaler', 'standardscaler', 'robustscaler', 'preprocessing']
+                        for name in scaler_names:
+                            if name in self.pipeline.named_steps:
+                                self.scaler = self.pipeline.named_steps[name]
+                                self.has_scaler = True
+                                log(f"找到标准化器组件: {name}")
+                                break
+                        
+                        # 尝试获取模型组件
+                        model_names = ['model', 'regressor', 'gbdt', 'gradientboostingregressor']
+                        for name in model_names:
+                            if name in self.pipeline.named_steps:
+                                self.model = self.pipeline.named_steps[name]
+                                log(f"找到模型组件: {name}")
+                                break
+                        
+                        # 如果仍未找到，尝试通过类型识别
+                        if not self.has_scaler:
+                            for name, step in self.pipeline.named_steps.items():
+                                step_type = type(step).__name__.lower()
+                                if 'scaler' in step_type:
+                                    self.scaler = step
+                                    self.has_scaler = True
+                                    log(f"通过类型找到标准化器: {name} (类型: {step_type})")
+                                    break
+                        
+                        if not self.model:
+                            for name, step in self.pipeline.named_steps.items():
+                                step_type = type(step).__name__.lower()
+                                if any(x in step_type for x in ['boost', 'regressor', 'forest']):
+                                    self.model = step
+                                    log(f"通过类型找到模型: {name} (类型: {step_type})")
+                                    break
                     else:
+                        # 如果不是Pipeline，检查是否直接是模型
                         log(f"加载的是一个单独的模型，而不是Pipeline")
+                        model_type = type(self.pipeline).__name__
+                        if any(x in model_type.lower() for x in ['boost', 'regressor', 'forest']):
+                            self.model = self.pipeline
+                            log(f"直接加载了模型: {model_type}")
+                        else:
+                            log(f"警告: 无法确定加载的对象是什么: {model_type}")
                     
-                    # 标记模型加载成功
+                    # 如果我们有Pipeline，即使没有识别出具体组件也能正常工作
                     self.model_loaded = True
+                    
                 except Exception as e:
                     log(f"加载模型失败: {str(e)}")
                     return False
@@ -412,6 +462,12 @@ class GBDTPredictor:
                 
             # 设置训练数据范围
             self.set_training_ranges()
+            
+            # 输出标准化器信息
+            if self.has_scaler:
+                log(f"标准化器信息: 类型={type(self.scaler).__name__}")
+            else:
+                log("未找到独立的标准化器组件，将使用Pipeline直接预测")
             
             log(f"模型加载状态: {'成功' if self.model_loaded else '失败'}")
             return self.model_loaded
@@ -486,23 +542,56 @@ class GBDTPredictor:
             
             # 按照模型训练时的特征顺序重新排列
             input_ordered = input_features[self.feature_names].copy()
-            log(f"{self.target_name}模型: 输入特征已按照训练时的顺序排列")
+            log(f"输入特征已按照训练时的顺序排列")
             
-            # 记录输入数据
-            log(f"预测输入数据: {input_ordered.iloc[0].to_dict()}")
+            # 详细记录输入数据
+            input_dict = input_ordered.iloc[0].to_dict()
+            for feature, value in input_dict.items():
+                log(f"  输入值: {feature} = {value:.2f}")
             
-            # 关键修改: 直接使用Pipeline进行预测，不再分开处理数据和模型
+            # 直接使用Pipeline进行预测
             try:
-                pred = self.pipeline.predict(input_ordered)
+                # 确保数据是2D数组
+                X = input_ordered.values
+                log(f"输入数据形状: {X.shape}")
+                
+                # 执行预测
+                pred = self.pipeline.predict(X)
+                log(f"成功调用Pipeline预测方法")
+                
                 # 确保返回标量值
                 pred_value = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
                 log(f"{self.target_name}预测结果: {pred_value:.2f}")
                 
                 return np.array([pred_value])
             except Exception as e:
-                log(f"模型预测失败: {str(e)}")
-                st.error(f"模型预测时出错: {str(e)}")
-                return np.array([0.0])
+                log(f"Pipeline预测失败: {str(e)}")
+                log(f"尝试备选预测方法...")
+                
+                # 备选方法：如果我们有分离的模型和标准化器
+                if self.model is not None:
+                    try:
+                        if self.scaler is not None:
+                            # 使用标准化器
+                            X_scaled = self.scaler.transform(input_ordered.values)
+                            log(f"使用分离的标准化器进行转换")
+                        else:
+                            X_scaled = input_ordered.values
+                            log(f"没有标准化器，使用原始特征")
+                        
+                        # 执行模型预测
+                        pred = self.model.predict(X_scaled)
+                        pred_value = float(pred[0]) if isinstance(pred, (np.ndarray, list)) else float(pred)
+                        log(f"使用备选方法预测结果: {pred_value:.2f}")
+                        return np.array([pred_value])
+                    except Exception as e2:
+                        log(f"备选预测方法也失败: {str(e2)}")
+                        st.error(f"模型预测失败: {str(e)}, 备选方法也失败: {str(e2)}")
+                        return np.array([0.0])
+                else:
+                    log(f"无法进行预测：没有可用的模型组件")
+                    st.error(f"模型预测时出错: {str(e)}")
+                    return np.array([0.0])
             
         except Exception as e:
             log(f"预测过程中出错: {str(e)}")
@@ -520,12 +609,10 @@ class GBDTPredictor:
         }
         
         # 检查Pipeline中是否有标准化器
-        has_scaler = False
-        if self.model_loaded and self.pipeline is not None:
-            if hasattr(self.pipeline, 'named_steps'):
-                has_scaler = 'scaler' in self.pipeline.named_steps
-        
-        info["标准化器状态"] = "Pipeline内置" if has_scaler else "无"
+        if self.has_scaler:
+            info["标准化器状态"] = "已找到"
+        else:
+            info["标准化器状态"] = "未找到"
         
         return info
 
@@ -555,12 +642,13 @@ for key, value in model_info.items():
     model_info_html += f"<p><b>{key}</b>: {value}</p>"
 
 # 标准化器状态
-has_scaler = model_info.get("标准化器状态") == "Pipeline内置"
-model_info_html += "<h4>Pipeline状态</h4>"
+has_scaler = predictor.has_scaler
+model_info_html += "<h4>标准化器状态</h4>"
 if has_scaler:
-    model_info_html += f"<p style='color:green'>✅ Pipeline中包含标准化器</p>"
+    model_info_html += f"<p style='color:green'>✅ 标准化器已正确加载</p>"
+    model_info_html += f"<p>类型: {type(predictor.scaler).__name__ if predictor.scaler else 'Pipeline内置'}</p>"
 else:
-    model_info_html += "<p style='color:red'>❌ Pipeline中未找到标准化器，可能影响预测精度</p>"
+    model_info_html += "<p style='color:orange'>⚠️ 未找到标准化器，可能影响预测精度</p>"
 
 model_info_html += "</div>"
 st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
@@ -663,7 +751,6 @@ with col1:
             
             # 显示输入值，方便调试
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
-
 # Ultimate Analysis - 第二列
 with col2:
     category = "Ultimate Analysis"
@@ -789,7 +876,6 @@ with col1:
                 log("警告: 预测结果为空")
                 st.session_state.prediction_result = 0.0
         except Exception as e:
-
             st.session_state.prediction_error = str(e)
             log(f"预测错误: {str(e)}")
             log(traceback.format_exc())
@@ -820,10 +906,10 @@ if st.session_state.prediction_result is not None:
         warnings_html += "</ul><p>预测结果可能不太可靠。</p></div>"
         result_container.markdown(warnings_html, unsafe_allow_html=True)
     
-    # Pipeline状态
-    if model_info.get("标准化器状态") != "Pipeline内置":
+    # 标准化器状态
+    if not has_scaler:
         result_container.markdown(
-            "<div class='warning-box'><b>⚠️ 注意：</b> Pipeline中未包含标准化器，这可能影响预测精度。</div>", 
+            "<div class='warning-box'><b>⚠️ 注意：</b> 未找到标准化器，这可能影响预测精度。</div>", 
             unsafe_allow_html=True
         )
     
@@ -846,7 +932,7 @@ if st.session_state.prediction_result is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 3.1.0</p>
+<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 3.2.0</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
