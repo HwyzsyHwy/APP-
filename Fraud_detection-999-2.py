@@ -640,6 +640,9 @@ if 'prediction_error' not in st.session_state:
 if 'feature_values' not in st.session_state:
     # 初始化存储所有特征输入值的字典
     st.session_state.feature_values = {}
+if 'latest_input_values' not in st.session_state:
+    # 存储最新的输入值用于预测
+    st.session_state.latest_input_values = {}
 
 # 定义默认值 - 从图表中提取均值作为默认值
 default_values = {
@@ -787,10 +790,15 @@ with col3:
                 # 调试显示
                 st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
+# 实时更新输入值到会话状态中 - 这是关键改进
+for feature, value in features.items():
+    st.session_state.latest_input_values[feature] = value
+
 # 重置状态
 if st.session_state.clear_pressed:
     # 如果按下重置按钮，清除所有保存的特征值
     st.session_state.feature_values = {}
+    st.session_state.latest_input_values = {}
     st.session_state.clear_pressed = False
 
 # 预测结果显示区域
@@ -800,19 +808,23 @@ result_container = st.container()
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    # 预测按钮 - 彻底修改预测逻辑，确保每次使用最新输入值
+    # 预测按钮 - 修复预测逻辑，确保每次使用最新输入值
     predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
     if predict_clicked:
-        # 确保我们使用当前页面上的输入值
+        # 确保使用当前页面上的最新输入值，而不是会话状态中的缓存值
+        log("开始预测，获取当前最新输入值...")
         current_features = {}
         
-        # 从会话状态中获取当前输入值
+        # 直接从页面控件中获取当前值
         for category, feature_list in feature_categories.items():
             for feature in feature_list:
                 widget_key = f"{category}_{feature}"
-                if widget_key in st.session_state:
-                    current_features[feature] = st.session_state[widget_key]
-                    log(f"获取当前输入: {feature} = {current_features[feature]}")
+                current_value = st.session_state[widget_key]
+                current_features[feature] = current_value
+                log(f"获取当前输入: {feature} = {current_features[feature]}")
+        
+        # 保存当前输入到会话状态供下次使用
+        st.session_state.feature_values = current_features.copy()
         
         log(f"开始{st.session_state.selected_model}预测")
         log(f"当前输入特征: {current_features}")
@@ -839,11 +851,7 @@ with col1:
             log(traceback.format_exc())
             st.error(f"预测过程中发生错误: {str(e)}")
         
-        # 保存当前输入值到session_state.feature_values
-        for feature, value in current_features.items():
-            st.session_state.feature_values[feature] = value
-        
-        st.rerun()  # 重新运行应用，更新显示
+        # 不再需要重新运行应用，因为我们直接更新会话状态
 
 with col2:
     if st.button("🔄 重置输入", use_container_width=True):
