@@ -229,23 +229,23 @@ col1, col2, col3 = st.columns(3)
 with col1:
     char_button = st.button(" Char Yield", 
                            key="char_button", 
-                           help="预测焦炭产率 (%)", 
+                           help="预测焦炭产率 (wt%)", 
                            use_container_width=True,
                            type="primary" if st.session_state.selected_model == "Char Yield" else "secondary")
 with col2:
     oil_button = st.button(" Oil Yield", 
                           key="oil_button", 
-                          help="预测生物油产率 (%)", 
+                          help="预测生物油产率 (wt%)", 
                           use_container_width=True,
                           type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary")
 with col3:
     gas_button = st.button(" Gas Yield", 
                           key="gas_button", 
-                          help="预测气体产率 (%)", 
+                          help="预测气体产率 (wt%)", 
                           use_container_width=True,
                           type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary")
 
-# 处理模型选择
+# 处理模型选择 - 修改为切换模型时不重置输入值
 if char_button:
     st.session_state.selected_model = "Char Yield"
     st.session_state.prediction_result = None
@@ -771,7 +771,7 @@ with col3:
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"{category}_{feature}", 
+                key=f"{category}_{feature
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
