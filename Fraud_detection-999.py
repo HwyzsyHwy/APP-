@@ -700,13 +700,14 @@ with col1:
             min_val = predictor.training_ranges[feature]['min']
             max_val = predictor.training_ranges[feature]['max']
             
+            # 确保每个输入控件有唯一键名
             features[feature] = st.number_input(
                 "", 
                 min_value=float(min_val), 
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"input_{feature}", 
+                key=f"{category}_{feature}",  # 使用类别和特征名组合的唯一键名
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
@@ -737,13 +738,14 @@ with col2:
             min_val = predictor.training_ranges[feature]['min']
             max_val = predictor.training_ranges[feature]['max']
             
+            # 确保每个输入控件有唯一键名
             features[feature] = st.number_input(
                 "", 
                 min_value=float(min_val), 
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"input_{feature}", 
+                key=f"{category}_{feature}",  # 使用类别和特征名组合的唯一键名
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
@@ -774,13 +776,14 @@ with col3:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
+            # 确保每个输入控件有唯一键名
             features[feature] = st.number_input(
                 "", 
                 min_value=float(min_val), 
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"input_{feature}", 
+                key=f"{category}_{feature}",  # 使用类别和特征名组合的唯一键名
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
@@ -805,13 +808,11 @@ col1, col2 = st.columns([1, 1])
 with col1:
     if st.button("🔮 运行预测", use_container_width=True, type="primary"):
         log(f"开始{st.session_state.selected_model}预测")
-        st.session_state.predictions_running = True
-        st.session_state.prediction_error = None  # 清除之前的错误
         
-        # 记录输入
-        log(f"输入特征: {features}")
+        # 记录输入 - 使用当前控件中的值，而不是缓存的值
+        log(f"当前输入特征: {features}")
         
-        # 创建输入数据框
+        # 创建输入数据框 - 使用当前features字典，确保使用最新的输入值
         input_df = pd.DataFrame([features])
         
         # 检查输入范围
@@ -835,8 +836,7 @@ with col1:
             log(traceback.format_exc())
             st.error(f"预测过程中发生错误: {str(e)}")
         
-        st.session_state.predictions_running = False
-        st.rerun()
+        st.rerun()  # 重新运行应用，更新显示
 
 with col2:
     if st.button("🔄 重置输入", use_container_width=True):
