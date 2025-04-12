@@ -222,6 +222,10 @@ if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield"  # 默认选择Char产率模型
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
+# 添加模型缓存 - 避免重复加载相同模型
+if 'model_cache' not in st.session_state:
+    st.session_state.model_cache = {}
+    
 # 更新主标题以显示当前选定的模型
 st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
 
@@ -340,30 +344,57 @@ class ModelPredictor:
             'PS(mm)', 'SM(g)', 'FT(°C)', 'HR(°C/min)', 
             'FR(mL/min)', 'RT(min)'
         ]
+        
+        # 定义特征映射关系(解决特征名称不一致问题)
+        self.feature_mapping = {
+            'FT(°C)': 'FT(℃)',  # 解决训练和部署时特征名称不一致问题
+            'HR(°C/min)': 'HR(℃/min)'
+        }
+        
         self.training_ranges = self._set_training_ranges()
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
         
-        # 查找并加载模型
-        self.pipeline = None
-        self.model_loaded = False
-        self.model_path = self._find_model_file()
+        # 使用缓存加载模型，避免重复加载相同模型
+        self.pipeline = self._get_cached_model()
+        self.model_loaded = self.pipeline is not None
         
-        if self.model_path:
-            self._load_pipeline()
+        if not self.model_loaded:
+            log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
+            # 查找并加载模型
+            self.model_path = self._find_model_file()
+            if self.model_path:
+                self._load_pipeline()
     
+    def _get_cached_model(self):
+        """从缓存中获取模型"""
+        if self.target_name in st.session_state.model_cache:
+            log(f"从缓存加载{self.target_name}模型")
+            return st.session_state.model_cache[self.target_name]
+        return None
+        
     def _find_model_file(self):
-        """查找模型文件 - 简化版本"""
-        # 获取模型名称标识符
+        """查找模型文件 - 更新后的版本"""
+        # 为不同产率目标设置不同的模型文件和路径
+        model_folders = {
+            "Char Yield": ["炭产率", "char"],
+            "Oil Yield": ["油产率", "oil"],
+            "Gas Yield": ["气产率", "gas"] 
+        }
+        
+        # 获取基本名称和文件夹
         model_id = self.target_name.split(" ")[0].lower()
+        folders = model_folders.get(self.target_name, ["", model_id.lower()])
         
         # 尝试常见的模型文件名和路径
         search_dirs = [".", "./models", "../models", "/app/models", "/app"]
+        for folder in folders:
+            search_dirs.append(f"./{folder}")
+            search_dirs.append(f"../{folder}")
         
-        # 在当前目录搜索模型文件
-        log(f"搜索{model_id}模型文件...")
+        # 在所有可能的目录中搜索模型文件
+        log(f"搜索{self.target_name}模型文件...")
         
-        # 首先尝试精确匹配的文件
         for directory in search_dirs:
             if not os.path.exists(directory):
                 continue
@@ -396,6 +427,9 @@ class ModelPredictor:
             if hasattr(self.pipeline, 'predict'):
                 log(f"模型加载成功，类型: {type(self.pipeline).__name__}")
                 self.model_loaded = True
+                
+                # 将模型保存到缓存中
+                st.session_state.model_cache[self.target_name] = self.pipeline
                 
                 # 尝试识别Pipeline的组件
                 if hasattr(self.pipeline, 'named_steps'):
@@ -443,6 +477,23 @@ class ModelPredictor:
         
         return warnings
     
+    def _prepare_features(self, features):
+        """准备特征，处理特征名称映射"""
+        # 创建一个副本，防止修改原始字典
+        mapped_features = features.copy()
+        
+        # 映射特征名称以匹配训练模型中的名称
+        for ui_name, model_name in self.feature_mapping.items():
+            if ui_name in mapped_features:
+                value = mapped_features.pop(ui_name)
+                mapped_features[model_name] = value
+                log(f"特征映射: '{ui_name}' -> '{model_name}'")
+        
+        # 创建DataFrame并确保列顺序正确
+        df = pd.DataFrame([mapped_features])
+        log(f"准备好的特征: {list(df.columns)}")
+        return df
+    
     def predict(self, features):
         """统一的预测方法 - 先尝试Pipeline预测，失败时使用备选方法"""
         # 检查输入是否有变化
@@ -464,11 +515,9 @@ class ModelPredictor:
         # 保存当前特征
         self.last_features = features.copy()
         
-        # 创建输入数据框
-        features_df = pd.DataFrame([features])
-        
-        # 记录输入特征
-        log(f"预测输入: {len(features)}个特征")
+        # 准备特征数据
+        log(f"开始准备{len(features)}个特征数据")
+        features_df = self._prepare_features(features)
         
         # 尝试使用Pipeline进行预测
         if self.model_loaded and self.pipeline is not None:
@@ -688,6 +737,11 @@ with col1:
     if predict_clicked:
         log("开始预测，获取最新输入值...")
         
+        # 切换模型后需要重新初始化预测器
+        if predictor.target_name != st.session_state.selected_model:
+            log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
+            predictor = ModelPredictor(target_model=st.session_state.selected_model)
+        
         # 保存当前输入到会话状态
         st.session_state.feature_values = features.copy()
         
@@ -765,3 +819,12 @@ if st.session_state.prediction_result is not None:
         </ul>
         </div>
         """, unsafe_allow_html=True)
+
+# 添加页脚
+st.markdown("---")
+footer = """
+<div style='text-align: center;'>
+<p>© 2023 生物质纳米材料与智能装备实验室. 版本: 5.0.0</p>
+</div>
+"""
+st.markdown(footer, unsafe_allow_html=True)
