@@ -206,7 +206,7 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 修复版本")
+log("应用启动 - 修改版本")
 log("已修复特征名称和列顺序问题")
 
 # 初始化会话状态 - 添加模型选择功能
@@ -615,16 +615,9 @@ with col1:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
-            # 设置范围根据训练数据 - 使用适当的映射获取范围
-            mapped_feature = predictor.ui_to_model_mapping.get(feature, feature)
-            min_val = predictor.training_ranges[mapped_feature]['min']
-            max_val = predictor.training_ranges[mapped_feature]['max']
-            
-            # 确保每个输入控件有唯一键名
+            # 不再限制输入范围，但仍然使用默认值
             features[feature] = st.number_input(
                 "", 
-                min_value=float(min_val), 
-                max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,
                 key=f"{category}_{feature}",
@@ -648,14 +641,9 @@ with col2:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
-            mapped_feature = predictor.ui_to_model_mapping.get(feature, feature)
-            min_val = predictor.training_ranges[mapped_feature]['min']
-            max_val = predictor.training_ranges[mapped_feature]['max']
-            
+            # 不再限制输入范围
             features[feature] = st.number_input(
                 "", 
-                min_value=float(min_val), 
-                max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,
                 key=f"{category}_{feature}",
@@ -675,31 +663,19 @@ with col3:
         else:
             value = st.session_state.feature_values.get(feature, default_values[feature])
         
-        mapped_feature = predictor.ui_to_model_mapping.get(feature, feature)
-        min_val = predictor.training_ranges[mapped_feature]['min']
-        max_val = predictor.training_ranges[mapped_feature]['max']
-        
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
+            # 不再限制输入范围
             features[feature] = st.number_input(
                 "", 
-                min_value=float(min_val), 
-                max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,
                 key=f"{category}_{feature}",
                 format="%.2f",
                 label_visibility="collapsed"
             )
-
-# 补充计算提示
-st.markdown("""
-<div class='warning-box'>
-<b>FC(wt%) 自动计算提示：</b> 固定碳应通过 FC(wt%) = 100 - Ash(wt%) - VM(wt%) 计算获得。
-</div>
-""", unsafe_allow_html=True)
 
 # 调试信息：显示所有当前输入值
 with st.expander("显示当前输入值", expanded=False):
@@ -820,9 +796,9 @@ if st.session_state.prediction_result is not None:
         
         <p><b>特别提醒：</b></p>
         <ul>
-            <li>输入参数应该满足设定好的范围内，因为这样符合模型训练数据的分布范围，可以保证软件的预测精度，如果超过范围，会有文字提醒</li>
-            <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也需要使用100-Ash(wt%)-VM(wt%)公式对FC(wt%)进行转换，以保证预测的准确性。</li>
-            <li>所有特征的输入范围都基于真实训练数据的统计信息，确保预测结果的可靠性。</li>
+            <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
+            <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
+            <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -851,3 +827,9 @@ footer = """
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
+
+
+
+
+
+
