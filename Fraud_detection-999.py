@@ -246,7 +246,7 @@ with col3:
                           type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary")
 
 # 处理模型选择 - 修改为切换模型时不重置输入值
-if char_button:
+if char_button and st.session_state.selected_model != "Char Yield":
     st.session_state.selected_model = "Char Yield"
     st.session_state.prediction_result = None
     st.session_state.warnings = []
@@ -254,7 +254,7 @@ if char_button:
     log(f"切换到模型: {st.session_state.selected_model}")
     st.rerun()
 
-if oil_button:
+if oil_button and st.session_state.selected_model != "Oil Yield":
     st.session_state.selected_model = "Oil Yield"
     st.session_state.prediction_result = None
     st.session_state.warnings = []
@@ -262,7 +262,7 @@ if oil_button:
     log(f"切换到模型: {st.session_state.selected_model}")
     st.rerun()
 
-if gas_button:
+if gas_button and st.session_state.selected_model != "Gas Yield":
     st.session_state.selected_model = "Gas Yield"
     st.session_state.prediction_result = None
     st.session_state.warnings = []
@@ -637,6 +637,9 @@ if 'current_r2' not in st.session_state:
     st.session_state.current_r2 = None
 if 'prediction_error' not in st.session_state:
     st.session_state.prediction_error = None
+if 'feature_values' not in st.session_state:
+    # 初始化存储所有特征输入值的字典
+    st.session_state.feature_values = {}
 
 # 定义默认值 - 从图表中提取均值作为默认值
 default_values = {
@@ -686,7 +689,8 @@ with col1:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            value = st.session_state.get(f"{category}_{feature}", default_values[feature])
+            # 先从会话状态获取值，如果不存在则使用默认值
+            value = st.session_state.feature_values.get(feature, default_values[feature])
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
@@ -702,10 +706,12 @@ with col1:
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"{category}_{feature}", 
+                key=f"input_{feature}", 
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
+            # 将输入值保存到会话状态
+            st.session_state.feature_values[feature] = features[feature]
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
@@ -720,7 +726,8 @@ with col2:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            value = st.session_state.get(f"{category}_{feature}", default_values[feature])
+            # 先从会话状态获取值，如果不存在则使用默认值
+            value = st.session_state.feature_values.get(feature, default_values[feature])
         
         col_a, col_b = st.columns([1, 0.5])
         with col_a:
@@ -736,10 +743,12 @@ with col2:
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"{category}_{feature}", 
+                key=f"input_{feature}", 
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
+            # 将输入值保存到会话状态
+            st.session_state.feature_values[feature] = features[feature]
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
@@ -754,7 +763,8 @@ with col3:
         if st.session_state.clear_pressed:
             value = default_values[feature]
         else:
-            value = st.session_state.get(f"{category}_{feature}", default_values[feature])
+            # 先从会话状态获取值，如果不存在则使用默认值
+            value = st.session_state.feature_values.get(feature, default_values[feature])
         
         # 设置范围根据训练数据
         min_val = predictor.training_ranges[feature]['min']
@@ -770,16 +780,20 @@ with col3:
                 max_value=float(max_val), 
                 value=float(value), 
                 step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"{category}_{feature}", 
+                key=f"input_{feature}", 
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
+            # 将输入值保存到会话状态
+            st.session_state.feature_values[feature] = features[feature]
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # 重置状态
 if st.session_state.clear_pressed:
+    # 如果按下重置按钮，清除所有保存的特征值
+    st.session_state.feature_values = {}
     st.session_state.clear_pressed = False
 
 # 预测结果显示区域
@@ -838,8 +852,8 @@ with col2:
 if st.session_state.prediction_result is not None:
     st.markdown("---")
     
-    # 显示主预测结果
-    result_container.markdown(f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f}%</div>", unsafe_allow_html=True)
+    # 显示主预测结果 - 修改单位从%为wt%
+    result_container.markdown(f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>", unsafe_allow_html=True)
     
     # 显示警告
     if st.session_state.warnings:
