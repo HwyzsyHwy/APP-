@@ -676,6 +676,9 @@ category_colors = {
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
+# 使用字典存储所有输入值
+features = {}
+
 # Proximate Analysis - 第一列
 with col1:
     category = "Proximate Analysis"
@@ -769,20 +772,20 @@ with col3:
         with col_a:
             st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
         with col_b:
-            # 确保每个输入控件有唯一键名
-            features[feature] = st.number_input(
-                "", 
-                min_value=float(min_val), 
-                max_value=float(max_val), 
-                value=float(value), 
-                step=0.01,  # 设置为0.01允许两位小数输入
-                key=f"{category}_{feature}",  # 使用类别和特征名组合的唯一键名
-                format="%.2f",  # 强制显示两位小数
-                label_visibility="collapsed"
-            )
-            
-            # 调试显示
-            st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
+                # 确保每个输入控件有唯一键名
+                features[feature] = st.number_input(
+                    "", 
+                    min_value=float(min_val), 
+                    max_value=float(max_val), 
+                    value=float(value), 
+                    step=0.01,  # 设置为0.01允许两位小数输入
+                    key=f"{category}_{feature}",  # 使用类别和特征名组合的唯一键名
+                    format="%.2f",  # 强制显示两位小数
+                    label_visibility="collapsed"
+                )
+                
+                # 调试显示
+                st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
 
 # 重置状态
 if st.session_state.clear_pressed:
