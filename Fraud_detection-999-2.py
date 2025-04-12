@@ -676,9 +676,6 @@ category_colors = {
 # 创建三列布局
 col1, col2, col3 = st.columns(3)
 
-# 使用字典存储所有输入值
-features = {}
-
 # Proximate Analysis - 第一列
 with col1:
     category = "Proximate Analysis"
@@ -711,8 +708,6 @@ with col1:
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
-            # 将输入值保存到会话状态
-            st.session_state.feature_values[feature] = features[feature]
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
@@ -749,8 +744,6 @@ with col2:
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
-            # 将输入值保存到会话状态
-            st.session_state.feature_values[feature] = features[feature]
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
@@ -787,8 +780,6 @@ with col3:
                 format="%.2f",  # 强制显示两位小数
                 label_visibility="collapsed"
             )
-            # 将输入值保存到会话状态
-            st.session_state.feature_values[feature] = features[feature]
             
             # 调试显示
             st.markdown(f"<span style='font-size:10px;color:gray;'>输入值: {features[feature]:.2f}</span>", unsafe_allow_html=True)
@@ -806,14 +797,25 @@ result_container = st.container()
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    if st.button("🔮 运行预测", use_container_width=True, type="primary"):
+    # 预测按钮 - 彻底修改预测逻辑，确保每次使用最新输入值
+    predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
+    if predict_clicked:
+        # 确保我们使用当前页面上的输入值
+        current_features = {}
+        
+        # 从会话状态中获取当前输入值
+        for category, feature_list in feature_categories.items():
+            for feature in feature_list:
+                widget_key = f"{category}_{feature}"
+                if widget_key in st.session_state:
+                    current_features[feature] = st.session_state[widget_key]
+                    log(f"获取当前输入: {feature} = {current_features[feature]}")
+        
         log(f"开始{st.session_state.selected_model}预测")
+        log(f"当前输入特征: {current_features}")
         
-        # 记录输入 - 使用当前控件中的值，而不是缓存的值
-        log(f"当前输入特征: {features}")
-        
-        # 创建输入数据框 - 使用当前features字典，确保使用最新的输入值
-        input_df = pd.DataFrame([features])
+        # 创建输入数据框
+        input_df = pd.DataFrame([current_features])
         
         # 检查输入范围
         warnings = predictor.check_input_range(input_df)
@@ -822,19 +824,21 @@ with col1:
         # 执行预测
         try:
             result = predictor.predict(input_df)
-            # 确保结果不为空，修复预测值不显示的问题
             if result is not None and len(result) > 0:
                 st.session_state.prediction_result = float(result[0])
                 log(f"预测成功: {st.session_state.prediction_result:.2f}")
             else:
                 log("警告: 预测结果为空")
                 st.session_state.prediction_result = 0.0
-            
         except Exception as e:
             st.session_state.prediction_error = str(e)
             log(f"预测错误: {str(e)}")
             log(traceback.format_exc())
             st.error(f"预测过程中发生错误: {str(e)}")
+        
+        # 保存当前输入值到session_state.feature_values
+        for feature, value in current_features.items():
+            st.session_state.feature_values[feature] = value
         
         st.rerun()  # 重新运行应用，更新显示
 
