@@ -208,7 +208,7 @@ def log(message):
 # 记录启动日志
 log("应用启动 - 修改版本")
 log("已修复特征名称和列顺序问题")
-log("已移除O(wt%)特征")
+log("已修复模型加载和预测逻辑")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -271,11 +271,13 @@ st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.s
 st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
-    """优化的预测器类 - 修复特征名称和顺序问题"""
+    """优化的预测器类 - 修复了模型加载和预测逻辑"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
         self.model_path = None  # 初始化model_path为None
+        self.pipeline = None
+        self.bias_correction = 1.0  # 初始化偏差校正系数为默认值
         
         # 定义正确的特征顺序（与训练时一致）- 移除O(wt%)
         self.feature_names = [
@@ -300,10 +302,23 @@ class ModelPredictor:
         self.last_result = None  # 存储上次的预测结果
         
         # 使用缓存加载模型，避免重复加载相同模型
-        self.pipeline = self._get_cached_model()
-        self.model_loaded = self.pipeline is not None
-        
-        if not self.model_loaded:
+        cached_model = self._get_cached_model()
+        if cached_model is not None:
+            log(f"从缓存加载{self.target_name}模型")
+            if isinstance(cached_model, dict):
+                if 'pipeline' in cached_model:
+                    self.pipeline = cached_model['pipeline']
+                    if 'bias_correction' in cached_model:
+                        self.bias_correction = cached_model['bias_correction']
+                        log(f"从缓存加载偏差校正系数: {self.bias_correction}")
+                    self.model_loaded = True
+                else:
+                    self.model_loaded = False
+            else:
+                self.pipeline = cached_model
+                self.model_loaded = True
+        else:
+            self.model_loaded = False
             log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
             # 查找并加载模型
             self.model_path = self._find_model_file()
@@ -358,33 +373,57 @@ class ModelPredictor:
         return None
     
     def _load_pipeline(self):
-        """加载Pipeline模型"""
+        """加载Pipeline模型 - 修复后的版本，处理模型字典格式"""
         if not self.model_path:
             log("模型路径为空，无法加载")
             return False
         
         try:
             log(f"加载Pipeline模型: {self.model_path}")
-            self.pipeline = joblib.load(self.model_path)
+            model_data = joblib.load(self.model_path)
             
-            # 验证是否能进行预测
-            if hasattr(self.pipeline, 'predict'):
-                log(f"模型加载成功，类型: {type(self.pipeline).__name__}")
+            # 检查是否是字典形式
+            if isinstance(model_data, dict):
+                log("检测到保存的模型是字典格式")
+                # 提取pipeline和偏差校正系数
+                if 'pipeline' in model_data:
+                    self.pipeline = model_data['pipeline']
+                    log("从字典中提取pipeline成功")
+                    
+                    # 提取偏差校正系数
+                    if 'bias_correction' in model_data:
+                        self.bias_correction = model_data['bias_correction']
+                        log(f"提取到偏差校正系数: {self.bias_correction}")
+                    else:
+                        self.bias_correction = 1.0
+                        log("未找到偏差校正系数，使用默认值1.0")
+                    
+                    self.model_loaded = True
+                    # 将模型保存到缓存中
+                    st.session_state.model_cache[self.target_name] = model_data
+                    
+                    # 尝试识别Pipeline的组件
+                    if hasattr(self.pipeline, 'named_steps'):
+                        components = list(self.pipeline.named_steps.keys())
+                        log(f"Pipeline组件: {', '.join(components)}")
+                    return True
+                else:
+                    log("模型字典中未找到pipeline键")
+                    self.model_loaded = False
+                    return False
+            # 直接是pipeline对象
+            elif hasattr(model_data, 'predict'):
+                log("加载的是预测器对象")
+                self.pipeline = model_data
+                self.bias_correction = 1.0  # 默认值
                 self.model_loaded = True
-                
-                # 将模型保存到缓存中
-                st.session_state.model_cache[self.target_name] = self.pipeline
-                
-                # 尝试识别Pipeline的组件
-                if hasattr(self.pipeline, 'named_steps'):
-                    components = list(self.pipeline.named_steps.keys())
-                    log(f"Pipeline组件: {', '.join(components)}")
+                st.session_state.model_cache[self.target_name] = {'pipeline': model_data, 'bias_correction': 1.0}
                 return True
             else:
-                log("加载的对象没有predict方法，不能用于预测")
+                log(f"无法识别的模型格式: {type(model_data)}")
                 self.model_loaded = False
                 return False
-                
+                    
         except Exception as e:
             log(f"加载模型出错: {str(e)}")
             log(traceback.format_exc())
@@ -457,7 +496,7 @@ class ModelPredictor:
         return df
     
     def predict(self, features):
-        """预测方法 - 确保特征名称和顺序正确"""
+        """预测方法 - 修复后的版本，确保特征名称和顺序正确并应用偏差校正"""
         # 检查输入是否有变化
         features_changed = False
         if self.last_features:
@@ -485,26 +524,32 @@ class ModelPredictor:
         if self.model_loaded and self.pipeline is not None:
             try:
                 log("使用Pipeline模型预测")
-                # 直接使用Pipeline进行预测，包含所有预处理步骤
-                result = float(self.pipeline.predict(features_df)[0])
-                log(f"Pipeline预测结果: {result:.2f}")
+                # 使用Pipeline进行基础预测
+                raw_prediction = self.pipeline.predict(features_df)[0]
+                
+                # 应用偏差校正系数
+                log(f"应用偏差校正系数: {self.bias_correction}")
+                result = float(raw_prediction * self.bias_correction)
+                log(f"校正后预测结果: {result:.2f} (原始: {raw_prediction:.2f})")
+                
                 self.last_result = result
                 return result
             except Exception as e:
                 log(f"Pipeline预测失败: {str(e)}")
                 log(traceback.format_exc())
-                # 如果加载失败，则尝试重新加载模型
+                # 如果失败，尝试重新加载
                 if self._load_pipeline():
                     try:
                         # 再次尝试预测
-                        result = float(self.pipeline.predict(features_df)[0])
+                        raw_prediction = self.pipeline.predict(features_df)[0]
+                        result = float(raw_prediction * self.bias_correction)
                         log(f"重新加载后预测结果: {result:.2f}")
                         self.last_result = result
                         return result
                     except Exception as new_e:
                         log(f"重新加载后预测仍然失败: {str(new_e)}")
         
-        # 如果到这里，说明预测失败，返回错误提示
+        # 如果到这里，说明预测失败
         log("所有预测尝试都失败，请检查模型文件和特征名称")
         raise ValueError("模型预测失败。请确保模型文件存在且特征格式正确。")
     
@@ -514,10 +559,11 @@ class ModelPredictor:
             "模型类型": "GBDT集成模型",
             "目标变量": self.target_name,
             "特征数量": len(self.feature_names),
-            "模型状态": "已加载" if self.model_loaded else "未加载"
+            "模型状态": "已加载" if self.model_loaded else "未加载",
+            "偏差校正系数": f"{self.bias_correction:.4f}"
         }
         
-        if self.model_loaded:
+        if self.model_loaded and self.pipeline is not None:
             if hasattr(self.pipeline, 'named_steps'):
                 pipeline_steps = list(self.pipeline.named_steps.keys())
                 info["Pipeline组件"] = ", ".join(pipeline_steps)
@@ -786,6 +832,7 @@ if st.session_state.prediction_result is not None:
         - **目标变量:** {st.session_state.selected_model}
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
         - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "未能加载模型"}
+        - **偏差校正系数:** {predictor.bias_correction:.4f}
         """)
     
     # 技术说明部分 - 使用折叠式展示
