@@ -275,6 +275,7 @@ class ModelPredictor:
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
+        self.model_path = None  # 初始化model_path为None
         
         # 定义正确的特征顺序（与训练时一致）- 移除O(wt%)
         self.feature_names = [
