@@ -209,7 +209,7 @@ def log(message):
 # 记录启动日志
 log("应用启动 - 修改版本")
 log("已修复特征名称和列顺序问题")
-log("已修复模型加载问题 - 处理函数缺失")
+log("已修复模型加载问题 - 增加对集成模型的支持")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -271,19 +271,71 @@ if gas_button and st.session_state.selected_model != "Gas Yield":
 st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
+# 使用修改后的分段校正功能
+def apply_ranged_correction(predictions, y_true=None, correction_factors=None, value_ranges=None):
+    """分段校正函数，可被直接调用"""
+    if correction_factors is None or value_ranges is None:
+        return predictions
+        
+    predictions = np.array(predictions).ravel()
+    corrected = np.zeros_like(predictions)
+    
+    # 确定用于选择校正系数的值
+    if y_true is not None:
+        # 如果y_true是DataFrame，先转换为numpy数组
+        if isinstance(y_true, pd.DataFrame):
+            selector = y_true.values.ravel()
+        else:
+            selector = np.array(y_true).ravel()
+    else:
+        selector = predictions
+    
+    # 对每个样本应用适当的校正系数
+    for low, high in value_ranges:
+        mask = (selector >= low) & (selector < high)
+        corrected[mask] = predictions[mask] * correction_factors.get((low, high), 1.0)
+    
+    return corrected
+
 # 添加用于替代缺失的bias_corrected_predict函数的定义
 def bias_corrected_predict(X):
     """创建一个空的函数来替代缺失的bias_corrected_predict函数"""
     return X
 
+# 添加在Python全局空间的ensemble_predict函数定义，避免反序列化问题
+def ensemble_predict(X_new, main_pipeline, support_pipeline, correction_factors=None, value_ranges=None, main_weight=0.8, support_weight=0.2):
+    """集成预测函数，结合主模型和支持模型，并应用分段校正"""
+    # 获取两个模型的预测
+    main_preds = main_pipeline.predict(X_new)
+    support_preds = support_pipeline.predict(X_new)
+    
+    # 组合预测结果
+    combined_preds = main_preds * main_weight + support_preds * support_weight
+    
+    # 应用分段校正
+    if correction_factors and value_ranges:
+        corrected_preds = apply_ranged_correction(combined_preds, 
+                                                  correction_factors=correction_factors, 
+                                                  value_ranges=value_ranges)
+        return corrected_preds
+    else:
+        return combined_preds
+
 class ModelPredictor:
-    """优化的预测器类 - 修复了模型加载和预测逻辑"""
+    """优化的预测器类 - 修复了模型加载和预测逻辑，支持集成模型"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
         self.model_path = None  # 初始化model_path为None
         self.pipeline = None
+        self.main_pipeline = None
+        self.support_pipeline = None
         self.bias_correction = 1.0  # 初始化偏差校正系数为默认值
+        self.correction_factors = None
+        self.value_ranges = None
+        self.main_weight = 0.8
+        self.support_weight = 0.2
+        self.is_ensemble = False
         
         # 定义正确的特征顺序（与训练时一致）- 移除O(wt%)
         self.feature_names = [
@@ -311,18 +363,7 @@ class ModelPredictor:
         cached_model = self._get_cached_model()
         if cached_model is not None:
             log(f"从缓存加载{self.target_name}模型")
-            if isinstance(cached_model, dict):
-                if 'pipeline' in cached_model:
-                    self.pipeline = cached_model['pipeline']
-                    if 'bias_correction' in cached_model:
-                        self.bias_correction = cached_model['bias_correction']
-                        log(f"从缓存加载偏差校正系数: {self.bias_correction}")
-                    self.model_loaded = True
-                else:
-                    self.model_loaded = False
-            else:
-                self.pipeline = cached_model
-                self.model_loaded = True
+            self._process_cached_model(cached_model)
         else:
             self.model_loaded = False
             log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
@@ -331,6 +372,40 @@ class ModelPredictor:
             if self.model_path:
                 self._load_pipeline()
     
+    def _process_cached_model(self, cached_model):
+        """处理缓存中的模型数据"""
+        if isinstance(cached_model, dict):
+            # 检查是否是集成模型
+            if 'main_pipeline' in cached_model and 'support_pipeline' in cached_model:
+                self.main_pipeline = cached_model['main_pipeline']
+                self.support_pipeline = cached_model['support_pipeline']
+                self.pipeline = self.main_pipeline  # 兼容旧代码
+                self.is_ensemble = True
+                
+                # 获取校正相关信息
+                if 'correction_factors' in cached_model:
+                    self.correction_factors = cached_model['correction_factors']
+                if 'value_ranges' in cached_model:
+                    self.value_ranges = cached_model['value_ranges']
+                self.main_weight = cached_model.get('main_weight', 0.8)
+                self.support_weight = cached_model.get('support_weight', 0.2)
+                
+                log(f"从缓存加载集成模型 (校正因子: {len(self.correction_factors) if self.correction_factors else 0})")
+                self.model_loaded = True
+            elif 'pipeline' in cached_model:
+                self.pipeline = cached_model['pipeline']
+                if 'bias_correction' in cached_model:
+                    self.bias_correction = cached_model['bias_correction']
+                    log(f"从缓存加载偏差校正系数: {self.bias_correction}")
+                self.is_ensemble = False
+                self.model_loaded = True
+            else:
+                self.model_loaded = False
+        else:
+            self.pipeline = cached_model
+            self.is_ensemble = False
+            self.model_loaded = True
+            
     def _get_cached_model(self):
         """从缓存中获取模型"""
         if self.target_name in st.session_state.model_cache:
@@ -379,7 +454,7 @@ class ModelPredictor:
         return None
     
     def _load_pipeline(self):
-        """加载Pipeline模型 - 修复后的版本，处理函数缺失问题"""
+        """加载Pipeline模型 - 修复后的版本，支持集成模型"""
         if not self.model_path:
             log("模型路径为空，无法加载")
             return False
@@ -387,85 +462,62 @@ class ModelPredictor:
         try:
             log(f"加载Pipeline模型: {self.model_path}")
             
-            # 注册bias_corrected_predict函数到全局命名空间
-            # 这样pickle可以找到它
+            # 注册可能会用到的函数到全局命名空间
             import sys
             sys.modules['__main__'].bias_corrected_predict = bias_corrected_predict
+            sys.modules['__main__'].apply_ranged_correction = apply_ranged_correction
+            sys.modules['__main__'].ensemble_predict = ensemble_predict
             
             try:
                 # 尝试加载模型
                 model_data = joblib.load(self.model_path)
                 log("模型加载成功")
-            except AttributeError as e:
-                # 检查是否是bias_corrected_predict错误
-                if "bias_corrected_predict" in str(e) or "Can't get attribute" in str(e):
-                    log("检测到函数缺失错误，尝试从文件提取pipeline组件")
-                    
-                    # 创建临时文件来读取pickle的原始内容
-                    import pickle
-                    import tempfile
-                    
-                    try:
-                        # 创建一个修改过的未加载对象
-                        with open(self.model_path, 'rb') as f:
-                            raw_data = pickle.load(f)
-                        
-                        # 如果能够直接访问pipeline和bias_correction
-                        if isinstance(raw_data, dict) and 'pipeline' in raw_data and 'bias_correction' in raw_data:
-                            self.pipeline = raw_data['pipeline']
-                            self.bias_correction = raw_data['bias_correction']
-                            model_data = raw_data  # 设置model_data以便后续处理
-                            log(f"成功提取pipeline和校正系数: {self.bias_correction}")
-                        else:
-                            # 如果无法恢复，使用默认值
-                            self.bias_correction = 1.0
-                            log("无法从模型中提取数据，使用默认校正系数")
-                            raise e
-                    except Exception as ex:
-                        log(f"尝试提取模型组件失败: {str(ex)}")
-                        # 从错误日志中尝试确定校正系数
-                        try:
-                            error_text = str(e)
-                            if "bias_correction" in error_text and ":" in error_text:
-                                # 尝试从错误信息中提取数值
-                                import re
-                                numbers = re.findall(r"[-+]?\d*\.\d+|\d+", error_text)
-                                if numbers:
-                                    self.bias_correction = float(numbers[0])
-                                    log(f"从错误中提取偏差校正系数: {self.bias_correction}")
-                                else:
-                                    self.bias_correction = 1.0
-                                    log("无法从错误中提取校正系数，使用默认值")
-                            else:
-                                self.bias_correction = 1.0
-                                log("使用默认偏差校正系数: 1.0")
-                            
-                            # 使用默认的应急pipeline
-                            from sklearn.ensemble import GradientBoostingRegressor
-                            from sklearn.pipeline import Pipeline
-                            from sklearn.preprocessing import RobustScaler
-                            
-                            self.pipeline = Pipeline([
-                                ('scaler', RobustScaler()),
-                                ('model', GradientBoostingRegressor(random_state=42))
-                            ])
-                            
-                            log("创建了应急pipeline，预测可能不准确")
-                            self.model_loaded = True
-                            st.warning("无法加载完整模型，使用了简化版替代。预测结果可能不准确。")
-                            return True
-                        except:
-                            # 如果从错误提取失败，继续抛出原始异常
-                            raise e
-                else:
-                    # 不是bias_corrected_predict相关的错误，重新抛出
-                    raise e
+            except Exception as e:
+                log(f"常规加载失败: {str(e)}")
+                log("尝试使用更安全的方式加载...")
+                
+                # 尝试使用pickle直接加载
+                import pickle
+                with open(self.model_path, 'rb') as f:
+                    model_data = pickle.load(f)
+                log("使用pickle成功加载模型")
             
-            # 检查是否是字典形式
+            # 检查是否是字典形式 - 处理集成模型结构
             if isinstance(model_data, dict):
                 log("检测到保存的模型是字典格式")
-                # 提取pipeline和偏差校正系数
-                if 'pipeline' in model_data:
+                
+                # 检查是否是集成模型
+                if 'main_pipeline' in model_data and 'support_pipeline' in model_data:
+                    log("检测到集成模型结构，包括主模型和支持模型")
+                    self.main_pipeline = model_data['main_pipeline']
+                    self.support_pipeline = model_data['support_pipeline']
+                    self.pipeline = self.main_pipeline  # 兼容旧代码
+                    self.is_ensemble = True
+                    
+                    # 获取校正因子
+                    if 'correction_factors' in model_data:
+                        self.correction_factors = model_data['correction_factors']
+                        log(f"加载了{len(self.correction_factors)}个分段校正因子")
+                    else:
+                        log("未找到分段校正因子，将使用默认校正")
+                        
+                    # 获取值域范围
+                    if 'value_ranges' in model_data:
+                        self.value_ranges = model_data['value_ranges']
+                        log(f"加载了{len(self.value_ranges)}个值域范围")
+                    
+                    # 获取权重
+                    self.main_weight = model_data.get('main_weight', 0.8)
+                    self.support_weight = model_data.get('support_weight', 0.2)
+                    log(f"主模型权重: {self.main_weight}, 支持模型权重: {self.support_weight}")
+                    
+                    self.model_loaded = True
+                    # 将模型保存到缓存
+                    st.session_state.model_cache[self.target_name] = model_data
+                    return True
+                
+                # 处理常规Pipeline模型
+                elif 'pipeline' in model_data:
                     self.pipeline = model_data['pipeline']
                     log("从字典中提取pipeline成功")
                     
@@ -477,12 +529,10 @@ class ModelPredictor:
                         self.bias_correction = 1.0
                         log("未找到偏差校正系数，使用默认值1.0")
                     
+                    self.is_ensemble = False
                     self.model_loaded = True
                     # 将模型保存到缓存中
-                    st.session_state.model_cache[self.target_name] = {
-                        'pipeline': self.pipeline,
-                        'bias_correction': self.bias_correction
-                    }
+                    st.session_state.model_cache[self.target_name] = model_data
                     
                     # 尝试识别Pipeline的组件
                     if hasattr(self.pipeline, 'named_steps'):
@@ -490,7 +540,17 @@ class ModelPredictor:
                         log(f"Pipeline组件: {', '.join(components)}")
                     return True
                 else:
-                    log("模型字典中未找到pipeline键")
+                    log("模型字典中未找到pipeline键或集成模型结构")
+                    # 尝试使用其他键作为pipeline
+                    for key, value in model_data.items():
+                        if hasattr(value, 'predict'):
+                            log(f"使用'{key}'作为pipeline")
+                            self.pipeline = value
+                            self.is_ensemble = False
+                            self.model_loaded = True
+                            st.session_state.model_cache[self.target_name] = {'pipeline': value, 'bias_correction': 1.0}
+                            return True
+                    
                     self.model_loaded = False
                     return False
             # 直接是pipeline对象
@@ -498,6 +558,7 @@ class ModelPredictor:
                 log("加载的是预测器对象")
                 self.pipeline = model_data
                 self.bias_correction = 1.0  # 默认值
+                self.is_ensemble = False
                 self.model_loaded = True
                 st.session_state.model_cache[self.target_name] = {'pipeline': model_data, 'bias_correction': 1.0}
                 return True
@@ -524,23 +585,38 @@ class ModelPredictor:
                     with open(self.model_path, 'rb') as f:
                         pickle_data = f.read()
                     
-                    # 替换缺失函数引用
-                    pickle_data = pickle_data.replace(
-                        b'bias_corrected_predict', 
-                        b'__main__\nbias_corrected_predict'
-                    )
-                    
                     # 使用修改后的数据加载模型
                     import io
                     model_data = pickle.load(io.BytesIO(pickle_data))
                     
-                    if isinstance(model_data, dict) and 'pipeline' in model_data:
-                        self.pipeline = model_data['pipeline']
-                        if 'bias_correction' in model_data:
-                            self.bias_correction = model_data['bias_correction']
-                        log("手动解析模型成功")
-                        self.model_loaded = True
-                        return True
+                    if isinstance(model_data, dict):
+                        # 检查是否是集成模型
+                        if 'main_pipeline' in model_data and 'support_pipeline' in model_data:
+                            log("检测到集成模型结构")
+                            self.main_pipeline = model_data['main_pipeline']
+                            self.support_pipeline = model_data['support_pipeline']
+                            self.pipeline = self.main_pipeline
+                            self.is_ensemble = True
+                            
+                            if 'correction_factors' in model_data:
+                                self.correction_factors = model_data['correction_factors']
+                            if 'value_ranges' in model_data:
+                                self.value_ranges = model_data['value_ranges']
+                            
+                            self.main_weight = model_data.get('main_weight', 0.8)
+                            self.support_weight = model_data.get('support_weight', 0.2)
+                            
+                            log("手动解析集成模型成功")
+                            self.model_loaded = True
+                            return True
+                            
+                        elif 'pipeline' in model_data:
+                            self.pipeline = model_data['pipeline']
+                            if 'bias_correction' in model_data:
+                                self.bias_correction = model_data['bias_correction']
+                            log("手动解析常规模型成功")
+                            self.model_loaded = True
+                            return True
                 except:
                     log("手动解析失败，创建替代模型")
                     self.pipeline = Pipeline([
@@ -548,6 +624,7 @@ class ModelPredictor:
                         ('model', GradientBoostingRegressor(random_state=42))
                     ])
                     self.bias_correction = 1.0
+                    self.is_ensemble = False
                     self.model_loaded = True
                     st.warning("原始模型无法加载，使用了替代模型。预测结果不准确，仅用于演示界面功能。")
                     return True
@@ -621,18 +698,37 @@ class ModelPredictor:
         log(f"准备好的特征，列顺序: {list(df.columns)}")
         return df
     
+    def _check_features_changed(self, features):
+        """检查当前特征是否与上次预测的特征有变化"""
+        if not self.last_features:
+            return True
+            
+        for feature, value in features.items():
+            if feature in self.last_features and abs(self.last_features[feature] - value) > 0.001:
+                return True
+        return False
+    
+    def _apply_ranged_correction(self, prediction):
+        """应用分段校正到单个预测值"""
+        # 这个方法用于单个预测值
+        if not self.correction_factors or not self.value_ranges:
+            return prediction * self.bias_correction
+            
+        # 查找适当的校正因子
+        for low, high in self.value_ranges:
+            if low <= prediction < high:
+                correction = self.correction_factors.get((low, high), self.bias_correction)
+                log(f"对值 {prediction:.2f} 应用范围 {low}-{high} 的校正系数 {correction:.4f}")
+                return prediction * correction
+                
+        # 如果没有匹配的范围，使用默认校正
+        log(f"未找到匹配的校正范围，使用默认系数 {self.bias_correction}")
+        return prediction * self.bias_correction
+    
     def predict(self, features):
-        """预测方法 - 修复后的版本，确保特征名称和顺序正确并应用偏差校正"""
+        """预测方法 - 修复后的版本，支持集成模型和分段校正"""
         # 检查输入是否有变化
-        features_changed = False
-        if self.last_features:
-            for feature, value in features.items():
-                if feature in self.last_features and abs(self.last_features[feature] - value) > 0.001:
-                    features_changed = True
-                    break
-        else:
-            # 第一次预测
-            features_changed = True
+        features_changed = self._check_features_changed(features)
         
         # 如果输入没有变化且有上次结果，直接返回上次结果
         if not features_changed and self.last_result is not None:
@@ -646,29 +742,58 @@ class ModelPredictor:
         log(f"开始准备{len(features)}个特征数据")
         features_df = self._prepare_features(features)
         
-        # 尝试使用Pipeline进行预测
-        if self.model_loaded and self.pipeline is not None:
+        # 尝试使用模型进行预测
+        if self.model_loaded:
             try:
-                log("使用Pipeline模型预测")
-                # 使用Pipeline进行基础预测
-                raw_prediction = self.pipeline.predict(features_df)[0]
+                log("使用模型预测...")
                 
-                # 应用偏差校正系数
-                log(f"应用偏差校正系数: {self.bias_correction}")
-                result = float(raw_prediction * self.bias_correction)
-                log(f"校正后预测结果: {result:.2f} (原始: {raw_prediction:.2f})")
+                # 检查是否是集成模型
+                if self.is_ensemble and self.main_pipeline is not None and self.support_pipeline is not None:
+                    log("检测到集成模型，使用主模型和支持模型进行预测")
+                    
+                    # 获取两个模型的预测
+                    main_preds = self.main_pipeline.predict(features_df)[0]
+                    support_preds = self.support_pipeline.predict(features_df)[0]
+                    
+                    # 组合预测结果
+                    raw_prediction = main_preds * self.main_weight + support_preds * self.support_weight
+                    log(f"主模型预测: {main_preds:.2f}, 支持模型预测: {support_preds:.2f}, 加权组合: {raw_prediction:.2f}")
+                    
+                    # 应用分段校正
+                    if self.correction_factors and self.value_ranges:
+                        result = self._apply_ranged_correction(raw_prediction)
+                        log(f"分段校正后结果: {result:.2f}")
+                    else:
+                        # 应用全局偏差校正
+                        result = raw_prediction * self.bias_correction
+                        log(f"全局校正后结果: {result:.2f}")
+                else:
+                    # 使用单一模型
+                    log("使用单一模型预测")
+                    raw_prediction = self.pipeline.predict(features_df)[0]
+                    result = raw_prediction * self.bias_correction
+                    log(f"校正后预测结果: {result:.2f} (原始: {raw_prediction:.2f})")
                 
                 self.last_result = result
                 return result
+                
             except Exception as e:
-                log(f"Pipeline预测失败: {str(e)}")
+                log(f"预测失败: {str(e)}")
                 log(traceback.format_exc())
                 # 如果失败，尝试重新加载
                 if self._load_pipeline():
                     try:
-                        # 再次尝试预测
-                        raw_prediction = self.pipeline.predict(features_df)[0]
-                        result = float(raw_prediction * self.bias_correction)
+                        log("重新加载模型成功，再次尝试预测")
+                        # 根据模型类型选择预测方法
+                        if self.is_ensemble:
+                            main_preds = self.main_pipeline.predict(features_df)[0]
+                            support_preds = self.support_pipeline.predict(features_df)[0]
+                            raw_prediction = main_preds * self.main_weight + support_preds * self.support_weight
+                            result = self._apply_ranged_correction(raw_prediction)
+                        else:
+                            raw_prediction = self.pipeline.predict(features_df)[0]
+                            result = raw_prediction * self.bias_correction
+                        
                         log(f"重新加载后预测结果: {result:.2f}")
                         self.last_result = result
                         return result
@@ -682,15 +807,41 @@ class ModelPredictor:
     def get_model_info(self):
         """获取模型信息摘要"""
         info = {
-            "模型类型": "GBDT集成模型",
+            "模型类型": "GBDT集成模型" if self.is_ensemble else "GBDT模型",
             "目标变量": self.target_name,
             "特征数量": len(self.feature_names),
-            "模型状态": "已加载" if self.model_loaded else "未加载",
-            "偏差校正系数": f"{self.bias_correction:.4f}"
+            "模型状态": "已加载" if self.model_loaded else "未加载"
         }
         
-        if self.model_loaded and self.pipeline is not None:
-            if hasattr(self.pipeline, 'named_steps'):
+        if self.is_ensemble:
+            info["模型结构"] = "集成模型 (主模型 + 支持模型)"
+            info["主模型权重"] = f"{self.main_weight:.2f}"
+            info["支持模型权重"] = f"{self.support_weight:.2f}"
+            
+            if self.correction_factors:
+                info["校正方式"] = f"分段校正 ({len(self.correction_factors)}个范围)"
+            else:
+                info["校正方式"] = f"全局校正 (系数:{self.bias_correction:.4f})"
+        else:
+            info["偏差校正系数"] = f"{self.bias_correction:.4f}"
+        
+        if self.model_loaded:
+            if self.is_ensemble and hasattr(self.main_pipeline, 'named_steps'):
+                pipeline_steps = list(self.main_pipeline.named_steps.keys())
+                info["Pipeline组件"] = ", ".join(pipeline_steps)
+                
+                # 如果有模型组件，显示其参数
+                if 'model' in self.main_pipeline.named_steps:
+                    model = self.main_pipeline.named_steps['model']
+                    model_type = type(model).__name__
+                    info["回归器类型"] = model_type
+                    
+                    # 显示部分关键超参数
+                    if hasattr(model, 'n_estimators'):
+                        info["树的数量"] = model.n_estimators
+                    if hasattr(model, 'max_depth'):
+                        info["最大深度"] = model.max_depth
+            elif not self.is_ensemble and hasattr(self.pipeline, 'named_steps'):
                 pipeline_steps = list(self.pipeline.named_steps.keys())
                 info["Pipeline组件"] = ", ".join(pipeline_steps)
                 
@@ -954,11 +1105,14 @@ if st.session_state.prediction_result is not None:
     
     # 显示预测信息
     with st.expander("预测信息", expanded=False):
+        model_type = "集成模型 (主模型+支持模型)" if predictor.is_ensemble else "单一模型"
+        correction_info = f"分段校正 ({len(predictor.correction_factors) if predictor.correction_factors else 0}个范围)" if predictor.is_ensemble and predictor.correction_factors else f"全局校正系数: {predictor.bias_correction:.4f}"
+        
         st.markdown(f"""
         - **目标变量:** {st.session_state.selected_model}
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
-        - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "未能加载模型"}
-        - **偏差校正系数:** {predictor.bias_correction:.4f}
+        - **模型类型:** {model_type}
+        - **校正方式:** {correction_info}
         """)
     
     # 技术说明部分 - 使用折叠式展示
@@ -996,7 +1150,7 @@ elif st.session_state.prediction_error is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 5.1.0</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 5.2.0</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
