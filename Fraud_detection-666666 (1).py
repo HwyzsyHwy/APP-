@@ -14,6 +14,30 @@ import joblib
 import traceback
 import matplotlib.pyplot as plt
 from datetime import datetime
+from sklearn.base import BaseEstimator, RegressorMixin
+
+# 添加与训练代码相同的偏差校正类，确保模型加载时能够识别
+class BiasCorrector(BaseEstimator, RegressorMixin):
+    """基于平均预测偏差的校正器"""
+    def __init__(self, base_model):
+        self.base_model = base_model
+        self.correction_factor = 1.0  # 默认为1，不校正
+        
+    def fit(self, X, y):
+        # 训练基础模型
+        self.base_model.fit(X, y.ravel() if hasattr(y, 'ravel') else y)
+        
+        # 计算乘法校正因子 (真实值/预测值的平均比率)
+        base_predictions = self.base_model.predict(X)
+        ratios = y.ravel() / base_predictions
+        # 使用中位数避免异常值影响
+        self.correction_factor = np.median(ratios)
+        return self
+        
+    def predict(self, X):
+        # 先用基础模型预测，然后乘以校正因子
+        predictions = self.base_model.predict(X)
+        return predictions * self.correction_factor
 
 # 清除缓存，强制重新渲染
 st.cache_data.clear()
@@ -209,6 +233,7 @@ def log(message):
 log("应用启动 - 修改版本")
 log("已修复特征名称和列顺序问题")
 log("已移除O(wt%)特征")
+log("已添加偏差校正器")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -379,6 +404,10 @@ class ModelPredictor:
                 if hasattr(self.pipeline, 'named_steps'):
                     components = list(self.pipeline.named_steps.keys())
                     log(f"Pipeline组件: {', '.join(components)}")
+                    
+                    # 检查模型是否包含偏差校正
+                    if 'model' in self.pipeline.named_steps and hasattr(self.pipeline.named_steps['model'], 'correction_factor'):
+                        log(f"检测到偏差校正，校正因子: {self.pipeline.named_steps['model'].correction_factor:.4f}")
                     
                     # 检查模型是否包含feature_names_in_属性
                     if 'scaler' in self.pipeline.named_steps:
@@ -770,10 +799,14 @@ with col1:
             st.session_state.prediction_error = str(e)
             log(f"预测错误: {str(e)}")
             log(traceback.format_exc())
-            st.error(f"预测过程中发生错误: {str(e)}")
+            st.error(f"预测失败: {str(e)}")
+        
+        # 添加重新运行以更新UI
+        st.rerun()
 
 with col2:
-    if st.button("🔄 重置输入", use_container_width=True):
+    clear_clicked = st.button("🔄 重置输入", use_container_width=True)
+    if clear_clicked:
         log("重置所有输入值")
         st.session_state.clear_pressed = True
         st.session_state.prediction_result = None
@@ -781,106 +814,147 @@ with col2:
         st.session_state.prediction_error = None
         st.rerun()
 
-# 显示预测结果
-if st.session_state.prediction_result is not None:
-    st.markdown("---")
-    
-    # 显示主预测结果
-    result_container.markdown(f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>", unsafe_allow_html=True)
-    
-    # 显示模型信息
-    if not predictor.model_loaded:
-        result_container.markdown(
-            "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查模型文件是否存在。</div>", 
-            unsafe_allow_html=True
-        )
-    
-    # 显示警告
-    if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b>⚠️ 警告：部分输入可能影响预测精度</b><ul>"
-        for warning in st.session_state.warnings:
-            warnings_html += f"<li>{warning}</li>"
-        warnings_html += "</ul><p>请根据提示调整输入值以获得更准确的预测。</p></div>"
-        result_container.markdown(warnings_html, unsafe_allow_html=True)
-    
-    # 显示预测信息
-    with st.expander("预测信息", expanded=False):
-        st.markdown(f"""
-        - **目标变量:** {st.session_state.selected_model}
-        - **预测结果:** {st.session_state.prediction_result:.2f} wt%
-        - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "未能加载模型"}
-        """)
-        
-        # 显示偏差校正信息（如果存在）
-        if predictor.model_loaded and hasattr(predictor.pipeline, 'named_steps'):
-            if 'model' in predictor.pipeline.named_steps:
-                model = predictor.pipeline.named_steps['model']
-                if hasattr(model, 'correction_factor'):
-                    st.markdown(f"""
-                    - **偏差校正:** 已启用
-                    - **校正因子:** {model.correction_factor:.4f}
-                    """)
-    
-    # 技术说明部分 - 使用折叠式展示
-    with st.expander("技术说明", expanded=False):
-        st.markdown("""
-        <div class='tech-info'>
-        <p>本模型基于GBDT（梯度提升决策树）算法创建，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
-        
-        <p><b>特别提醒：</b></p>
+# 显示警告
+if st.session_state.warnings:
+    warning_html = """
+    <div class="warning-box">
+        <h4 style="color: orange; margin-top: 0;">⚠️ 警告</h4>
+        <p>以下输入值超出训练范围或可能存在逻辑错误，可能影响预测准确性:</p>
         <ul>
-            <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
-            <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
-            <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
-            <li>模型已针对外部验证数据进行了优化，提高了泛化性能</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
-
-elif st.session_state.prediction_error is not None:
-    st.markdown("---")
-    error_html = f"""
-    <div class='error-box'>
-        <h3>预测失败</h3>
-        <p>{st.session_state.prediction_error}</p>
-        <p>请检查：</p>
-        <ul>
-            <li>确保模型文件 (.joblib) 存在于正确位置</li>
-            <li>确保输入数据符合模型要求</li>
-            <li>检查FC(wt%)是否满足 100-Ash(wt%)-VM(wt%) 约束</li>
+    """
+    for warning in st.session_state.warnings:
+        warning_html += f"<li>{warning}</li>"
+    warning_html += """
         </ul>
     </div>
     """
+    st.markdown(warning_html, unsafe_allow_html=True)
+
+# 显示预测结果
+if st.session_state.prediction_result is not None:
+    # 格式化结果以及单位
+    target_name = st.session_state.selected_model.split(" ")[0]
+    target_unit = "wt%"
+    formatted_result = f"{st.session_state.prediction_result:.2f}"
+    
+    # 使用expandable section
+    with st.expander("📊 预测信息", expanded=True):
+        # 基本结果显示
+        st.markdown(f"""
+        <div style="text-align: center; margin: 10px 0;">
+            <h3>预测目标: {target_name} Yield ({target_unit})</h3>
+            <div class="yield-result">{formatted_result} {target_unit}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 显示详细预测信息
+        info_cols = st.columns(2)
+        with info_cols[0]:
+            st.markdown("<h4>模型详情</h4>", unsafe_allow_html=True)
+            if predictor.model_path:
+                st.write(f"模型文件: {os.path.basename(predictor.model_path)}")
+            else:
+                st.write("模型文件: 从缓存加载")
+            
+            # 获取并显示模型类型和版本
+            model_info = predictor.get_model_info()
+            st.write(f"模型类型: {model_info.get('模型类型', 'GBDT')}")
+            if "偏差校正因子" in model_info:
+                st.write(f"偏差校正: 是 (因子 = {model_info['偏差校正因子']})")
+            else:
+                st.write("偏差校正: 否")
+        
+        with info_cols[1]:
+            st.markdown("<h4>提示</h4>", unsafe_allow_html=True)
+            st.write("• 结果单位为重量百分比 (wt%)")
+            if st.session_state.warnings:
+                st.write("• ⚠️ 存在可能影响准确性的警告")
+            else:
+                st.write("• ✅ 所有输入值在模型训练范围内")
+            st.write("• 结果不考虑实验效率和损失")
+
+# 在预测失败时显示错误信息
+if st.session_state.prediction_error:
+    error_html = """
+    <div class="error-box">
+        <h4 style="color: red; margin-top: 0;">❌ 预测失败</h4>
+        <p><b>错误信息:</b> {}</p>
+        <p>请检查:</p>
+        <ul>
+            <li>模型文件是否存在于正确位置</li>
+            <li>输入数据是否合理</li>
+            <li>FC(wt%) + Ash(wt%) + VM(wt%) 是否约等于 100%</li>
+        </ul>
+    </div>
+    """.format(st.session_state.prediction_error)
     st.markdown(error_html, unsafe_allow_html=True)
 
-# 添加自动计算FC(wt%)的功能
-with st.expander("辅助计算器", expanded=False):
-    st.markdown("### FC(wt%) 自动计算器")
-    st.markdown("根据物质平衡原理，固定碳(FC)可以通过以下公式计算：")
-    st.markdown("**FC(wt%) = 100 - Ash(wt%) - VM(wt%)**")
+# 技术说明部分
+with st.expander("📘 技术说明", expanded=False):
+    st.markdown("""
+    <div class="tech-info">
+        <h3>模型说明</h3>
+        <p>本模型基于梯度提升决策树 (GBDT) 算法构建，用于生物质热解产物产率预测。</p>
+        
+        <h4>输入要求</h4>
+        <ul>
+            <li><b>近似分析 (Proximate Analysis):</b> 水分、灰分、挥发分和固定碳含量 (wt%)</li>
+            <li><b>元素分析 (Ultimate Analysis):</b> 碳、氢、氮元素含量 (wt%)</li>
+            <li><b>热解条件 (Pyrolysis Conditions):</b> 粒径、样品质量、最终温度、升温速率、载气流速和停留时间</li>
+        </ul>
+        
+        <h4>重要提示</h4>
+        <ul>
+            <li>输入值最好在模型的训练范围内，超出范围可能导致预测准确性下降</li>
+            <li>注意固定碳 (FC)、灰分 (Ash) 和挥发分 (VM) 应满足: FC + Ash + VM ≈ 100%</li>
+            <li>模型预测值为理论产率，实际生产中需考虑工艺效率和产物收集效率</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 添加FC自动计算器
+with st.expander("🧮 FC(wt%) 计算器", expanded=False):
+    st.markdown("""
+    <p>固定碳含量可通过以下公式计算: FC(wt%) = 100% - Ash(wt%) - VM(wt%)</p>
+    <p>使用此工具自动计算并更新FC值:</p>
+    """, unsafe_allow_html=True)
     
-    if st.button("计算FC值并更新"):
-        # 从当前输入获取灰分和挥发分
-        if 'Ash(wt%)' in features and 'VM(wt%)' in features:
-            calculated_fc = 100 - features['Ash(wt%)'] - features['VM(wt%)']
-            calculated_fc = max(0, round(calculated_fc, 2))  # 避免负值，并四舍五入到小数点后两位
-            
-            # 更新会话状态中的FC值
-            for category in feature_categories:
-                if 'FC(wt%)' in feature_categories[category]:
-                    feature_key = f"{category}_FC(wt%)"
-                    st.session_state[feature_key] = calculated_fc
-                    
-            st.success(f"FC(wt%)已更新为: {calculated_fc:.2f}，请刷新页面查看更新后的值")
-            log(f"自动计算FC(wt%): 100 - {features['Ash(wt%)']:.2f} - {features['VM(wt%)']:.2f} = {calculated_fc:.2f}")
-        else:
-            st.error("无法计算FC值，请确保已输入Ash(wt%)和VM(wt%)值")
+    # 创建两列布局用于FC计算器
+    fc_col1, fc_col2 = st.columns([3, 1])
+    
+    with fc_col1:
+        # 显示当前值
+        st.markdown(f"""
+        <div style="margin-bottom: 10px;">
+            <p><b>当前值:</b> Ash = {features['Ash(wt%)']:.2f}%, VM = {features['VM(wt%)']:.2f}%, FC = {features['FC(wt%)']:.2f}%</p>
+            <p><b>计算值:</b> FC = 100% - {features['Ash(wt%)']:.2f}% - {features['VM(wt%)']:.2f}% = {100-features['Ash(wt%)']-features['VM(wt%)']:.2f}%</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with fc_col2:
+        # 添加计算按钮
+        calculate_fc = st.button("更新FC值", key="calculate_fc")
+    
+    if calculate_fc:
+        # 计算FC值
+        log("自动计算FC(wt%)值")
+        new_fc = 100 - features['Ash(wt%)'] - features['VM(wt%)']
+        
+        # 更新会话状态中的FC值
+        st.session_state.feature_values['FC(wt%)'] = new_fc
+        
+        # 显示更新消息
+        st.success(f"已更新FC(wt%)值为: {new_fc:.2f}%")
+        
+        # 用于自动重新渲染页面
+        st.rerun()
 
 # 添加页脚
-st.markdown("---")
-footer = """
-<div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 5.2.0</p>
+st.markdown("""
+<div style="text-align: center; margin-top: 30px; padding: 10px; border-top: 1px solid #555;">
+    <p style="color: #888; font-size: 14px;">
+        © 2023-2024 Biomass Pyrolysis Product Yield Prediction System 
+        <br>版本 2.0.1-修正版 (April 2024)
+    </p>
 </div>
-"""
-st.markdown(footer, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
