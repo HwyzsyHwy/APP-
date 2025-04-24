@@ -271,7 +271,7 @@ st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.s
 st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
-    """优化的预测器类 - 修复特征名称和顺序问题"""
+    """优化的预测器类 - 适配修改后的训练模型"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
@@ -494,7 +494,7 @@ class ModelPredictor:
         if self.model_loaded and self.pipeline is not None:
             try:
                 log("使用Pipeline模型预测")
-                # 直接使用Pipeline进行预测，包含所有预处理步骤
+                # 直接使用Pipeline进行预测，包含所有预处理步骤和偏差校正
                 result = float(self.pipeline.predict(features_df)[0])
                 log(f"Pipeline预测结果: {result:.2f}")
                 self.last_result = result
@@ -540,11 +540,21 @@ class ModelPredictor:
                     model_type = type(model).__name__
                     info["回归器类型"] = model_type
                     
-                    # 显示部分关键超参数
-                    if hasattr(model, 'n_estimators'):
+                    # 显示是否使用了偏差校正
+                    if hasattr(model, 'correction_factor'):
+                        info["偏差校正因子"] = f"{model.correction_factor:.4f}"
+                    
+                    # 基础模型的超参数
+                    if hasattr(model, 'base_model'):
+                        base_model = model.base_model
+                        if hasattr(base_model, 'n_estimators'):
+                            info["树的数量"] = base_model.n_estimators
+                        if hasattr(base_model, 'max_depth'):
+                            info["最大深度"] = base_model.max_depth
+                    elif hasattr(model, 'n_estimators'):  # 直接是基础模型的情况
                         info["树的数量"] = model.n_estimators
-                    if hasattr(model, 'max_depth'):
-                        info["最大深度"] = model.max_depth
+                        if hasattr(model, 'max_depth'):
+                            info["最大深度"] = model.max_depth
                     
         return info
 
@@ -800,6 +810,16 @@ if st.session_state.prediction_result is not None:
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
         - **使用模型:** {"Pipeline模型" if predictor.model_loaded else "未能加载模型"}
         """)
+        
+        # 显示偏差校正信息（如果存在）
+        if predictor.model_loaded and hasattr(predictor.pipeline, 'named_steps'):
+            if 'model' in predictor.pipeline.named_steps:
+                model = predictor.pipeline.named_steps['model']
+                if hasattr(model, 'correction_factor'):
+                    st.markdown(f"""
+                    - **偏差校正:** 已启用
+                    - **校正因子:** {model.correction_factor:.4f}
+                    """)
     
     # 技术说明部分 - 使用折叠式展示
     with st.expander("技术说明", expanded=False):
@@ -812,6 +832,7 @@ if st.session_state.prediction_result is not None:
             <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
             <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
             <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
+            <li>模型已针对外部验证数据进行了优化，提高了泛化性能</li>
         </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -832,14 +853,34 @@ elif st.session_state.prediction_error is not None:
     """
     st.markdown(error_html, unsafe_allow_html=True)
 
+# 添加自动计算FC(wt%)的功能
+with st.expander("辅助计算器", expanded=False):
+    st.markdown("### FC(wt%) 自动计算器")
+    st.markdown("根据物质平衡原理，固定碳(FC)可以通过以下公式计算：")
+    st.markdown("**FC(wt%) = 100 - Ash(wt%) - VM(wt%)**")
+    
+    if st.button("计算FC值并更新"):
+        # 从当前输入获取灰分和挥发分
+        if 'Ash(wt%)' in features and 'VM(wt%)' in features:
+            calculated_fc = 100 - features['Ash(wt%)'] - features['VM(wt%)']
+            calculated_fc = max(0, round(calculated_fc, 2))  # 避免负值，并四舍五入到小数点后两位
+            
+            # 更新会话状态中的FC值
+            for category in feature_categories:
+                if 'FC(wt%)' in feature_categories[category]:
+                    feature_key = f"{category}_FC(wt%)"
+                    st.session_state[feature_key] = calculated_fc
+                    
+            st.success(f"FC(wt%)已更新为: {calculated_fc:.2f}，请刷新页面查看更新后的值")
+            log(f"自动计算FC(wt%): 100 - {features['Ash(wt%)']:.2f} - {features['VM(wt%)']:.2f} = {calculated_fc:.2f}")
+        else:
+            st.error("无法计算FC值，请确保已输入Ash(wt%)和VM(wt%)值")
+
 # 添加页脚
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 5.1.1</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 5.2.0</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
-
-
-
