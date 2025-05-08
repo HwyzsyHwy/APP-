@@ -260,6 +260,7 @@ class ModelPredictor:
     
     def __init__(self, target_model="Cd2+—AC"):
         self.target_name = target_model
+        self.model_path = None  # 初始化model_path属性
         
         # 定义正确的特征顺序（与训练时一致）
         self.feature_names = [
@@ -529,10 +530,10 @@ default_values = {
     "CAR/g/L": 1.0
 }
 
-# 特征分类 - 分为三组但不显示标签
+# 特征分类 - 将T/℃移到第二列开头
 feature_categories = {
-    "Group1": ["FT/℃", "RT/min", "T/℃"],
-    "Group2": ["TIME/min", "pH"],
+    "Group1": ["FT/℃", "RT/min"],
+    "Group2": ["T/℃", "TIME/min", "pH"],
     "Group3": ["C0/mg/L", "CAR/g/L"]
 }
 
