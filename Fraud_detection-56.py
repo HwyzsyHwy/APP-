@@ -492,10 +492,10 @@ default_values = {
     "CAR/g/L": 1.0
 }
 
-# 特征分类 - 分为三组但不显示标签
+# 特征分类 - 将T/℃移到第二列
 feature_categories = {
-    "Group1": ["FT/℃", "RT/min", "T/℃"],
-    "Group2": ["TIME/min", "pH"],
+    "Group1": ["FT/℃", "RT/min"],
+    "Group2": ["T/℃", "TIME/min", "pH"],
     "Group3": ["C0/mg/L", "CAR/g/L"]
 }
 
