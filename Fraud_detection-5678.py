@@ -262,10 +262,17 @@ class ModelPredictor:
         self.target_name = target_model
         self.model_path = None  # 初始化model_path属性
         
-        # 定义正确的特征顺序（与训练时一致）
-        self.feature_names = [
-            'FT/℃', 'RT/min', 'T/℃', 'TIME/min', 'pH', 'C0/mg/L', 'CAR/g/L'
-        ]
+        # 定义各模型的特征列
+        self.feature_names = {
+            "Cd2+—AC": ['FT/℃', 'RT/min', 'T/℃', 'TIME/min', 'pH', 'C0/mg/L', 'CAR/g/L'],
+            "TC—AC": ['FT/℃', 'RT/min', 'T/℃', 'TIME/min', 'pH', 'C0/mg/L', 'CAR/g/L']
+        }
+        
+        # 为TC模型添加训练时的unnamed列
+        self.additional_columns = {
+            "Cd2+—AC": [],
+            "TC—AC": ['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4', 'Unnamed: 5', 'Unnamed: 11']
+        }
         
         # 定义UI到模型的特征映射关系 - 暂无需映射
         self.ui_to_model_mapping = {}
@@ -394,13 +401,16 @@ class ModelPredictor:
     
     def _prepare_features(self, features):
         """准备特征，处理特征名称映射和顺序"""
+        # 获取当前模型的特征名列表
+        current_feature_names = self.feature_names.get(self.target_name, [])
+        
         # 创建一个空的DataFrame，所有特征初始化为0
-        model_features = {feature: 0.0 for feature in self.feature_names}
+        model_features = {feature: 0.0 for feature in current_feature_names}
         
         # 首先将UI特征映射到模型特征名称
         for ui_feature, value in features.items():
             model_feature = self.ui_to_model_mapping.get(ui_feature, ui_feature)
-            if model_feature in self.feature_names:
+            if model_feature in current_feature_names:
                 model_features[model_feature] = value
                 if ui_feature != model_feature:
                     log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
@@ -409,7 +419,14 @@ class ModelPredictor:
         df = pd.DataFrame([model_features])
         
         # 确保列顺序与训练时一致
-        df = df[self.feature_names]
+        df = df[current_feature_names]
+        
+        # 如果是TC模型，添加额外需要的unnamed columns
+        if self.target_name == "TC—AC":
+            # 添加TC模型需要的额外特殊列
+            for col in self.additional_columns.get(self.target_name, []):
+                df[col] = 0.0  # 用0值填充这些列
+            log(f"为TC模型添加了额外的列: {self.additional_columns.get(self.target_name, [])}")
         
         log(f"准备好的特征，列顺序: {list(df.columns)}")
         return df
@@ -471,7 +488,7 @@ class ModelPredictor:
         info = {
             "模型类型": "XGBoost集成模型",
             "目标变量": self.target_name,
-            "特征数量": len(self.feature_names),
+            "特征数量": len(self.feature_names.get(self.target_name, [])),
             "模型状态": "已加载" if self.model_loaded else "未加载"
         }
         
