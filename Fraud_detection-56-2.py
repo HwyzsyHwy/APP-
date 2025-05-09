@@ -218,12 +218,7 @@ if 'model_cache' not in st.session_state:
 # 更新主标题以显示TC预测系统
 st.markdown("<h1 class='main-title'>TC吸附容量预测系统 (基于XGBoost模型)</h1>", unsafe_allow_html=True)
 
-# 添加TC预测系统的说明
-st.markdown("""
-<div style='text-align:center; padding: 10px; margin-bottom: 20px; background-color: #2E2E2E; border-radius: 10px;'>
-    <p>本系统专注于预测四环素(TC)的吸附容量(mg/g)，基于XGBoost机器学习模型构建</p>
-</div>
-""", unsafe_allow_html=True)
+# 原来的标题文字已被移除
 
 class ModelPredictor:
     """优化的预测器类 - 适用于TC吸附模型"""
