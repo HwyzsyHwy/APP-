@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-TC吸附容量预测系统 基于XGBoost机器学习模型
+TC吸附容量预测系统 基于随机森林机器学习模型
 专注于TC的吸附容量预测
 """
 
@@ -205,7 +205,7 @@ def log(message):
     )
 
 # 记录启动日志
-log("TC吸附预测应用启动 - XGBoost模型版本")
+log("TC吸附预测应用启动 - 随机森林模型版本")
 log("已加载TC的吸附容量预测模型")
 
 # 设置固定的模型为TC-AC
@@ -216,9 +216,7 @@ if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
     
 # 更新主标题以显示TC预测系统
-st.markdown("<h1 class='main-title'>TC吸附容量预测系统 (基于XGBoost模型)</h1>", unsafe_allow_html=True)
-
-# 原来的标题文字已被移除
+st.markdown("<h1 class='main-title'>TC吸附容量预测系统 (基于随机森林模型)</h1>", unsafe_allow_html=True)
 
 class ModelPredictor:
     """优化的预测器类 - 适用于TC吸附模型"""
@@ -260,8 +258,8 @@ class ModelPredictor:
         
     def _find_model_file(self):
         """查找模型文件 - 更新后的版本"""
-        # 为TC模型设置文件名
-        filenames = ["XGBoost-TC-model.joblib"]
+        # 为TC模型设置正确的文件名 - 使用随机森林模型
+        filenames = ["RF-TC-model.joblib"]
         
         # 尝试常见的模型文件名和路径
         search_dirs = [".", "./models", "../models", "/app/models", "/app"]
@@ -394,7 +392,7 @@ class ModelPredictor:
     def get_model_info(self):
         """获取模型信息摘要"""
         info = {
-            "模型类型": "XGBoost集成模型",
+            "模型类型": "随机森林集成模型",
             "目标变量": self.target_name,
             "特征数量": len(self.feature_names),
             "模型状态": "已加载" if self.model_loaded else "未加载"
@@ -642,7 +640,7 @@ elif st.session_state.prediction_error is not None:
         <p>{st.session_state.prediction_error}</p>
         <p>请检查：</p>
         <ul>
-            <li>确保模型文件 (XGBoost-TC-model.joblib) 存在于正确位置</li>
+            <li>确保模型文件 (RF-TC-model.joblib) 存在于正确位置</li>
             <li>确保输入数据符合模型要求</li>
             <li>检查输入值是否在合理范围内</li>
         </ul>
