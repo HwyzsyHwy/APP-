@@ -215,8 +215,8 @@ target_model = "TC—AC"
 if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
     
-# 更新主标题以显示TC预测系统
-st.markdown("<h1 class='main-title'>TC吸附容量预测系统 (基于随机森林模型)</h1>", unsafe_allow_html=True)
+# 更新主标题以显示TC预测系统 - 这里将"随机森林"改为"RF"
+st.markdown("<h1 class='main-title'>TC吸附容量预测系统 (基于RF模型)</h1>", unsafe_allow_html=True)
 
 class ModelPredictor:
     """优化的预测器类 - 适用于TC吸附模型"""
