@@ -190,8 +190,8 @@ log("已加载Cd2+的吸附容量预测模型")
 if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
     
-# 更新主标题以显示Cd2+预测任务
-st.markdown("<h1 class='main-title'>基于XGBoost集成模型的Cd2+吸附容量预测系统</h1>", unsafe_allow_html=True)
+# 更新主标题以显示Cd2+预测任务 - 修改后的标题
+st.markdown("<h1 class='main-title'>Cd2+吸附容量预测系统 (基于XGBoost模型)</h1>", unsafe_allow_html=True)
 
 class ModelPredictor:
     """优化的预测器类 - 适用于Cd2+吸附模型"""
@@ -549,7 +549,7 @@ with col1:
         # 保存当前输入到会话状态
         st.session_state.feature_values = features.copy()
         
-        log("开始Cd2+—AC预测，输入特征数: {len(features)}")
+        log(f"开始Cd2+—AC预测，输入特征数: {len(features)}")
         
         # 执行预测
         try:
