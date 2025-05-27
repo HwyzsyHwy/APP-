@@ -3,17 +3,19 @@
 Biomass Pyrolysis Yield Forecast using Multiple Ensemble Models
 完全修复版本 - 支持Stacking和CatBoost+XGBoost模型混合使用
 支持Char、Oil和Gas产率预测
+从GitHub直接下载模型文件
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-import glob
 import joblib
 import traceback
 import matplotlib.pyplot as plt
 from datetime import datetime
+import requests
+import tempfile
 
 # 清除缓存，强制重新渲染
 st.cache_data.clear()
@@ -176,6 +178,15 @@ st.markdown(
         border-radius: 8px;
         margin-top: 20px;
     }
+    
+    /* 下载进度样式 */
+    .download-progress {
+        background-color: #2E2E2E;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+        text-align: center;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -206,7 +217,7 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 完全修复版本")
+log("应用启动 - GitHub模型下载版本")
 log("支持Stacking和CatBoost+XGBoost模型混合使用")
 
 # 初始化会话状态 - 添加模型选择功能
@@ -277,7 +288,7 @@ st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.s
 st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
-    """完全修复的预测器类 - 支持Stacking和CatBoost+XGBoost模型混合使用"""
+    """完全修复的预测器类 - 支持从GitHub下载模型文件"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
@@ -285,6 +296,15 @@ class ModelPredictor:
         self.pipeline = None
         self.model_loaded = False
         self.model_path = None
+        
+        # GitHub仓库配置 - 请替换为你的实际仓库信息
+        self.github_config = {
+            "base_url": "https://raw.githubusercontent.com/your-username/your-repo/main/models",
+            "backup_urls": [
+                "https://huggingface.co/your-username/your-models/resolve/main",
+                "https://github.com/your-username/your-repo/releases/download/v1.0"
+            ]
+        }
         
         # 定义正确的特征顺序（与训练时一致）
         self.feature_names = [
@@ -312,7 +332,7 @@ class ModelPredictor:
         self._initialize_model()
     
     def _initialize_model(self):
-        """初始化模型 - 先尝试从缓存加载，否则从文件加载"""
+        """初始化模型 - 先尝试从缓存加载，否则从GitHub下载"""
         log(f"初始化{self.target_name}模型")
         
         # 尝试从缓存加载
@@ -320,17 +340,17 @@ class ModelPredictor:
             log(f"从缓存成功加载{self.target_name}模型，类型: {self.model_type}")
             return
         
-        # 缓存中没有，从文件加载
-        log(f"缓存中未找到{self.target_name}模型，开始从文件加载")
-        self.model_path = self._find_model_file()
+        # 缓存中没有，从GitHub下载
+        log(f"缓存中未找到{self.target_name}模型，开始从GitHub下载")
+        self.model_path = self._download_model_from_github()
         if self.model_path:
             if self._load_pipeline():
                 self._save_to_cache()
-                log(f"成功加载并缓存{self.target_name}模型，类型: {self.model_type}")
+                log(f"成功下载并缓存{self.target_name}模型，类型: {self.model_type}")
             else:
                 log(f"加载{self.target_name}模型失败")
         else:
-            log(f"未找到{self.target_name}模型文件")
+            log(f"未能从GitHub下载{self.target_name}模型文件")
     
     def _load_from_cache(self):
         """从缓存中加载模型"""
@@ -351,86 +371,132 @@ class ModelPredictor:
                 'type': self.model_type
             }
             log(f"模型已保存到缓存: {self.target_name} ({self.model_type})")
-        
-    def _find_model_file(self):
-        """查找模型文件 - 优先查找Stacking，然后查找其他类型"""
-        # 为不同产率目标设置不同的模型文件和路径
-        model_folders = {
-            "Char Yield": ["炭产率", "char"],
-            "Oil Yield": ["油产率", "oil"],
-            "Gas Yield": ["气产率", "gas"] 
+    
+    def _download_model_from_github(self):
+        """从GitHub下载模型文件"""
+        # 为不同产率目标设置不同的模型文件名
+        model_files = {
+            "Char Yield": [
+                "Stacking-CatBoost-XGBoost-Char-improved.joblib",
+                "CatBoost-Char-improved.joblib", 
+                "XGBoost-Char-improved.joblib",
+                "Char-model.joblib"
+            ],
+            "Oil Yield": [
+                "Stacking-CatBoost-XGBoost-Oil-improved.joblib",
+                "CatBoost-Oil-improved.joblib",
+                "XGBoost-Oil-improved.joblib", 
+                "Oil-model.joblib"
+            ],
+            "Gas Yield": [
+                "Stacking-CatBoost-XGBoost-Gas-improved.joblib",
+                "CatBoost-Gas-improved.joblib",
+                "XGBoost-Gas-improved.joblib",
+                "Gas-model.joblib"
+            ]
         }
         
-        # 获取基本名称和文件夹
-        model_id = self.target_name.split(" ")[0].lower()
-        folders = model_folders.get(self.target_name, ["", model_id.lower()])
+        # 获取当前模型的文件列表
+        target_files = model_files.get(self.target_name, [])
         
-        # 定义搜索路径 - 更新为最终-5.10
-        base_paths = [
-            ".",
-            "./models",
-            "../models", 
-            "/app/models",
-            "/app",
-            "C:/Users/HWY/Desktop/最终-5.10",
-            "Users/HWY/Desktop/最终-5.10"
-        ]
+        log(f"开始从GitHub下载{self.target_name}模型文件...")
         
-        # 添加特定文件夹路径
-        search_dirs = base_paths.copy()
-        for folder in folders:
-            if folder:  # 只添加非空文件夹名
-                for base_path in base_paths:
-                    search_dirs.extend([
-                        f"{base_path}/{folder}",
-                        f"{base_path}\\{folder}"
-                    ])
+        # 显示下载进度
+        progress_placeholder = st.empty()
         
-        # 在所有可能的目录中搜索模型文件
-        log(f"搜索{self.target_name}模型文件...")
+        # 尝试主要下载源
+        for i, filename in enumerate(target_files):
+            progress_placeholder.markdown(
+                f"<div class='download-progress'>正在下载模型 {i+1}/{len(target_files)}: {filename}</div>", 
+                unsafe_allow_html=True
+            )
+            
+            downloaded_path = self._download_file(self.github_config["base_url"], filename)
+            if downloaded_path:
+                progress_placeholder.empty()
+                return downloaded_path
         
-        # 定义模型类型优先级：Stacking > CatBoost > XGBoost > RF > GBDT
-        model_priorities = [
-            ('stacking', 'Stacking'),
-            ('catboost', 'CatBoost'),
-            ('xgboost', 'XGBoost'),
-            ('rf', 'RandomForest'),
-            ('gbdt', 'GBDT')
-        ]
-        
-        for directory in search_dirs:
-            if not os.path.exists(directory):
-                continue
+        # 尝试备用下载源
+        log("主要下载源失败，尝试备用源...")
+        for backup_url in self.github_config["backup_urls"]:
+            for filename in target_files[:1]:  # 只尝试第一个文件
+                progress_placeholder.markdown(
+                    f"<div class='download-progress'>尝试备用源: {filename}</div>", 
+                    unsafe_allow_html=True
+                )
                 
-            try:
-                # 按优先级搜索模型文件
-                for model_keyword, model_type in model_priorities:
-                    for file in os.listdir(directory):
-                        if file.endswith('.joblib'):
-                            file_lower = file.lower()
-                            # 检查是否包含模型类型关键词和目标关键词
-                            if model_keyword in file_lower and model_id in file_lower:
-                                if 'scaler' not in file_lower:  # 排除单独保存的标准化器
-                                    model_path = os.path.join(directory, file)
-                                    log(f"找到{model_type}模型文件: {model_path}")
-                                    self.model_type = model_type  # 在这里设置模型类型
-                                    return model_path
-                
-                # 如果没有找到特定类型，查找任何包含目标ID的文件
-                for file in os.listdir(directory):
-                    if file.endswith('.joblib'):
-                        file_lower = file.lower()
-                        if model_id in file_lower and 'scaler' not in file_lower:
-                            model_path = os.path.join(directory, file)
-                            log(f"找到通用模型文件: {model_path}")
-                            self.model_type = "CatBoost"  # 默认设为CatBoost
-                            return model_path
-                            
-            except Exception as e:
-                log(f"搜索目录{directory}时出错: {str(e)}")
+                downloaded_path = self._download_file(backup_url, filename)
+                if downloaded_path:
+                    progress_placeholder.empty()
+                    return downloaded_path
         
-        log(f"未找到{self.target_name}模型文件")
+        progress_placeholder.markdown(
+            "<div class='error-box'>模型下载失败，请检查网络连接或联系管理员</div>", 
+            unsafe_allow_html=True
+        )
+        
         return None
+    
+    def _download_file(self, base_url, filename):
+        """下载单个文件"""
+        try:
+            # 构建完整的URL
+            file_url = f"{base_url}/{filename}"
+            log(f"尝试下载: {file_url}")
+            
+            # 发送HTTP请求下载文件
+            response = requests.get(file_url, timeout=60, stream=True)
+            
+            if response.status_code == 200:
+                # 创建临时文件保存模型
+                temp_dir = tempfile.gettempdir()
+                local_path = os.path.join(temp_dir, f"biomass_model_{filename}")
+                
+                # 写入文件，显示下载进度
+                total_size = int(response.headers.get('content-length', 0))
+                downloaded_size = 0
+                
+                with open(local_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded_size += len(chunk)
+                            
+                            # 更新下载进度
+                            if total_size > 0:
+                                progress = (downloaded_size / total_size) * 100
+                                log(f"下载进度: {progress:.1f}%")
+                
+                log(f"成功下载模型文件: {filename} ({downloaded_size} bytes)")
+                
+                # 根据文件名识别模型类型
+                if 'stacking' in filename.lower():
+                    self.model_type = "Stacking"
+                elif 'catboost' in filename.lower():
+                    self.model_type = "CatBoost"
+                elif 'xgboost' in filename.lower():
+                    self.model_type = "XGBoost"
+                else:
+                    self.model_type = "CatBoost"  # 默认
+                
+                return local_path
+                
+            else:
+                log(f"文件不存在或下载失败: {filename} (状态码: {response.status_code})")
+                return None
+                
+        except requests.exceptions.Timeout:
+            log(f"下载{filename}超时")
+            return None
+        except requests.exceptions.ConnectionError:
+            log(f"下载{filename}时网络连接错误")
+            return None
+        except requests.exceptions.RequestException as e:
+            log(f"下载{filename}时网络错误: {str(e)}")
+            return None
+        except Exception as e:
+            log(f"下载{filename}时出错: {str(e)}")
+            return None
     
     def _load_pipeline(self):
         """加载Pipeline模型 - 自动识别模型类型"""
@@ -478,6 +544,14 @@ class ModelPredictor:
                             self.model_type = "RandomForest"
                 
                 log(f"最终确定的模型类型: {self.model_type}")
+                
+                # 清理临时文件
+                try:
+                    os.remove(self.model_path)
+                    log("已清理临时模型文件")
+                except:
+                    pass
+                
                 return True
             else:
                 log("加载的对象没有predict方法，不能用于预测")
@@ -632,20 +706,22 @@ class ModelPredictor:
             except Exception as e:
                 log(f"Pipeline预测失败: {str(e)}")
                 log(traceback.format_exc())
-                # 如果加载失败，则尝试重新加载模型
-                if self._load_pipeline():
+                # 如果预测失败，尝试重新初始化模型
+                log("尝试重新初始化模型...")
+                self._initialize_model()
+                if self.model_loaded:
                     try:
                         # 再次尝试预测
                         result = float(self.pipeline.predict(features_df)[0])
-                        log(f"重新加载后预测结果: {result:.2f}")
+                        log(f"重新初始化后预测结果: {result:.2f}")
                         self.last_result = result
                         return result
                     except Exception as new_e:
-                        log(f"重新加载后预测仍然失败: {str(new_e)}")
+                        log(f"重新初始化后预测仍然失败: {str(new_e)}")
         
         # 如果到这里，说明预测失败，返回错误提示
-        log("所有预测尝试都失败，请检查模型文件和特征名称")
-        raise ValueError("模型预测失败。请确保模型文件存在且特征格式正确。")
+        log("所有预测尝试都失败，请检查模型文件和网络连接")
+        raise ValueError("模型预测失败。请检查网络连接或联系管理员。")
     
     def get_model_info(self):
         """获取模型信息摘要 - 支持多种模型类型"""
@@ -665,7 +741,8 @@ class ModelPredictor:
             "模型类型": model_type_desc,
             "目标变量": self.target_name,
             "特征数量": len(self.feature_names),
-            "模型状态": "已加载" if self.model_loaded else "未加载"
+            "模型状态": "已加载" if self.model_loaded else "未加载",
+            "数据源": "GitHub远程下载"
         }
         
         if self.model_loaded and self.pipeline is not None:
@@ -782,6 +859,16 @@ for key, value in model_info.items():
 
 model_info_html += "</div>"
 st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
+
+# 添加GitHub配置说明
+st.sidebar.markdown("""
+<div class='sidebar-model-info'>
+<h3>配置说明</h3>
+<p><b>注意:</b> 请在代码中配置正确的GitHub仓库地址</p>
+<p><b>格式:</b> https://raw.githubusercontent.com/用户名/仓库名/分支名/models</p>
+<p><b>备用源:</b> 支持HuggingFace和GitHub Releases</p>
+</div>
+""", unsafe_allow_html=True)
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -966,7 +1053,7 @@ with col1:
                 log("模型未加载，尝试重新初始化")
                 predictor._initialize_model()
                 if not predictor.model_loaded:
-                    st.error("无法加载模型。请确保模型文件存在于正确位置。")
+                    st.error("无法加载模型。请检查网络连接或GitHub仓库配置。")
                     st.session_state.prediction_error = "模型加载失败"
                     st.rerun()
             
@@ -1003,7 +1090,7 @@ if st.session_state.prediction_result is not None:
     # 显示模型信息
     if not predictor.model_loaded:
         result_container.markdown(
-            "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查模型文件是否存在。</div>", 
+            "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查网络连接或GitHub配置。</div>", 
             unsafe_allow_html=True
         )
     
@@ -1021,6 +1108,7 @@ if st.session_state.prediction_result is not None:
         - **目标变量:** {st.session_state.selected_model}
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
         - **使用模型:** {predictor.model_type} Pipeline模型
+        - **数据源:** GitHub远程下载
         """)
     
     # 技术说明部分 - 根据模型类型动态调整，更新为CatBoost + XGBoost
@@ -1038,12 +1126,20 @@ if st.session_state.prediction_result is not None:
                 <li><b>数据预处理：</b> RobustScaler - 对异常值不敏感的标准化器</li>
             </ul>
             
+            <p><b>部署特点：</b></p>
+            <ul>
+                <li><b>云端部署：</b> 模型文件从GitHub仓库实时下载，确保使用最新版本</li>
+                <li><b>智能缓存：</b> 首次下载后本地缓存，提高后续预测速度</li>
+                <li><b>多源备份：</b> 支持GitHub、HuggingFace等多个下载源，提高可用性</li>
+            </ul>
+            
             <p><b>特别提醒：</b></p>
             <ul>
                 <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
                 <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
                 <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
                 <li>Stacking模型通过交叉验证训练，有效防止过拟合，提高泛化能力</li>
+                <li>首次使用需要网络连接下载模型，请确保网络畅通</li>
             </ul>
             </div>
             """
@@ -1057,6 +1153,7 @@ if st.session_state.prediction_result is not None:
                 <li><b>算法类型：</b> {predictor.model_type}</li>
                 <li><b>数据预处理：</b> RobustScaler - 对异常值不敏感的标准化器</li>
                 <li><b>特征工程：</b> 14个关键特征，包括元素分析、近似分析和热解条件</li>
+                <li><b>云端部署：</b> 模型文件从GitHub仓库实时下载</li>
             </ul>
             
             <p><b>特别提醒：</b></p>
@@ -1064,6 +1161,7 @@ if st.session_state.prediction_result is not None:
                 <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
                 <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
                 <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
+                <li>首次使用需要网络连接下载模型，请确保网络畅通</li>
             </ul>
             </div>
             """
@@ -1078,8 +1176,9 @@ elif st.session_state.prediction_error is not None:
         <p>{st.session_state.prediction_error}</p>
         <p>请检查：</p>
         <ul>
-            <li>确保模型文件 (.joblib) 存在于正确位置</li>
-            <li>确保输入数据符合模型要求</li>
+            <li>确保网络连接正常</li>
+            <li>确保GitHub仓库地址配置正确</li>
+            <li>确保模型文件存在于指定的GitHub仓库中</li>
             <li>检查FC(wt%)是否满足 100-Ash(wt%)-VM(wt%) 约束</li>
         </ul>
     </div>
@@ -1090,7 +1189,8 @@ elif st.session_state.prediction_error is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 6.3.0 (CatBoost+XGBoost集成版本)</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 7.0.0 (GitHub云端部署版本)</p>
+<p>模型文件通过GitHub实时下载，确保使用最新训练结果</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
