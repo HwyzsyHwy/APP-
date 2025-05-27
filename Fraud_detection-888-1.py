@@ -26,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# 自定义样式（保持原样）
+# 自定义样式
 st.markdown(
     """
     <style>
@@ -316,7 +316,7 @@ class ModelPredictor:
         return None
         
     def _find_model_file(self):
-        """查找Stacking模型文件 - 更新后的版本"""
+        """查找Stacking模型文件 - 统一的搜索逻辑"""
         # 为不同产率目标设置不同的模型文件和路径
         model_folders = {
             "Char Yield": ["炭产率", "char"],
@@ -328,11 +328,26 @@ class ModelPredictor:
         model_id = self.target_name.split(" ")[0].lower()
         folders = model_folders.get(self.target_name, ["", model_id.lower()])
         
-        # 尝试常见的模型文件名和路径
-        search_dirs = [".", "./models", "../models", "/app/models", "/app"]
+        # 定义搜索路径 - 统一的搜索策略
+        base_paths = [
+            ".",
+            "./models",
+            "../models", 
+            "/app/models",
+            "/app",
+            "C:/Users/HWY/Desktop/最终-5.26",
+            "Users/HWY/Desktop/最终-5.26"
+        ]
+        
+        # 添加特定文件夹路径
+        search_dirs = base_paths.copy()
         for folder in folders:
-            search_dirs.append(f"./{folder}")
-            search_dirs.append(f"../{folder}")
+            if folder:  # 只添加非空文件夹名
+                for base_path in base_paths:
+                    search_dirs.extend([
+                        f"{base_path}/{folder}",
+                        f"{base_path}\\{folder}"
+                    ])
         
         # 在所有可能的目录中搜索Stacking模型文件
         log(f"搜索{self.target_name} Stacking模型文件...")
@@ -345,14 +360,15 @@ class ModelPredictor:
             try:
                 for file in os.listdir(directory):
                     if file.endswith('.joblib'):
+                        file_lower = file.lower()
                         # 优先查找Stacking模型文件
-                        if 'stacking' in file.lower() and model_id in file.lower():
-                            if 'scaler' not in file.lower():  # 排除单独保存的标准化器
+                        if 'stacking' in file_lower and model_id in file_lower:
+                            if 'scaler' not in file_lower:  # 排除单独保存的标准化器
                                 model_path = os.path.join(directory, file)
                                 log(f"找到Stacking模型文件: {model_path}")
                                 return model_path
                         # 如果没有找到Stacking，查找包含模型ID的文件
-                        elif model_id in file.lower() and 'scaler' not in file.lower():
+                        elif model_id in file_lower and 'scaler' not in file_lower:
                             model_path = os.path.join(directory, file)
                             log(f"找到模型文件: {model_path}")
                             return model_path
@@ -363,7 +379,7 @@ class ModelPredictor:
         return None
     
     def _load_pipeline(self):
-        """加载Pipeline模型"""
+        """加载Pipeline模型 - 统一的加载逻辑"""
         if not self.model_path:
             log("模型路径为空，无法加载")
             return False
@@ -387,18 +403,7 @@ class ModelPredictor:
                     
                     # 检查是否为Stacking模型
                     if 'stacking' in components:
-                        stacking_model = self.pipeline.named_steps['stacking']
-                        # 安全地检查Stacking模型的属性
-                        try:
-                            if hasattr(stacking_model, 'estimators_') and stacking_model.estimators_ is not None:
-                                estimator_names = [name for name, _ in stacking_model.estimators_]
-                                log(f"Stacking基学习器: {', '.join(estimator_names)}")
-                            elif hasattr(stacking_model, 'estimators'):
-                                # 如果是训练前的状态，estimators是列表
-                                estimator_names = [name for name, _ in stacking_model.estimators]
-                                log(f"Stacking基学习器配置: {', '.join(estimator_names)}")
-                        except Exception as e:
-                            log(f"获取Stacking基学习器信息时出错: {str(e)}")
+                        log("检测到Stacking模型组件")
                 return True
             else:
                 log("加载的对象没有predict方法，不能用于预测")
@@ -530,7 +535,7 @@ class ModelPredictor:
         raise ValueError("模型预测失败。请确保模型文件存在且特征格式正确。")
     
     def get_model_info(self):
-        """获取Stacking模型信息摘要 - 修复版本"""
+        """获取Stacking模型信息摘要 - 完全修复版本"""
         info = {
             "模型类型": "Stacking集成模型 (RF + CatBoost)",
             "目标变量": self.target_name,
@@ -549,35 +554,80 @@ class ModelPredictor:
                         stacking_model = self.pipeline.named_steps['stacking']
                         info["集成方法"] = "StackingRegressor"
                         
-                        # 安全地显示基学习器信息
+                        # 安全地显示基学习器信息 - 完全重写的逻辑
+                        base_learners = []
                         try:
+                            # 尝试多种方式获取基学习器信息
+                            estimators_info = None
+                            
+                            # 方法1: 检查训练后的estimators_
                             if hasattr(stacking_model, 'estimators_') and stacking_model.estimators_ is not None:
-                                # 训练后的状态
-                                base_learners = []
-                                for name, estimator in stacking_model.estimators_:
-                                    base_learners.append(f"{name}: {type(estimator).__name__}")
-                                info["基学习器"] = ", ".join(base_learners)
+                                estimators_info = stacking_model.estimators_
+                                source = "estimators_"
+                            # 方法2: 检查训练前的estimators配置
                             elif hasattr(stacking_model, 'estimators') and stacking_model.estimators is not None:
-                                # 训练前的配置状态
-                                base_learners = []
-                                for name, estimator in stacking_model.estimators:
-                                    base_learners.append(f"{name}: {type(estimator).__name__}")
-                                info["基学习器配置"] = ", ".join(base_learners)
+                                estimators_info = stacking_model.estimators
+                                source = "estimators"
+                            
+                            if estimators_info is not None:
+                                log(f"获取基学习器信息来源: {source}, 类型: {type(estimators_info)}")
+                                
+                                # 处理不同的数据结构
+                                if isinstance(estimators_info, (list, tuple)):
+                                    for i, item in enumerate(estimators_info):
+                                        try:
+                                            # 情况1: 直接是估计器对象
+                                            if hasattr(item, 'fit') and hasattr(item, 'predict'):
+                                                base_learners.append(f"估计器{i+1}: {type(item).__name__}")
+                                            # 情况2: 是(name, estimator)元组
+                                            elif isinstance(item, (list, tuple)):
+                                                if len(item) >= 2:
+                                                    name, estimator = item[0], item[1]
+                                                    if hasattr(estimator, '__class__'):
+                                                        base_learners.append(f"{name}: {type(estimator).__name__}")
+                                                    else:
+                                                        base_learners.append(f"{name}: {str(type(estimator))}")
+                                                elif len(item) == 1:
+                                                    base_learners.append(f"估计器{i+1}: {type(item[0]).__name__}")
+                                                else:
+                                                    base_learners.append(f"估计器{i+1}: 未知结构")
+                                            # 情况3: 其他类型
+                                            else:
+                                                base_learners.append(f"估计器{i+1}: {type(item).__name__}")
+                                        except Exception as item_error:
+                                            base_learners.append(f"估计器{i+1}: 解析错误({str(item_error)})")
+                                            log(f"解析估计器{i+1}时出错: {str(item_error)}")
+                                
+                                # 如果成功解析到基学习器
+                                if base_learners:
+                                    info["基学习器"] = ", ".join(base_learners)
+                                else:
+                                    info["基学习器"] = "未能解析基学习器信息"
+                            else:
+                                info["基学习器"] = "未找到基学习器信息"
+                                
                         except Exception as e:
-                            info["基学习器"] = f"获取信息时出错: {str(e)}"
+                            info["基学习器"] = f"获取失败: {str(e)}"
+                            log(f"获取基学习器信息时出错: {str(e)}")
                         
                         # 安全地显示元学习器信息
                         try:
+                            meta_learner = None
                             if hasattr(stacking_model, 'final_estimator_') and stacking_model.final_estimator_ is not None:
                                 meta_learner = type(stacking_model.final_estimator_).__name__
                                 info["元学习器"] = meta_learner
                             elif hasattr(stacking_model, 'final_estimator') and stacking_model.final_estimator is not None:
                                 meta_learner = type(stacking_model.final_estimator).__name__
                                 info["元学习器配置"] = meta_learner
+                            else:
+                                info["元学习器"] = "未找到元学习器信息"
                         except Exception as e:
-                            info["元学习器"] = f"获取信息时出错: {str(e)}"
+                            info["元学习器"] = f"获取失败: {str(e)}"
+                            log(f"获取元学习器信息时出错: {str(e)}")
+                            
             except Exception as e:
                 info["错误"] = f"获取模型信息时出错: {str(e)}"
+                log(f"获取模型信息时出错: {str(e)}")
                 
         return info
 
