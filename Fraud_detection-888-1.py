@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using Multiple Ensemble Models
-修复版本 - 支持Stacking和GBDT模型混合使用
+完全修复版本 - 支持Stacking和GBDT模型混合使用
 支持Char、Oil和Gas产率预测
 """
 
@@ -206,7 +206,7 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - 多模型集成版本")
+log("应用启动 - 完全修复版本")
 log("支持Stacking和GBDT模型混合使用")
 
 # 初始化会话状态 - 添加模型选择功能
@@ -214,9 +214,16 @@ if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield"  # 默认选择Char产率模型
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
-# 添加模型缓存 - 避免重复加载相同模型
+# 清除旧的缓存格式，重新初始化
 if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
+    log("初始化模型缓存")
+else:
+    # 检查缓存格式，如果是旧格式则清除
+    for key, value in list(st.session_state.model_cache.items()):
+        if not isinstance(value, dict) or 'pipeline' not in value or 'type' not in value:
+            log(f"清除旧格式缓存: {key}")
+            del st.session_state.model_cache[key]
     
 # 更新主标题以显示当前选定的模型
 st.markdown("<h1 class='main-title'>基于集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
@@ -270,11 +277,14 @@ st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.s
 st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
-    """优化的预测器类 - 支持Stacking和GBDT模型混合使用"""
+    """完全修复的预测器类 - 支持Stacking和GBDT模型混合使用"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
-        self.model_type = None  # 将在加载模型后确定
+        self.model_type = "Unknown"  # 初始化为Unknown，避免None
+        self.pipeline = None
+        self.model_loaded = False
+        self.model_path = None
         
         # 定义正确的特征顺序（与训练时一致）
         self.feature_names = [
@@ -298,29 +308,49 @@ class ModelPredictor:
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
         
-        # 使用缓存加载模型，避免重复加载相同模型
-        self.pipeline = self._get_cached_model()
-        self.model_loaded = self.pipeline is not None
-        
-        if not self.model_loaded:
-            log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
-            # 查找并加载模型
-            self.model_path = self._find_model_file()
-            if self.model_path:
-                self._load_pipeline()
+        # 初始化模型
+        self._initialize_model()
     
-    def _get_cached_model(self):
-        """从缓存中获取模型"""
-        if self.target_name in st.session_state.model_cache:
-            log(f"从缓存加载{self.target_name}模型")
-            cached_data = st.session_state.model_cache[self.target_name]
-            if isinstance(cached_data, dict):
-                self.model_type = cached_data.get('type', 'Unknown')
-                return cached_data.get('pipeline')
+    def _initialize_model(self):
+        """初始化模型 - 先尝试从缓存加载，否则从文件加载"""
+        log(f"初始化{self.target_name}模型")
+        
+        # 尝试从缓存加载
+        if self._load_from_cache():
+            log(f"从缓存成功加载{self.target_name}模型，类型: {self.model_type}")
+            return
+        
+        # 缓存中没有，从文件加载
+        log(f"缓存中未找到{self.target_name}模型，开始从文件加载")
+        self.model_path = self._find_model_file()
+        if self.model_path:
+            if self._load_pipeline():
+                self._save_to_cache()
+                log(f"成功加载并缓存{self.target_name}模型，类型: {self.model_type}")
             else:
-                # 兼容旧的缓存格式
-                return cached_data
-        return None
+                log(f"加载{self.target_name}模型失败")
+        else:
+            log(f"未找到{self.target_name}模型文件")
+    
+    def _load_from_cache(self):
+        """从缓存中加载模型"""
+        if self.target_name in st.session_state.model_cache:
+            cached_data = st.session_state.model_cache[self.target_name]
+            if isinstance(cached_data, dict) and 'pipeline' in cached_data and 'type' in cached_data:
+                self.pipeline = cached_data['pipeline']
+                self.model_type = cached_data['type']
+                self.model_loaded = True
+                return True
+        return False
+    
+    def _save_to_cache(self):
+        """保存模型到缓存"""
+        if self.pipeline is not None and self.model_type != "Unknown":
+            st.session_state.model_cache[self.target_name] = {
+                'pipeline': self.pipeline,
+                'type': self.model_type
+            }
+            log(f"模型已保存到缓存: {self.target_name} ({self.model_type})")
         
     def _find_model_file(self):
         """查找模型文件 - 优先查找Stacking，然后查找其他类型"""
@@ -383,7 +413,7 @@ class ModelPredictor:
                                 if 'scaler' not in file_lower:  # 排除单独保存的标准化器
                                     model_path = os.path.join(directory, file)
                                     log(f"找到{model_type}模型文件: {model_path}")
-                                    self.model_type = model_type
+                                    self.model_type = model_type  # 在这里设置模型类型
                                     return model_path
                 
                 # 如果没有找到特定类型，查找任何包含目标ID的文件
@@ -393,7 +423,7 @@ class ModelPredictor:
                         if model_id in file_lower and 'scaler' not in file_lower:
                             model_path = os.path.join(directory, file)
                             log(f"找到通用模型文件: {model_path}")
-                            self.model_type = "Unknown"
+                            self.model_type = "GBDT"  # 默认设为GBDT
                             return model_path
                             
             except Exception as e:
@@ -415,17 +445,14 @@ class ModelPredictor:
             # 验证是否能进行预测
             if hasattr(self.pipeline, 'predict'):
                 log(f"模型加载成功，类型: {type(self.pipeline).__name__}")
+                
+                # 重新识别模型类型（更准确）
+                identified_type = self._identify_model_type()
+                if identified_type != "Unknown":
+                    self.model_type = identified_type
+                    log(f"重新识别的模型类型: {self.model_type}")
+                
                 self.model_loaded = True
-                
-                # 自动识别模型类型
-                if not self.model_type:
-                    self.model_type = self._identify_model_type()
-                
-                # 将模型保存到缓存中（新格式）
-                st.session_state.model_cache[self.target_name] = {
-                    'pipeline': self.pipeline,
-                    'type': self.model_type
-                }
                 
                 # 尝试识别Pipeline的组件
                 if hasattr(self.pipeline, 'named_steps'):
@@ -450,7 +477,7 @@ class ModelPredictor:
                         elif 'RandomForest' in model_class_name:
                             self.model_type = "RandomForest"
                 
-                log(f"最终识别的模型类型: {self.model_type}")
+                log(f"最终确定的模型类型: {self.model_type}")
                 return True
             else:
                 log("加载的对象没有predict方法，不能用于预测")
@@ -936,10 +963,9 @@ with col1:
         try:
             # 确保预测器已正确初始化
             if not predictor.model_loaded:
-                log("模型未加载，尝试重新加载")
-                if predictor._find_model_file() and predictor._load_pipeline():
-                    log("重新加载模型成功")
-                else:
+                log("模型未加载，尝试重新初始化")
+                predictor._initialize_model()
+                if not predictor.model_loaded:
                     st.error("无法加载模型。请确保模型文件存在于正确位置。")
                     st.session_state.prediction_error = "模型加载失败"
                     st.rerun()
@@ -1064,7 +1090,7 @@ elif st.session_state.prediction_error is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 6.1.0 (多模型集成版本)</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 6.2.0 (完全修复版本)</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
