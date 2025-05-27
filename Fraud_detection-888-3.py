@@ -431,7 +431,7 @@ class ModelPredictor:
         return None
     
     def _get_repo_info(self):
-        """获取当前仓库信息"""
+        """获取当前仓库信息 - 修复版本"""
         # 尝试从环境变量获取仓库信息（适用于GitHub Actions等CI环境）
         repo_owner = os.environ.get('GITHUB_REPOSITORY_OWNER')
         repo_name = os.environ.get('GITHUB_REPOSITORY')
@@ -439,16 +439,18 @@ class ModelPredictor:
         if repo_name and '/' in repo_name:
             repo_owner, repo_name = repo_name.split('/', 1)
         
-        # 如果环境变量不可用，使用默认值或从Streamlit secrets获取
+        # 如果环境变量不可用，使用实际的仓库信息
         if not repo_owner or not repo_name:
             try:
-                repo_owner = st.secrets.get("GITHUB_OWNER", "your-username")
-                repo_name = st.secrets.get("GITHUB_REPO", "your-repo-name")
+                # 尝试从Streamlit secrets获取
+                repo_owner = st.secrets.get("GITHUB_OWNER", "HwyzsyHwy")
+                repo_name = st.secrets.get("GITHUB_REPO", "APP-")
             except:
-                # 如果secrets也不可用，使用占位符
-                repo_owner = "your-username"
-                repo_name = "your-repo-name"
+                # 如果secrets也不可用，使用实际的仓库信息
+                repo_owner = "HwyzsyHwy"
+                repo_name = "APP-"
         
+        log(f"使用仓库信息: {repo_owner}/{repo_name}")
         return repo_owner, repo_name
     
     def _download_model_from_repo(self):
@@ -458,8 +460,11 @@ class ModelPredictor:
         # 构建GitHub raw URL
         base_url = f"https://raw.githubusercontent.com/{repo_owner}/{repo_name}/main"
         
-        # 可能的模型文件路径
+        # 可能的模型文件路径 - 根据你的仓库结构调整
         model_paths = [
+            "Char_Yield%_Model",  # 对应你仓库中的文件夹名
+            "Oil_Yield%_Model",
+            "Gas_Yield%_Model",
             "models",
             "model_files", 
             ".",
@@ -950,12 +955,9 @@ st.sidebar.markdown(f"""
 <h3>仓库信息</h3>
 <p><b>仓库:</b> {repo_owner}/{repo_name}</p>
 <p><b>加载策略:</b> 本地优先，远程备用</p>
-<p><b>支持路径:</b> models/, model_files/, 根目录</p>
+<p><b>支持路径:</b> Char_Yield%_Model/, Oil_Yield%_Model/, Gas_Yield%_Model/, models/, model_files/, 根目录</p>
 </div>
 """, unsafe_allow_html=True)
-
-# 其余代码保持不变...
-# [这里包含所有的UI代码，与之前相同]
 
 # 初始化会话状态
 if 'clear_pressed' not in st.session_state:
@@ -1217,7 +1219,7 @@ if st.session_state.prediction_result is not None:
             <ul>
                 <li><b>智能加载：</b> 优先使用本地模型文件，本地不存在时自动从同仓库下载</li>
                 <li><b>智能缓存：</b> 首次加载后本地缓存，提高后续预测速度</li>
-                <li><b>多路径支持：</b> 支持models/、model_files/、根目录等多种文件组织方式</li>
+                <li><b>多路径支持：</b> 支持Char_Yield%_Model/、Oil_Yield%_Model/、Gas_Yield%_Model/、models/、model_files/、根目录等多种文件组织方式</li>
             </ul>
             
             <p><b>特别提醒：</b></p>
@@ -1263,7 +1265,7 @@ elif st.session_state.prediction_error is not None:
         <p>{st.session_state.prediction_error}</p>
         <p>请检查：</p>
         <ul>
-            <li>确保模型文件存在于仓库的models/、model_files/或根目录中</li>
+            <li>确保模型文件存在于仓库的Char_Yield%_Model/、Oil_Yield%_Model/、Gas_Yield%_Model/、models/、model_files/或根目录中</li>
             <li>如果是首次使用，确保网络连接正常以下载模型文件</li>
             <li>确保输入数据符合模型要求</li>
             <li>检查FC(wt%)是否满足 100-Ash(wt%)-VM(wt%) 约束</li>
@@ -1276,8 +1278,8 @@ elif st.session_state.prediction_error is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 7.1.0 (同仓库智能加载版本)</p>
-<p>模型文件优先本地加载，本地不存在时自动从同仓库下载</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 7.2.0 (修复仓库信息版本)</p>
+<p>模型文件优先本地加载，本地不存在时自动从HwyzsyHwy/APP-仓库下载</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
