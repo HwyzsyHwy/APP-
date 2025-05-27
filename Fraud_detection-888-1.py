@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Biomass Pyrolysis Yield Forecast using Stacking Ensemble Models (RF + CatBoost)
-修复版本 - 确保Pipeline正确预测
+Biomass Pyrolysis Yield Forecast using Multiple Ensemble Models
+修复版本 - 支持Stacking和GBDT模型混合使用
 支持Char、Oil和Gas产率预测
 """
 
@@ -206,8 +206,8 @@ def log(message):
     )
 
 # 记录启动日志
-log("应用启动 - Stacking集成模型版本")
-log("已修复特征名称和列顺序问题")
+log("应用启动 - 多模型集成版本")
+log("支持Stacking和GBDT模型混合使用")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -219,7 +219,7 @@ if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
     
 # 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>基于Stacking集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>基于集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
 
 # 添加模型选择区域 - 修改为三个按钮一排
 st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
@@ -270,10 +270,11 @@ st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.s
 st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
-    """优化的预测器类 - 修复特征名称和顺序问题，支持Stacking模型"""
+    """优化的预测器类 - 支持Stacking和GBDT模型混合使用"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
+        self.model_type = None  # 将在加载模型后确定
         
         # 定义正确的特征顺序（与训练时一致）
         self.feature_names = [
@@ -312,11 +313,17 @@ class ModelPredictor:
         """从缓存中获取模型"""
         if self.target_name in st.session_state.model_cache:
             log(f"从缓存加载{self.target_name}模型")
-            return st.session_state.model_cache[self.target_name]
+            cached_data = st.session_state.model_cache[self.target_name]
+            if isinstance(cached_data, dict):
+                self.model_type = cached_data.get('type', 'Unknown')
+                return cached_data.get('pipeline')
+            else:
+                # 兼容旧的缓存格式
+                return cached_data
         return None
         
     def _find_model_file(self):
-        """查找Stacking模型文件 - 统一的搜索逻辑"""
+        """查找模型文件 - 优先查找Stacking，然后查找其他类型"""
         # 为不同产率目标设置不同的模型文件和路径
         model_folders = {
             "Char Yield": ["炭产率", "char"],
@@ -328,7 +335,7 @@ class ModelPredictor:
         model_id = self.target_name.split(" ")[0].lower()
         folders = model_folders.get(self.target_name, ["", model_id.lower()])
         
-        # 定义搜索路径 - 统一的搜索策略
+        # 定义搜索路径
         base_paths = [
             ".",
             "./models",
@@ -349,29 +356,46 @@ class ModelPredictor:
                         f"{base_path}\\{folder}"
                     ])
         
-        # 在所有可能的目录中搜索Stacking模型文件
-        log(f"搜索{self.target_name} Stacking模型文件...")
+        # 在所有可能的目录中搜索模型文件
+        log(f"搜索{self.target_name}模型文件...")
+        
+        # 定义模型类型优先级：Stacking > XGBoost > CatBoost > RF > GBDT
+        model_priorities = [
+            ('stacking', 'Stacking'),
+            ('xgboost', 'XGBoost'),
+            ('catboost', 'CatBoost'),
+            ('rf', 'RandomForest'),
+            ('gbdt', 'GBDT')
+        ]
         
         for directory in search_dirs:
             if not os.path.exists(directory):
                 continue
                 
-            # 检查目录中的所有.joblib文件，优先查找Stacking模型
             try:
+                # 按优先级搜索模型文件
+                for model_keyword, model_type in model_priorities:
+                    for file in os.listdir(directory):
+                        if file.endswith('.joblib'):
+                            file_lower = file.lower()
+                            # 检查是否包含模型类型关键词和目标关键词
+                            if model_keyword in file_lower and model_id in file_lower:
+                                if 'scaler' not in file_lower:  # 排除单独保存的标准化器
+                                    model_path = os.path.join(directory, file)
+                                    log(f"找到{model_type}模型文件: {model_path}")
+                                    self.model_type = model_type
+                                    return model_path
+                
+                # 如果没有找到特定类型，查找任何包含目标ID的文件
                 for file in os.listdir(directory):
                     if file.endswith('.joblib'):
                         file_lower = file.lower()
-                        # 优先查找Stacking模型文件
-                        if 'stacking' in file_lower and model_id in file_lower:
-                            if 'scaler' not in file_lower:  # 排除单独保存的标准化器
-                                model_path = os.path.join(directory, file)
-                                log(f"找到Stacking模型文件: {model_path}")
-                                return model_path
-                        # 如果没有找到Stacking，查找包含模型ID的文件
-                        elif model_id in file_lower and 'scaler' not in file_lower:
+                        if model_id in file_lower and 'scaler' not in file_lower:
                             model_path = os.path.join(directory, file)
-                            log(f"找到模型文件: {model_path}")
+                            log(f"找到通用模型文件: {model_path}")
+                            self.model_type = "Unknown"
                             return model_path
+                            
             except Exception as e:
                 log(f"搜索目录{directory}时出错: {str(e)}")
         
@@ -379,7 +403,7 @@ class ModelPredictor:
         return None
     
     def _load_pipeline(self):
-        """加载Pipeline模型 - 统一的加载逻辑"""
+        """加载Pipeline模型 - 自动识别模型类型"""
         if not self.model_path:
             log("模型路径为空，无法加载")
             return False
@@ -393,8 +417,15 @@ class ModelPredictor:
                 log(f"模型加载成功，类型: {type(self.pipeline).__name__}")
                 self.model_loaded = True
                 
-                # 将模型保存到缓存中
-                st.session_state.model_cache[self.target_name] = self.pipeline
+                # 自动识别模型类型
+                if not self.model_type:
+                    self.model_type = self._identify_model_type()
+                
+                # 将模型保存到缓存中（新格式）
+                st.session_state.model_cache[self.target_name] = {
+                    'pipeline': self.pipeline,
+                    'type': self.model_type
+                }
                 
                 # 尝试识别Pipeline的组件
                 if hasattr(self.pipeline, 'named_steps'):
@@ -404,6 +435,22 @@ class ModelPredictor:
                     # 检查是否为Stacking模型
                     if 'stacking' in components:
                         log("检测到Stacking模型组件")
+                        self.model_type = "Stacking"
+                    elif 'model' in components:
+                        # 尝试识别具体的模型类型
+                        model_component = self.pipeline.named_steps['model']
+                        model_class_name = type(model_component).__name__
+                        log(f"检测到模型组件: {model_class_name}")
+                        if 'GBDT' in model_class_name or 'GradientBoosting' in model_class_name:
+                            self.model_type = "GBDT"
+                        elif 'XGB' in model_class_name:
+                            self.model_type = "XGBoost"
+                        elif 'CatBoost' in model_class_name:
+                            self.model_type = "CatBoost"
+                        elif 'RandomForest' in model_class_name:
+                            self.model_type = "RandomForest"
+                
+                log(f"最终识别的模型类型: {self.model_type}")
                 return True
             else:
                 log("加载的对象没有predict方法，不能用于预测")
@@ -415,6 +462,45 @@ class ModelPredictor:
             log(traceback.format_exc())
             self.model_loaded = False
             return False
+    
+    def _identify_model_type(self):
+        """自动识别模型类型"""
+        if not self.pipeline:
+            return "Unknown"
+        
+        try:
+            if hasattr(self.pipeline, 'named_steps'):
+                if 'stacking' in self.pipeline.named_steps:
+                    return "Stacking"
+                elif 'model' in self.pipeline.named_steps:
+                    model = self.pipeline.named_steps['model']
+                    model_name = type(model).__name__
+                    if 'GradientBoosting' in model_name:
+                        return "GBDT"
+                    elif 'XGB' in model_name:
+                        return "XGBoost"
+                    elif 'CatBoost' in model_name:
+                        return "CatBoost"
+                    elif 'RandomForest' in model_name:
+                        return "RandomForest"
+            
+            # 如果是直接的模型对象
+            model_name = type(self.pipeline).__name__
+            if 'Stacking' in model_name:
+                return "Stacking"
+            elif 'GradientBoosting' in model_name:
+                return "GBDT"
+            elif 'XGB' in model_name:
+                return "XGBoost"
+            elif 'CatBoost' in model_name:
+                return "CatBoost"
+            elif 'RandomForest' in model_name:
+                return "RandomForest"
+                
+        except Exception as e:
+            log(f"识别模型类型时出错: {str(e)}")
+        
+        return "Unknown"
     
     def _set_training_ranges(self):
         """设置训练数据的范围 - 使用正确的特征名称"""
@@ -483,7 +569,7 @@ class ModelPredictor:
         return df
     
     def predict(self, features):
-        """预测方法 - 确保特征名称和顺序正确"""
+        """预测方法 - 支持多种模型类型"""
         # 检查输入是否有变化
         features_changed = False
         if self.last_features:
@@ -510,10 +596,10 @@ class ModelPredictor:
         # 尝试使用Pipeline进行预测
         if self.model_loaded and self.pipeline is not None:
             try:
-                log("使用Stacking Pipeline模型预测")
+                log(f"使用{self.model_type} Pipeline模型预测")
                 # 直接使用Pipeline进行预测，包含所有预处理步骤
                 result = float(self.pipeline.predict(features_df)[0])
-                log(f"Stacking Pipeline预测结果: {result:.2f}")
+                log(f"{self.model_type} Pipeline预测结果: {result:.2f}")
                 self.last_result = result
                 return result
             except Exception as e:
@@ -535,9 +621,21 @@ class ModelPredictor:
         raise ValueError("模型预测失败。请确保模型文件存在且特征格式正确。")
     
     def get_model_info(self):
-        """获取Stacking模型信息摘要 - 完全修复版本"""
+        """获取模型信息摘要 - 支持多种模型类型"""
+        # 根据实际模型类型设置描述
+        model_descriptions = {
+            "Stacking": "Stacking集成模型 (RF + CatBoost)",
+            "GBDT": "梯度提升决策树模型",
+            "XGBoost": "XGBoost梯度提升模型",
+            "CatBoost": "CatBoost梯度提升模型",
+            "RandomForest": "随机森林模型",
+            "Unknown": "未知模型类型"
+        }
+        
+        model_type_desc = model_descriptions.get(self.model_type, f"{self.model_type}模型")
+        
         info = {
-            "模型类型": "Stacking集成模型 (RF + CatBoost)",
+            "模型类型": model_type_desc,
             "目标变量": self.target_name,
             "特征数量": len(self.feature_names),
             "模型状态": "已加载" if self.model_loaded else "未加载"
@@ -549,22 +647,19 @@ class ModelPredictor:
                     pipeline_steps = list(self.pipeline.named_steps.keys())
                     info["Pipeline组件"] = ", ".join(pipeline_steps)
                     
-                    # 如果有Stacking组件，安全地显示其信息
-                    if 'stacking' in self.pipeline.named_steps:
+                    # 根据模型类型显示不同的信息
+                    if self.model_type == "Stacking" and 'stacking' in self.pipeline.named_steps:
                         stacking_model = self.pipeline.named_steps['stacking']
                         info["集成方法"] = "StackingRegressor"
                         
-                        # 安全地显示基学习器信息 - 完全重写的逻辑
+                        # 安全地显示基学习器信息
                         base_learners = []
                         try:
-                            # 尝试多种方式获取基学习器信息
                             estimators_info = None
                             
-                            # 方法1: 检查训练后的estimators_
                             if hasattr(stacking_model, 'estimators_') and stacking_model.estimators_ is not None:
                                 estimators_info = stacking_model.estimators_
                                 source = "estimators_"
-                            # 方法2: 检查训练前的estimators配置
                             elif hasattr(stacking_model, 'estimators') and stacking_model.estimators is not None:
                                 estimators_info = stacking_model.estimators
                                 source = "estimators"
@@ -572,33 +667,22 @@ class ModelPredictor:
                             if estimators_info is not None:
                                 log(f"获取基学习器信息来源: {source}, 类型: {type(estimators_info)}")
                                 
-                                # 处理不同的数据结构
                                 if isinstance(estimators_info, (list, tuple)):
                                     for i, item in enumerate(estimators_info):
                                         try:
-                                            # 情况1: 直接是估计器对象
                                             if hasattr(item, 'fit') and hasattr(item, 'predict'):
                                                 base_learners.append(f"估计器{i+1}: {type(item).__name__}")
-                                            # 情况2: 是(name, estimator)元组
-                                            elif isinstance(item, (list, tuple)):
-                                                if len(item) >= 2:
-                                                    name, estimator = item[0], item[1]
-                                                    if hasattr(estimator, '__class__'):
-                                                        base_learners.append(f"{name}: {type(estimator).__name__}")
-                                                    else:
-                                                        base_learners.append(f"{name}: {str(type(estimator))}")
-                                                elif len(item) == 1:
-                                                    base_learners.append(f"估计器{i+1}: {type(item[0]).__name__}")
-                                                else:
-                                                    base_learners.append(f"估计器{i+1}: 未知结构")
-                                            # 情况3: 其他类型
+                                            elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                                                name, estimator = item[0], item[1]
+                                                base_learners.append(f"{name}: {type(estimator).__name__}")
+                                            elif isinstance(item, (list, tuple)) and len(item) == 1:
+                                                base_learners.append(f"估计器{i+1}: {type(item[0]).__name__}")
                                             else:
                                                 base_learners.append(f"估计器{i+1}: {type(item).__name__}")
                                         except Exception as item_error:
-                                            base_learners.append(f"估计器{i+1}: 解析错误({str(item_error)})")
+                                            base_learners.append(f"估计器{i+1}: 解析错误")
                                             log(f"解析估计器{i+1}时出错: {str(item_error)}")
                                 
-                                # 如果成功解析到基学习器
                                 if base_learners:
                                     info["基学习器"] = ", ".join(base_learners)
                                 else:
@@ -612,7 +696,6 @@ class ModelPredictor:
                         
                         # 安全地显示元学习器信息
                         try:
-                            meta_learner = None
                             if hasattr(stacking_model, 'final_estimator_') and stacking_model.final_estimator_ is not None:
                                 meta_learner = type(stacking_model.final_estimator_).__name__
                                 info["元学习器"] = meta_learner
@@ -624,6 +707,36 @@ class ModelPredictor:
                         except Exception as e:
                             info["元学习器"] = f"获取失败: {str(e)}"
                             log(f"获取元学习器信息时出错: {str(e)}")
+                    
+                    elif 'model' in self.pipeline.named_steps:
+                        # 单一模型的情况
+                        model_component = self.pipeline.named_steps['model']
+                        info["算法类型"] = type(model_component).__name__
+                        
+                        # 尝试获取模型参数信息
+                        try:
+                            if hasattr(model_component, 'get_params'):
+                                params = model_component.get_params()
+                                key_params = {}
+                                
+                                # 根据模型类型提取关键参数
+                                if self.model_type == "GBDT":
+                                    for param in ['n_estimators', 'learning_rate', 'max_depth']:
+                                        if param in params:
+                                            key_params[param] = params[param]
+                                elif self.model_type in ["XGBoost", "CatBoost"]:
+                                    for param in ['n_estimators', 'learning_rate', 'max_depth']:
+                                        if param in params:
+                                            key_params[param] = params[param]
+                                elif self.model_type == "RandomForest":
+                                    for param in ['n_estimators', 'max_depth', 'max_features']:
+                                        if param in params:
+                                            key_params[param] = params[param]
+                                
+                                if key_params:
+                                    info["关键参数"] = ", ".join([f"{k}={v}" for k, v in key_params.items()])
+                        except Exception as e:
+                            log(f"获取模型参数时出错: {str(e)}")
                             
             except Exception as e:
                 info["错误"] = f"获取模型信息时出错: {str(e)}"
@@ -881,32 +994,55 @@ if st.session_state.prediction_result is not None:
         st.markdown(f"""
         - **目标变量:** {st.session_state.selected_model}
         - **预测结果:** {st.session_state.prediction_result:.2f} wt%
-        - **使用模型:** {"Stacking Pipeline模型" if predictor.model_loaded else "未能加载模型"}
+        - **使用模型:** {predictor.model_type} Pipeline模型
         """)
     
-    # 技术说明部分 - 使用折叠式展示
+    # 技术说明部分 - 根据模型类型动态调整
     with st.expander("技术说明", expanded=False):
-        st.markdown("""
-        <div class='tech-info'>
-        <p>本模型基于Stacking集成算法创建，结合了Random Forest和CatBoost两种强大的机器学习算法，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
+        if predictor.model_type == "Stacking":
+            tech_content = """
+            <div class='tech-info'>
+            <p>本模型基于Stacking集成算法创建，结合了Random Forest和CatBoost两种强大的机器学习算法，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
+            
+            <p><b>模型架构：</b></p>
+            <ul>
+                <li><b>基学习器1：</b> Random Forest - 随机森林回归器，擅长处理非线性关系</li>
+                <li><b>基学习器2：</b> CatBoost - 梯度提升算法，对类别特征处理优秀</li>
+                <li><b>元学习器：</b> Ridge回归 - 线性回归器，用于组合基学习器的预测结果</li>
+                <li><b>数据预处理：</b> RobustScaler - 对异常值不敏感的标准化器</li>
+            </ul>
+            
+            <p><b>特别提醒：</b></p>
+            <ul>
+                <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
+                <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
+                <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
+                <li>Stacking模型通过交叉验证训练，有效防止过拟合，提高泛化能力</li>
+            </ul>
+            </div>
+            """
+        else:
+            tech_content = f"""
+            <div class='tech-info'>
+            <p>本模型基于{predictor.model_type}算法创建，用于预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
+            
+            <p><b>模型特点：</b></p>
+            <ul>
+                <li><b>算法类型：</b> {predictor.model_type}</li>
+                <li><b>数据预处理：</b> RobustScaler - 对异常值不敏感的标准化器</li>
+                <li><b>特征工程：</b> 14个关键特征，包括元素分析、近似分析和热解条件</li>
+            </ul>
+            
+            <p><b>特别提醒：</b></p>
+            <ul>
+                <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
+                <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
+                <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
+            </ul>
+            </div>
+            """
         
-        <p><b>模型架构：</b></p>
-        <ul>
-            <li><b>基学习器1：</b> Random Forest - 随机森林回归器，擅长处理非线性关系</li>
-            <li><b>基学习器2：</b> CatBoost - 梯度提升算法，对类别特征处理优秀</li>
-            <li><b>元学习器：</b> Ridge回归 - 线性回归器，用于组合基学习器的预测结果</li>
-            <li><b>数据预处理：</b> RobustScaler - 对异常值不敏感的标准化器</li>
-        </ul>
-        
-        <p><b>特别提醒：</b></p>
-        <ul>
-            <li>输入参数建议在训练数据的分布范围内，以保证软件的预测精度</li>
-            <li>由于模型训练时FC(wt%)通过100-Ash(wt%)-VM(wt%)公式转换得出，所以用户使用此软件进行预测时也建议使用此公式对FC(wt%)进行计算</li>
-            <li>所有特征的训练范围都基于真实训练数据的统计信息，如输入超出范围将会收到提示</li>
-            <li>Stacking模型通过交叉验证训练，有效防止过拟合，提高泛化能力</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(tech_content, unsafe_allow_html=True)
 
 elif st.session_state.prediction_error is not None:
     st.markdown("---")
@@ -916,7 +1052,7 @@ elif st.session_state.prediction_error is not None:
         <p>{st.session_state.prediction_error}</p>
         <p>请检查：</p>
         <ul>
-            <li>确保Stacking模型文件 (.joblib) 存在于正确位置</li>
+            <li>确保模型文件 (.joblib) 存在于正确位置</li>
             <li>确保输入数据符合模型要求</li>
             <li>检查FC(wt%)是否满足 100-Ash(wt%)-VM(wt%) 约束</li>
         </ul>
@@ -928,7 +1064,7 @@ elif st.session_state.prediction_error is not None:
 st.markdown("---")
 footer = """
 <div style='text-align: center;'>
-<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 6.0.0 (Stacking集成模型)</p>
+<p>© 2024 生物质纳米材料与智能装备实验室. 版本: 6.1.0 (多模型集成版本)</p>
 </div>
 """
 st.markdown(footer, unsafe_allow_html=True)
