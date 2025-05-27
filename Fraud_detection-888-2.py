@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using Multiple Ensemble Models
-完全修复版本 - 支持Stacking和GBDT模型混合使用
+完全修复版本 - 支持Stacking和CatBoost模型混合使用
 支持Char、Oil和Gas产率预测
 """
 
@@ -207,7 +207,7 @@ def log(message):
 
 # 记录启动日志
 log("应用启动 - 完全修复版本")
-log("支持Stacking和GBDT模型混合使用")
+log("支持Stacking和CatBoost模型混合使用")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
@@ -277,7 +277,7 @@ st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.s
 st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
-    """完全修复的预测器类 - 支持Stacking和GBDT模型混合使用"""
+    """完全修复的预测器类 - 支持Stacking和CatBoost模型混合使用"""
     
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
@@ -423,7 +423,7 @@ class ModelPredictor:
                         if model_id in file_lower and 'scaler' not in file_lower:
                             model_path = os.path.join(directory, file)
                             log(f"找到通用模型文件: {model_path}")
-                            self.model_type = "GBDT"  # 默认设为GBDT
+                            self.model_type = "CatBoost"  # 默认设为CatBoost
                             return model_path
                             
             except Exception as e:
@@ -468,12 +468,12 @@ class ModelPredictor:
                         model_component = self.pipeline.named_steps['model']
                         model_class_name = type(model_component).__name__
                         log(f"检测到模型组件: {model_class_name}")
-                        if 'GBDT' in model_class_name or 'GradientBoosting' in model_class_name:
+                        if 'CatBoost' in model_class_name:
+                            self.model_type = "CatBoost"
+                        elif 'GBDT' in model_class_name or 'GradientBoosting' in model_class_name:
                             self.model_type = "GBDT"
                         elif 'XGB' in model_class_name:
                             self.model_type = "XGBoost"
-                        elif 'CatBoost' in model_class_name:
-                            self.model_type = "CatBoost"
                         elif 'RandomForest' in model_class_name:
                             self.model_type = "RandomForest"
                 
@@ -502,12 +502,12 @@ class ModelPredictor:
                 elif 'model' in self.pipeline.named_steps:
                     model = self.pipeline.named_steps['model']
                     model_name = type(model).__name__
-                    if 'GradientBoosting' in model_name:
+                    if 'CatBoost' in model_name:
+                        return "CatBoost"
+                    elif 'GradientBoosting' in model_name:
                         return "GBDT"
                     elif 'XGB' in model_name:
                         return "XGBoost"
-                    elif 'CatBoost' in model_name:
-                        return "CatBoost"
                     elif 'RandomForest' in model_name:
                         return "RandomForest"
             
@@ -515,12 +515,12 @@ class ModelPredictor:
             model_name = type(self.pipeline).__name__
             if 'Stacking' in model_name:
                 return "Stacking"
+            elif 'CatBoost' in model_name:
+                return "CatBoost"
             elif 'GradientBoosting' in model_name:
                 return "GBDT"
             elif 'XGB' in model_name:
                 return "XGBoost"
-            elif 'CatBoost' in model_name:
-                return "CatBoost"
             elif 'RandomForest' in model_name:
                 return "RandomForest"
                 
@@ -649,12 +649,12 @@ class ModelPredictor:
     
     def get_model_info(self):
         """获取模型信息摘要 - 支持多种模型类型"""
-        # 根据实际模型类型设置描述 - 更新为RF + GBDT
+        # 根据实际模型类型设置描述 - 保持RF + CatBoost
         model_descriptions = {
-            "Stacking": "Stacking集成模型 (RF + GBDT)",
+            "Stacking": "Stacking集成模型 (RF + CatBoost)",
+            "CatBoost": "CatBoost梯度提升模型",
             "GBDT": "梯度提升决策树模型",
             "XGBoost": "XGBoost梯度提升模型",
-            "CatBoost": "CatBoost梯度提升模型",
             "RandomForest": "随机森林模型",
             "Unknown": "未知模型类型"
         }
@@ -747,11 +747,15 @@ class ModelPredictor:
                                 key_params = {}
                                 
                                 # 根据模型类型提取关键参数
-                                if self.model_type == "GBDT":
+                                if self.model_type == "CatBoost":
+                                    for param in ['iterations', 'learning_rate', 'depth']:
+                                        if param in params:
+                                            key_params[param] = params[param]
+                                elif self.model_type == "GBDT":
                                     for param in ['n_estimators', 'learning_rate', 'max_depth']:
                                         if param in params:
                                             key_params[param] = params[param]
-                                elif self.model_type in ["XGBoost", "CatBoost"]:
+                                elif self.model_type in ["XGBoost"]:
                                     for param in ['n_estimators', 'learning_rate', 'max_depth']:
                                         if param in params:
                                             key_params[param] = params[param]
@@ -1023,17 +1027,17 @@ if st.session_state.prediction_result is not None:
         - **使用模型:** {predictor.model_type} Pipeline模型
         """)
     
-    # 技术说明部分 - 根据模型类型动态调整，更新基学习器描述
+    # 技术说明部分 - 根据模型类型动态调整，保持CatBoost描述
     with st.expander("技术说明", expanded=False):
         if predictor.model_type == "Stacking":
             tech_content = """
             <div class='tech-info'>
-            <p>本模型基于Stacking集成算法创建，结合了Random Forest和GBDT两种强大的机器学习算法，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
+            <p>本模型基于Stacking集成算法创建，结合了Random Forest和CatBoost两种强大的机器学习算法，预测生物质热解产物分布。模型使用生物质的元素分析、近似分析数据和热解条件作为输入，计算热解炭、热解油和热解气体产量。</p>
             
             <p><b>模型架构：</b></p>
             <ul>
                 <li><b>基学习器1：</b> Random Forest - 随机森林回归器，擅长处理非线性关系</li>
-                <li><b>基学习器2：</b> GBDT - 梯度提升决策树，具有强大的特征学习能力</li>
+                <li><b>基学习器2：</b> CatBoost - 梯度提升算法，对类别特征处理优秀</li>
                 <li><b>元学习器：</b> Ridge回归 - 线性回归器，用于组合基学习器的预测结果</li>
                 <li><b>数据预处理：</b> RobustScaler - 对异常值不敏感的标准化器</li>
             </ul>
