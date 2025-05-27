@@ -388,9 +388,17 @@ class ModelPredictor:
                     # 检查是否为Stacking模型
                     if 'stacking' in components:
                         stacking_model = self.pipeline.named_steps['stacking']
-                        if hasattr(stacking_model, 'estimators_'):
-                            estimator_names = [name for name, _ in stacking_model.estimators_]
-                            log(f"Stacking基学习器: {', '.join(estimator_names)}")
+                        # 安全地检查Stacking模型的属性
+                        try:
+                            if hasattr(stacking_model, 'estimators_') and stacking_model.estimators_ is not None:
+                                estimator_names = [name for name, _ in stacking_model.estimators_]
+                                log(f"Stacking基学习器: {', '.join(estimator_names)}")
+                            elif hasattr(stacking_model, 'estimators'):
+                                # 如果是训练前的状态，estimators是列表
+                                estimator_names = [name for name, _ in stacking_model.estimators]
+                                log(f"Stacking基学习器配置: {', '.join(estimator_names)}")
+                        except Exception as e:
+                            log(f"获取Stacking基学习器信息时出错: {str(e)}")
                 return True
             else:
                 log("加载的对象没有predict方法，不能用于预测")
@@ -522,7 +530,7 @@ class ModelPredictor:
         raise ValueError("模型预测失败。请确保模型文件存在且特征格式正确。")
     
     def get_model_info(self):
-        """获取Stacking模型信息摘要"""
+        """获取Stacking模型信息摘要 - 修复版本"""
         info = {
             "模型类型": "Stacking集成模型 (RF + CatBoost)",
             "目标变量": self.target_name,
@@ -530,27 +538,46 @@ class ModelPredictor:
             "模型状态": "已加载" if self.model_loaded else "未加载"
         }
         
-        if self.model_loaded:
-            if hasattr(self.pipeline, 'named_steps'):
-                pipeline_steps = list(self.pipeline.named_steps.keys())
-                info["Pipeline组件"] = ", ".join(pipeline_steps)
-                
-                # 如果有Stacking组件，显示其信息
-                if 'stacking' in self.pipeline.named_steps:
-                    stacking_model = self.pipeline.named_steps['stacking']
-                    info["集成方法"] = "StackingRegressor"
+        if self.model_loaded and self.pipeline is not None:
+            try:
+                if hasattr(self.pipeline, 'named_steps'):
+                    pipeline_steps = list(self.pipeline.named_steps.keys())
+                    info["Pipeline组件"] = ", ".join(pipeline_steps)
                     
-                    # 显示基学习器信息
-                    if hasattr(stacking_model, 'estimators_'):
-                        base_learners = []
-                        for name, estimator in stacking_model.estimators_:
-                            base_learners.append(f"{name}: {type(estimator).__name__}")
-                        info["基学习器"] = ", ".join(base_learners)
-                    
-                    # 显示元学习器信息
-                    if hasattr(stacking_model, 'final_estimator_'):
-                        meta_learner = type(stacking_model.final_estimator_).__name__
-                        info["元学习器"] = meta_learner
+                    # 如果有Stacking组件，安全地显示其信息
+                    if 'stacking' in self.pipeline.named_steps:
+                        stacking_model = self.pipeline.named_steps['stacking']
+                        info["集成方法"] = "StackingRegressor"
+                        
+                        # 安全地显示基学习器信息
+                        try:
+                            if hasattr(stacking_model, 'estimators_') and stacking_model.estimators_ is not None:
+                                # 训练后的状态
+                                base_learners = []
+                                for name, estimator in stacking_model.estimators_:
+                                    base_learners.append(f"{name}: {type(estimator).__name__}")
+                                info["基学习器"] = ", ".join(base_learners)
+                            elif hasattr(stacking_model, 'estimators') and stacking_model.estimators is not None:
+                                # 训练前的配置状态
+                                base_learners = []
+                                for name, estimator in stacking_model.estimators:
+                                    base_learners.append(f"{name}: {type(estimator).__name__}")
+                                info["基学习器配置"] = ", ".join(base_learners)
+                        except Exception as e:
+                            info["基学习器"] = f"获取信息时出错: {str(e)}"
+                        
+                        # 安全地显示元学习器信息
+                        try:
+                            if hasattr(stacking_model, 'final_estimator_') and stacking_model.final_estimator_ is not None:
+                                meta_learner = type(stacking_model.final_estimator_).__name__
+                                info["元学习器"] = meta_learner
+                            elif hasattr(stacking_model, 'final_estimator') and stacking_model.final_estimator is not None:
+                                meta_learner = type(stacking_model.final_estimator).__name__
+                                info["元学习器配置"] = meta_learner
+                        except Exception as e:
+                            info["元学习器"] = f"获取信息时出错: {str(e)}"
+            except Exception as e:
+                info["错误"] = f"获取模型信息时出错: {str(e)}"
                 
         return info
 
