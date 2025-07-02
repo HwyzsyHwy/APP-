@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-电化学模型在线预测系统
-基于GBDT模型预测I(uA)
+电化学传感器检测新烟碱农药预测系统
+基于GBDT模型预测电流响应I(uA)
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
-import glob
 import joblib
-import traceback
 from datetime import datetime
 
 # 页面设置
 st.set_page_config(
-    page_title='电化学模型预测系统',
+    page_title='电化学传感器检测系统',
     page_icon='⚡',
     layout='wide',
     initial_sidebar_state='expanded'
@@ -33,57 +31,60 @@ st.markdown(
         color: white !important;
     }
     
-    .section-header {
-        color: white;
-        font-weight: bold;
-        font-size: 22px;
-        text-align: center;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-    
-    .input-label {
-        padding: 5px;
+    .parameter-label {
+        padding: 8px;
         border-radius: 5px;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
         font-size: 18px;
         color: white;
+        background-color: #2E86AB;
+        text-align: center;
     }
     
-    .yield-result {
+    .result-display {
         background-color: #1E1E1E;
         color: white;
         font-size: 36px;
         font-weight: bold;
         text-align: center;
-        padding: 15px;
-        border-radius: 8px;
+        padding: 20px;
+        border-radius: 10px;
         margin-top: 20px;
+        border: 2px solid #2E86AB;
     }
     
     [data-testid="stNumberInput"] input {
         background-color: white !important;
         color: black !important;
+        font-size: 16px !important;
     }
     
     .stButton button {
         font-size: 18px !important;
+        font-weight: bold !important;
     }
     
     .warning-box {
         background-color: rgba(255, 165, 0, 0.2);
         border-left: 5px solid orange;
-        padding: 10px;
-        margin: 10px 0;
+        padding: 15px;
+        margin: 15px 0;
         border-radius: 5px;
     }
     
     .error-box {
         background-color: rgba(255, 0, 0, 0.2);
         border-left: 5px solid red;
-        padding: 10px;
-        margin: 10px 0;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+    }
+    
+    .info-box {
+        background-color: rgba(0, 123, 255, 0.2);
+        border-left: 5px solid #007bff;
+        padding: 15px;
+        margin: 15px 0;
         border-radius: 5px;
     }
     </style>
@@ -104,24 +105,31 @@ def log(message):
         st.session_state.log_messages = st.session_state.log_messages[-50:]
 
 # 主标题
-st.markdown("<h1 class='main-title'>基于GBDT模型的电化学响应预测系统</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-title'>电化学传感器检测新烟碱农药预测系统</h1>", unsafe_allow_html=True)
 
-class ModelPredictor:
-    """电化学模型预测器类"""
+class NeonicotinoidPredictor:
+    """新烟碱农药电化学检测预测器"""
     
     def __init__(self):
         self.target_name = "I(uA)"
+        # 按照你提供的特征顺序：DT, PH, SS, P, TM, C0
         self.feature_names = [
-            'DT(ml)', 'PH', 'SS(mV/s)', 'P(V)', 'TM(min)', 'C0(uM)'
+            'DT(ml)',     # 滴涂量
+            'PH',         # pH值  
+            'SS(mV/s)',   # 扫描速率
+            'P(V)',       # 电压
+            'TM(min)',    # 孵化时间
+            'C0(uM)'      # 底液初始浓度
         ]
         
-        self.training_ranges = {
-            'DT(ml)': {'min': 0.0, 'max': 10.0},
-            'PH': {'min': 3.0, 'max': 9.0},
-            'SS(mV/s)': {'min': 10.0, 'max': 200.0},
-            'P(V)': {'min': -1.0, 'max': 1.0},
-            'TM(min)': {'min': 0.0, 'max': 60.0},
-            'C0(uM)': {'min': 1.0, 'max': 100.0}
+        # 根据电化学检测实验的合理范围设置
+        self.parameter_ranges = {
+            'DT(ml)': {'min': 0.1, 'max': 20.0},     # 滴涂量通常几微升到几十微升
+            'PH': {'min': 3.0, 'max': 10.0},          # pH范围
+            'SS(mV/s)': {'min': 10.0, 'max': 500.0},  # 扫描速率
+            'P(V)': {'min': -2.0, 'max': 2.0},        # 电压范围
+            'TM(min)': {'min': 1.0, 'max': 120.0},    # 孵化时间
+            'C0(uM)': {'min': 0.1, 'max': 1000.0}     # 浓度范围
         }
         
         self.model_loaded = False
@@ -129,12 +137,14 @@ class ModelPredictor:
         self._load_model()
     
     def _load_model(self):
-        """加载模型"""
+        """加载GBDT模型"""
         model_paths = [
             "GBDT.joblib",
-            "./GBDT.joblib",
+            "./GBDT.joblib", 
             "../GBDT.joblib",
-            r"C:\Users\HWY\Desktop\开题-7.2\GBDT.joblib"
+            r"C:\Users\HWY\Desktop\开题-7.2\GBDT.joblib",
+            "./models/GBDT.joblib",
+            "../models/GBDT.joblib"
         ]
         
         for path in model_paths:
@@ -148,50 +158,61 @@ class ModelPredictor:
                     log(f"加载模型失败: {path}, 错误: {str(e)}")
         
         if not self.model_loaded:
-            log("未找到模型文件")
+            log("警告: 未找到GBDT模型文件")
     
-    def check_input_range(self, features):
-        """检查输入范围"""
+    def check_parameter_ranges(self, parameters):
+        """检查参数是否在合理范围内"""
         warnings = []
-        for feature, value in features.items():
-            range_info = self.training_ranges.get(feature)
+        for param, value in parameters.items():
+            range_info = self.parameter_ranges.get(param)
             if range_info:
                 if value < range_info['min'] or value > range_info['max']:
-                    warning = f"{feature}: {value:.3f} (建议范围 {range_info['min']:.3f} - {range_info['max']:.3f})"
+                    warning = f"{param}: {value:.3f} (建议范围: {range_info['min']:.1f} - {range_info['max']:.1f})"
                     warnings.append(warning)
+                    log(f"参数警告: {warning}")
         return warnings
     
-    def predict(self, features):
-        """预测"""
+    def predict(self, parameters):
+        """执行预测"""
         if not self.model_loaded:
-            raise ValueError("模型未加载")
+            raise ValueError("GBDT模型未加载，无法进行预测")
         
-        # 准备数据
+        # 按照特征顺序准备数据
         data = []
         for feature in self.feature_names:
-            data.append(features.get(feature, 0.0))
+            data.append(parameters.get(feature, 0.0))
         
+        # 创建DataFrame
         df = pd.DataFrame([data], columns=self.feature_names)
+        log(f"输入数据: {dict(zip(self.feature_names, data))}")
         
         try:
+            # 使用Pipeline进行预测（包含预处理）
             result = self.pipeline.predict(df)[0]
+            log(f"预测成功，电流响应: {result:.4f} uA")
             return float(result)
         except Exception as e:
-            raise ValueError(f"预测失败: {str(e)}")
+            error_msg = f"预测过程出错: {str(e)}"
+            log(error_msg)
+            raise ValueError(error_msg)
 
 # 初始化预测器
-predictor = ModelPredictor()
+predictor = NeonicotinoidPredictor()
 
-# 侧边栏 - 简化版本，移除有问题的模型信息
-st.sidebar.markdown("### 模型状态")
+# 侧边栏状态显示
+st.sidebar.markdown("### 📊 系统状态")
 if predictor.model_loaded:
-    st.sidebar.success("✅ 模型已加载")
+    st.sidebar.success("✅ GBDT模型已加载")
+    st.sidebar.info(f"📈 特征数量: {len(predictor.feature_names)}")
+    st.sidebar.info("🎯 目标: 电流响应 I(uA)")
 else:
     st.sidebar.error("❌ 模型未加载")
+    st.sidebar.warning("请确保GBDT.joblib文件在正确位置")
 
-st.sidebar.markdown("### 执行日志")
+# 显示最近日志
+st.sidebar.markdown("### 📝 执行日志")
 if st.session_state.log_messages:
-    for msg in st.session_state.log_messages[-10:]:  # 只显示最近10条
+    for msg in st.session_state.log_messages[-8:]:
         st.sidebar.text(msg)
 
 # 初始化会话状态
@@ -202,156 +223,235 @@ if 'warnings' not in st.session_state:
 if 'prediction_error' not in st.session_state:
     st.session_state.prediction_error = None
 
-# 默认值
+# 参数输入区域
+st.markdown("### 🔬 实验参数输入")
+
+# 根据电化学检测的实际参数设置默认值
 default_values = {
-    "DT(ml)": 5.0,
-    "PH": 7.0,
-    "SS(mV/s)": 100.0,
-    "P(V)": 0.0,
-    "TM(min)": 30.0,
-    "C0(uM)": 50.0
+    "DT(ml)": 5.0,      # 滴涂量
+    "PH": 7.0,          # pH值
+    "SS(mV/s)": 100.0,  # 扫描速率
+    "P(V)": 0.0,        # 电压
+    "TM(min)": 30.0,    # 孵化时间
+    "C0(uM)": 50.0      # 底液初始浓度
 }
 
-# 特征分类
-feature_categories = {
-    "电化学参数": ["DT(ml)", "PH"],
-    "测量条件": ["SS(mV/s)", "P(V)"],
-    "实验参数": ["TM(min)", "C0(uM)"]
-}
+# 创建两列布局，每列3个参数
+col1, col2 = st.columns(2)
 
-category_colors = {
-    "电化学参数": "#501d8a",  
-    "测量条件": "#1c8041",  
-    "实验参数": "#e55709" 
-}
-
-# 创建三列布局
-col1, col2, col3 = st.columns(3)
-features = {}
-
-# 第一列
-with col1:
-    category = "电化学参数"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                value=default_values[feature], 
-                step=0.1,
-                key=f"input_{feature}",
-                format="%.2f",
-                label_visibility="collapsed"
-            )
-
-# 第二列
-with col2:
-    category = "测量条件"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            if feature == "SS(mV/s)":
-                step = 1.0
-                format_str = "%.1f"
-            else:
-                step = 0.01
-                format_str = "%.3f"
-            
-            features[feature] = st.number_input(
-                "", 
-                value=default_values[feature], 
-                step=step,
-                key=f"input_{feature}",
-                format=format_str,
-                label_visibility="collapsed"
-            )
-
-# 第三列
-with col3:
-    category = "实验参数"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                value=default_values[feature], 
-                step=1.0,
-                key=f"input_{feature}",
-                format="%.1f",
-                label_visibility="collapsed"
-            )
-
-# 预测按钮
-col1, col2 = st.columns([1, 1])
+parameters = {}
 
 with col1:
-    if st.button("⚡ 运行预测", use_container_width=True, type="primary"):
-        log("开始预测流程")
-        
-        warnings = predictor.check_input_range(features)
-        st.session_state.warnings = warnings
-        
-        try:
-            result = predictor.predict(features)
-            st.session_state.prediction_result = result
-            st.session_state.prediction_error = None
-            log(f"预测成功: {result:.4f}")
-            
-        except Exception as e:
-            error_msg = f"预测失败: {str(e)}"
-            st.session_state.prediction_error = error_msg
-            st.session_state.prediction_result = None
-            log(error_msg)
+    st.markdown("#### 第一组参数")
+    
+    # DT(ml) - 滴涂量
+    st.markdown("<div class='parameter-label'>DT(ml) - 滴涂量</div>", unsafe_allow_html=True)
+    parameters['DT(ml)'] = st.number_input(
+        "", 
+        value=default_values['DT(ml)'], 
+        step=0.1,
+        key="dt_input",
+        format="%.2f",
+        label_visibility="collapsed",
+        help="电极表面的样品滴涂体积"
+    )
+    
+    # SS(mV/s) - 扫描速率
+    st.markdown("<div class='parameter-label'>SS(mV/s) - 扫描速率</div>", unsafe_allow_html=True)
+    parameters['SS(mV/s)'] = st.number_input(
+        "", 
+        value=default_values['SS(mV/s)'], 
+        step=10.0,
+        key="ss_input",
+        format="%.1f",
+        label_visibility="collapsed",
+        help="差分脉冲伏安法的扫描速率"
+    )
+    
+    # TM(min) - 孵化时间
+    st.markdown("<div class='parameter-label'>TM(min) - 孵化时间</div>", unsafe_allow_html=True)
+    parameters['TM(min)'] = st.number_input(
+        "", 
+        value=default_values['TM(min)'], 
+        step=5.0,
+        key="tm_input",
+        format="%.1f",
+        label_visibility="collapsed",
+        help="样品与电极的反应孵化时间"
+    )
 
 with col2:
-    if st.button("🔄 重置输入", use_container_width=True):
+    st.markdown("#### 第二组参数")
+    
+    # PH - pH值
+    st.markdown("<div class='parameter-label'>PH - 溶液pH值</div>", unsafe_allow_html=True)
+    parameters['PH'] = st.number_input(
+        "", 
+        value=default_values['PH'], 
+        step=0.1,
+        key="ph_input",
+        format="%.2f",
+        label_visibility="collapsed",
+        help="检测溶液的pH值"
+    )
+    
+    # P(V) - 电压
+    st.markdown("<div class='parameter-label'>P(V) - 检测电压</div>", unsafe_allow_html=True)
+    parameters['P(V)'] = st.number_input(
+        "", 
+        value=default_values['P(V)'], 
+        step=0.01,
+        key="p_input",
+        format="%.3f",
+        label_visibility="collapsed",
+        help="差分脉冲伏安法的检测电压"
+    )
+    
+    # C0(uM) - 底液初始浓度
+    st.markdown("<div class='parameter-label'>C0(uM) - 底液初始浓度</div>", unsafe_allow_html=True)
+    parameters['C0(uM)'] = st.number_input(
+        "", 
+        value=default_values['C0(uM)'], 
+        step=1.0,
+        key="c0_input",
+        format="%.1f",
+        label_visibility="collapsed",
+        help="电解质底液中目标物的初始浓度"
+    )
+
+# 显示当前参数值
+with st.expander("📋 查看当前参数设置", expanded=False):
+    params_display = ""
+    for param, value in parameters.items():
+        params_display += f"**{param}**: {value} | "
+    st.markdown(params_display[:-3])
+
+# 预测控制按钮
+st.markdown("### 🚀 执行预测")
+col1, col2, col3 = st.columns([1, 1, 1])
+
+with col1:
+    predict_clicked = st.button(
+        "⚡ 开始预测", 
+        use_container_width=True, 
+        type="primary",
+        help="使用GBDT模型预测电流响应"
+    )
+
+with col2:
+    if st.button("🔄 重置参数", use_container_width=True):
         st.rerun()
 
-# 显示结果
+with col3:
+    show_details = st.checkbox("显示详细信息", value=False)
+
+# 执行预测
+if predict_clicked:
+    log("=" * 50)
+    log("开始新烟碱农药电化学检测预测")
+    
+    # 检查参数范围
+    warnings = predictor.check_parameter_ranges(parameters)
+    st.session_state.warnings = warnings
+    
+    try:
+        # 执行预测
+        result = predictor.predict(parameters)
+        st.session_state.prediction_result = result
+        st.session_state.prediction_error = None
+        log(f"预测完成，结果: {result:.4f} uA")
+        
+    except Exception as e:
+        error_msg = str(e)
+        st.session_state.prediction_error = error_msg
+        st.session_state.prediction_result = None
+        log(f"预测失败: {error_msg}")
+
+# 结果显示
 if st.session_state.prediction_result is not None:
     st.markdown("---")
+    
+    # 主要结果显示
     st.markdown(
-        f"<div class='yield-result'>电流响应 I(uA): {st.session_state.prediction_result:.4f}</div>", 
+        f"<div class='result-display'>🎯 预测电流响应: {st.session_state.prediction_result:.4f} μA</div>", 
         unsafe_allow_html=True
     )
     
+    # 警告显示
     if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b>⚠️ 输入警告</b><ul>"
+        warnings_html = "<div class='warning-box'><h4>⚠️ 参数范围警告</h4><ul>"
         for warning in st.session_state.warnings:
             warnings_html += f"<li>{warning}</li>"
-        warnings_html += "</ul></div>"
+        warnings_html += "</ul><p><em>建议检查参数设置，确保在实验合理范围内。</em></p></div>"
         st.markdown(warnings_html, unsafe_allow_html=True)
+    
+    # 详细信息显示
+    if show_details:
+        with st.expander("📊 预测详细信息", expanded=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+                **预测信息:**
+                - 目标变量: {predictor.target_name}
+                - 预测值: {st.session_state.prediction_result:.6f} μA
+                - 模型类型: GBDT Pipeline
+                - 预处理: RobustScaler标准化
+                """)
+            with col2:
+                st.markdown(f"""
+                **模型状态:**
+                - 加载状态: {'✅ 正常' if predictor.model_loaded else '❌ 失败'}
+                - 特征数量: {len(predictor.feature_names)}
+                - 参数警告: {len(st.session_state.warnings)}个
+                - 应用领域: 新烟碱农药检测
+                """)
 
 elif st.session_state.prediction_error is not None:
     st.markdown("---")
     error_html = f"""
     <div class='error-box'>
         <h3>❌ 预测失败</h3>
-        <p><b>错误信息:</b> {st.session_state.prediction_error}</p>
+        <p><strong>错误信息:</strong> {st.session_state.prediction_error}</p>
+        <p><strong>可能的解决方案:</strong></p>
+        <ul>
+            <li>确保GBDT.joblib模型文件存在</li>
+            <li>检查参数数值是否合理</li>
+            <li>验证模型文件格式是否正确</li>
+            <li>确认特征顺序: DT(ml) → PH → SS(mV/s) → P(V) → TM(min) → C0(uM)</li>
+        </ul>
     </div>
     """
     st.markdown(error_html, unsafe_allow_html=True)
 
-# 页脚
+# 技术说明
+with st.expander("📚 电化学检测技术说明", expanded=False):
+    st.markdown("""
+    <div class='info-box'>
+    <h4>🔬 新烟碱农药电化学检测原理</h4>
+    <p>本系统基于<strong>差分脉冲伏安法(DPV)</strong>进行新烟碱农药的电化学检测，使用GBDT机器学习模型预测电流响应。</p>
+    
+    <h4>📋 参数说明</h4>
+    <ul>
+        <li><strong>DT(ml)</strong>: 滴涂量 - 电极表面样品的滴涂体积</li>
+        <li><strong>PH</strong>: pH值 - 检测溶液的酸碱度</li>
+        <li><strong>SS(mV/s)</strong>: 扫描速率 - 电压扫描的速度</li>
+        <li><strong>P(V)</strong>: 检测电压 - 目标化合物的氧化还原电位</li>
+        <li><strong>TM(min)</strong>: 孵化时间 - 样品与电极的反应时间</li>
+        <li><strong>C0(uM)</strong>: 底液初始浓度 - 电解质中目标物浓度</li>
+    </ul>
+    
+    <h4>🎯 应用场景</h4>
+    <p>适用于吡虫啉、噻虫嗪、噻虫胺等新烟碱类农药的快速定量检测，为食品安全和环境监测提供技术支持。</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 页脚信息
 st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #666;'>
-<p>© 2024 电化学分析实验室 | 基于GBDT的电化学响应预测系统</p>
-<p>特征顺序: DT(ml) → PH → SS(mV/s) → P(V) → TM(min) → C0(uM)</p>
+footer_info = """
+<div style='text-align: center; color: #666; padding: 20px;'>
+<p><strong>© 2024 电化学传感器实验室</strong> | 新烟碱农药检测预测系统 | 版本: 2.0.0</p>
+<p>🔬 基于GBDT算法 | ⚡ 差分脉冲伏安法 | 🎯 高精度预测</p>
+<p><em>特征顺序: DT(ml) → PH → SS(mV/s) → P(V) → TM(min) → C0(uM)</em></p>
 </div>
-""", unsafe_allow_html=True)
+"""
+st.markdown(footer_info, unsafe_allow_html=True)
