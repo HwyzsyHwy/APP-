@@ -31,6 +31,39 @@ st.markdown(
         color: white !important;
     }
     
+    .column-header-1 {
+        background: linear-gradient(90deg, #2E86AB, #A23B72);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    .column-header-2 {
+        background: linear-gradient(90deg, #F18F01, #C73E1D);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    .column-header-3 {
+        background: linear-gradient(90deg, #4ECDC4, #44A08D);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
     .result-display {
         background-color: #1E1E1E;
         color: white;
@@ -232,6 +265,9 @@ col1, col2, col3 = st.columns(3)
 parameters = {}
 
 with col1:
+    # 第一列标题 - 蓝紫色渐变
+    st.markdown("<div class='column-header-1'>🔬 检测条件参数</div>", unsafe_allow_html=True)
+    
     # DT(ml) - 滴涂量
     parameters['DT(ml)'] = st.number_input(
         "DT(ml) - 滴涂量", 
@@ -253,6 +289,9 @@ with col1:
     )
 
 with col2:
+    # 第二列标题 - 橙红色渐变
+    st.markdown("<div class='column-header-2'>⚡ 电化学参数</div>", unsafe_allow_html=True)
+    
     # PH - pH值
     parameters['PH'] = st.number_input(
         "PH - 溶液pH值", 
@@ -274,6 +313,9 @@ with col2:
     )
 
 with col3:
+    # 第三列标题 - 青绿色渐变
+    st.markdown("<div class='column-header-3'>⏱️ 反应条件参数</div>", unsafe_allow_html=True)
+    
     # TM(min) - 孵化时间
     parameters['TM(min)'] = st.number_input(
         "TM(min) - 孵化时间", 
@@ -405,14 +447,11 @@ with st.expander("📚 电化学检测技术说明", expanded=False):
     <h4>🔬 新烟碱农药电化学检测原理</h4>
     <p>本系统基于<strong>差分脉冲伏安法(DPV)</strong>进行新烟碱农药的电化学检测，使用GBDT机器学习模型预测电流响应。</p>
     
-    <h4>📋 参数说明</h4>
+    <h4>📋 参数分类说明</h4>
     <ul>
-        <li><strong>DT(ml)</strong>: 滴涂量 - 电极表面样品的滴涂体积</li>
-        <li><strong>PH</strong>: pH值 - 检测溶液的酸碱度</li>
-        <li><strong>SS(mV/s)</strong>: 扫描速率 - 电压扫描的速度</li>
-        <li><strong>P(V)</strong>: 检测电压 - 目标化合物的氧化还原电位</li>
-        <li><strong>TM(min)</strong>: 孵化时间 - 样品与电极的反应时间</li>
-        <li><strong>C0(uM)</strong>: 底液初始浓度 - 电解质中目标物浓度</li>
+        <li><strong>🔬 检测条件参数</strong>: DT(滴涂量)、SS(扫描速率)</li>
+        <li><strong>⚡ 电化学参数</strong>: PH(溶液pH值)、P(检测电压)</li>
+        <li><strong>⏱️ 反应条件参数</strong>: TM(孵化时间)、C0(底液初始浓度)</li>
     </ul>
     
     <h4>🎯 应用场景</h4>
