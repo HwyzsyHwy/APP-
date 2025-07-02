@@ -31,16 +31,6 @@ st.markdown(
         color: white !important;
     }
     
-    .parameter-label {
-        padding: 8px;
-        border-radius: 5px;
-        margin-bottom: 8px;
-        font-size: 18px;
-        color: white;
-        background-color: #2E86AB;
-        text-align: center;
-    }
-    
     .result-display {
         background-color: #1E1E1E;
         color: white;
@@ -236,86 +226,71 @@ default_values = {
     "C0(uM)": 50.0      # 底液初始浓度
 }
 
-# 创建两列布局，每列3个参数
-col1, col2 = st.columns(2)
+# 创建三列布局，每列2个参数
+col1, col2, col3 = st.columns(3)
 
 parameters = {}
 
 with col1:
-    st.markdown("#### 第一组参数")
-    
     # DT(ml) - 滴涂量
-    st.markdown("<div class='parameter-label'>DT(ml) - 滴涂量</div>", unsafe_allow_html=True)
     parameters['DT(ml)'] = st.number_input(
-        "", 
+        "DT(ml) - 滴涂量", 
         value=default_values['DT(ml)'], 
         step=0.1,
         key="dt_input",
         format="%.2f",
-        label_visibility="collapsed",
         help="电极表面的样品滴涂体积"
     )
     
     # SS(mV/s) - 扫描速率
-    st.markdown("<div class='parameter-label'>SS(mV/s) - 扫描速率</div>", unsafe_allow_html=True)
     parameters['SS(mV/s)'] = st.number_input(
-        "", 
+        "SS(mV/s) - 扫描速率", 
         value=default_values['SS(mV/s)'], 
         step=10.0,
         key="ss_input",
         format="%.1f",
-        label_visibility="collapsed",
         help="差分脉冲伏安法的扫描速率"
-    )
-    
-    # TM(min) - 孵化时间
-    st.markdown("<div class='parameter-label'>TM(min) - 孵化时间</div>", unsafe_allow_html=True)
-    parameters['TM(min)'] = st.number_input(
-        "", 
-        value=default_values['TM(min)'], 
-        step=5.0,
-        key="tm_input",
-        format="%.1f",
-        label_visibility="collapsed",
-        help="样品与电极的反应孵化时间"
     )
 
 with col2:
-    st.markdown("#### 第二组参数")
-    
     # PH - pH值
-    st.markdown("<div class='parameter-label'>PH - 溶液pH值</div>", unsafe_allow_html=True)
     parameters['PH'] = st.number_input(
-        "", 
+        "PH - 溶液pH值", 
         value=default_values['PH'], 
         step=0.1,
         key="ph_input",
         format="%.2f",
-        label_visibility="collapsed",
         help="检测溶液的pH值"
     )
     
     # P(V) - 电压
-    st.markdown("<div class='parameter-label'>P(V) - 检测电压</div>", unsafe_allow_html=True)
     parameters['P(V)'] = st.number_input(
-        "", 
+        "P(V) - 检测电压", 
         value=default_values['P(V)'], 
         step=0.01,
         key="p_input",
         format="%.3f",
-        label_visibility="collapsed",
         help="差分脉冲伏安法的检测电压"
+    )
+
+with col3:
+    # TM(min) - 孵化时间
+    parameters['TM(min)'] = st.number_input(
+        "TM(min) - 孵化时间", 
+        value=default_values['TM(min)'], 
+        step=5.0,
+        key="tm_input",
+        format="%.1f",
+        help="样品与电极的反应孵化时间"
     )
     
     # C0(uM) - 底液初始浓度
-    st.markdown("<div class='parameter-label'>C0(uM) - 底液初始浓度</div>", unsafe_allow_html=True)
     parameters['C0(uM)'] = st.number_input(
-        "", 
+        "C0(uM) - 底液初始浓度", 
         value=default_values['C0(uM)'], 
         step=1.0,
         key="c0_input",
         format="%.1f",
-        label_visibility="collapsed",
         help="电解质底液中目标物的初始浓度"
     )
 
