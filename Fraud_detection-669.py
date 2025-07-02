@@ -23,100 +23,21 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* 强制覆盖所有输入框的内部颜色 */
-    .stNumberInput > div > div > input {
-        font-size: 16px !important;
-        font-weight: bold !important;
-        border-radius: 8px !important;
-        border-width: 2px !important;
-        padding: 12px !important;
-    }
-    
-    /* 直接通过属性选择器强制设置颜色 */
-    input[step="0.1"] {
-        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
-        color: #1565C0 !important;
-        border: 2px solid #2196F3 !important;
-    }
-    
-    input[step="10"] {
-        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
-        color: #1565C0 !important;
-        border: 2px solid #2196F3 !important;
-    }
-    
-    input[step="0.01"] {
-        background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
-        color: #E65100 !important;
-        border: 2px solid #FF9800 !important;
-    }
-    
-    input[step="5"] {
-        background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
-        color: #2E7D32 !important;
-        border: 2px solid #4CAF50 !important;
-    }
-    
-    input[step="1"] {
-        background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
-        color: #2E7D32 !important;
-        border: 2px solid #4CAF50 !important;
-    }
-    
-    /* 通过key属性强制设置 */
-    input[aria-describedby*="dt_input"] {
-        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
-        color: #1565C0 !important;
-        border: 2px solid #2196F3 !important;
-    }
-    
-    input[aria-describedby*="ss_input"] {
-        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
-        color: #1565C0 !important;
-        border: 2px solid #2196F3 !important;
-    }
-    
-    input[aria-describedby*="ph_input"] {
-        background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
-        color: #E65100 !important;
-        border: 2px solid #FF9800 !important;
-    }
-    
-    input[aria-describedby*="p_input"] {
-        background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
-        color: #E65100 !important;
-        border: 2px solid #FF9800 !important;
-    }
-    
-    input[aria-describedby*="tm_input"] {
-        background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
-        color: #2E7D32 !important;
-        border: 2px solid #4CAF50 !important;
-    }
-    
-    input[aria-describedby*="c0_input"] {
-        background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
-        color: #2E7D32 !important;
-        border: 2px solid #4CAF50 !important;
-    }
-    
-    /* 通用强制样式 */
-    input[type="number"] {
-        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
-        color: #1565C0 !important;
-        border: 2px solid #2196F3 !important;
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        font-size: 16px !important;
-        padding: 12px !important;
-    }
-    
     .main-title {
         text-align: center;
         font-size: 32px !important;
         font-weight: bold;
         margin-bottom: 20px;
         color: white !important;
+    }
+    
+    /* 输入框基础样式 */
+    .stNumberInput > div > div > input {
+        font-size: 16px !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        border-width: 2px !important;
+        padding: 12px !important;
     }
     </style>
     """,
@@ -255,30 +176,28 @@ col1, col2, col3 = st.columns(3)
 
 parameters = {}
 
-# 使用唯一的step值来区分不同的输入框
+# 第一列 - 蓝色
 with col1:
-    # DT(ml) - 使用step=0.1 (蓝色)
     parameters['DT(ml)'] = st.number_input(
         "DT(ml) - 滴涂量", 
         value=default_values['DT(ml)'], 
-        step=0.1,  # 蓝色标识
+        step=0.1,
         key="dt_input",
         format="%.2f",
         help="电极表面的样品滴涂体积"
     )
     
-    # SS(mV/s) - 使用step=10.0 (蓝色)
     parameters['SS(mV/s)'] = st.number_input(
         "SS(mV/s) - 扫描速率", 
         value=default_values['SS(mV/s)'], 
-        step=10.0,  # 蓝色标识
+        step=10.0,
         key="ss_input",
         format="%.1f",
         help="差分脉冲伏安法的扫描速率"
     )
 
+# 第二列 - 橙色
 with col2:
-    # PH - 使用step=0.1 (但通过key区分为橙色)
     parameters['PH'] = st.number_input(
         "PH - 溶液pH值", 
         value=default_values['PH'], 
@@ -288,88 +207,92 @@ with col2:
         help="检测溶液的pH值"
     )
     
-    # P(V) - 使用step=0.01 (橙色)
     parameters['P(V)'] = st.number_input(
         "P(V) - 检测电压", 
         value=default_values['P(V)'], 
-        step=0.01,  # 橙色标识
+        step=0.01,
         key="p_input",
         format="%.3f",
         help="差分脉冲伏安法的检测电压"
     )
 
+# 第三列 - 绿色
 with col3:
-    # TM(min) - 使用step=5.0 (绿色)
     parameters['TM(min)'] = st.number_input(
         "TM(min) - 孵化时间", 
         value=default_values['TM(min)'], 
-        step=5.0,  # 绿色标识
+        step=5.0,
         key="tm_input",
         format="%.1f",
         help="样品与电极的反应孵化时间"
     )
     
-    # C0(uM) - 使用step=1.0 (绿色)
     parameters['C0(uM)'] = st.number_input(
         "C0(uM) - 底液初始浓度", 
         value=default_values['C0(uM)'], 
-        step=1.0,  # 绿色标识
+        step=1.0,
         key="c0_input",
         format="%.1f",
         help="电解质底液中目标物的初始浓度"
     )
 
-# 强制JavaScript应用输入框内部颜色
+# 按列应用颜色的JavaScript
 st.markdown("""
 <script>
-// 立即执行
 (function() {
-    const applyColors = () => {
-        const inputs = document.querySelectorAll('input[type="number"]');
+    const applyColumnColors = () => {
+        // 获取所有列容器
+        const columns = document.querySelectorAll('[data-testid="column"]');
         
-        inputs.forEach((input, index) => {
-            // 移除可能的默认样式
-            input.style.setProperty('background', '', 'important');
-            input.style.setProperty('color', '', 'important');
-            input.style.setProperty('border', '', 'important');
+        columns.forEach((column, colIndex) => {
+            const inputs = column.querySelectorAll('input[type="number"]');
             
-            // 根据位置应用颜色
-            if (index === 0 || index === 1) {
-                // 第一列 - 蓝色
-                input.style.setProperty('background', 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', 'important');
-                input.style.setProperty('color', '#1565C0', 'important');
-                input.style.setProperty('border', '2px solid #2196F3', 'important');
-            } else if (index === 2 || index === 3) {
-                // 第二列 - 橙色
-                input.style.setProperty('background', 'linear-gradient(135deg, #FFF3E0, #FFE0B2)', 'important');
-                input.style.setProperty('color', '#E65100', 'important');
-                input.style.setProperty('border', '2px solid #FF9800', 'important');
-            } else if (index === 4 || index === 5) {
-                // 第三列 - 绿色
-                input.style.setProperty('background', 'linear-gradient(135deg, #E8F5E8, #C8E6C9)', 'important');
-                input.style.setProperty('color', '#2E7D32', 'important');
-                input.style.setProperty('border', '2px solid #4CAF50', 'important');
-            }
-            
-            // 通用样式
-            input.style.setProperty('border-radius', '8px', 'important');
-            input.style.setProperty('font-weight', 'bold', 'important');
-            input.style.setProperty('font-size', '16px', 'important');
-            input.style.setProperty('padding', '12px', 'important');
+            inputs.forEach(input => {
+                // 清除现有样式
+                input.style.removeProperty('background');
+                input.style.removeProperty('color');
+                input.style.removeProperty('border');
+                
+                // 根据列索引应用不同颜色
+                if (colIndex === 0) {
+                    // 第一列 - 蓝色
+                    input.style.setProperty('background', 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', 'important');
+                    input.style.setProperty('color', '#1565C0', 'important');
+                    input.style.setProperty('border', '2px solid #2196F3', 'important');
+                } else if (colIndex === 1) {
+                    // 第二列 - 橙色
+                    input.style.setProperty('background', 'linear-gradient(135deg, #FFF3E0, #FFE0B2)', 'important');
+                    input.style.setProperty('color', '#E65100', 'important');
+                    input.style.setProperty('border', '2px solid #FF9800', 'important');
+                } else if (colIndex === 2) {
+                    // 第三列 - 绿色
+                    input.style.setProperty('background', 'linear-gradient(135deg, #E8F5E8, #C8E6C9)', 'important');
+                    input.style.setProperty('color', '#2E7D32', 'important');
+                    input.style.setProperty('border', '2px solid #4CAF50', 'important');
+                }
+                
+                // 通用样式
+                input.style.setProperty('border-radius', '8px', 'important');
+                input.style.setProperty('font-weight', 'bold', 'important');
+                input.style.setProperty('font-size', '16px', 'important');
+                input.style.setProperty('padding', '12px', 'important');
+            });
         });
     };
     
-    // 多次执行确保生效
-    setTimeout(applyColors, 500);
-    setTimeout(applyColors, 1000);
-    setTimeout(applyColors, 2000);
-    setTimeout(applyColors, 3000);
+    // 延迟执行，确保DOM完全加载
+    setTimeout(applyColumnColors, 100);
+    setTimeout(applyColumnColors, 500);
+    setTimeout(applyColumnColors, 1000);
+    setTimeout(applyColumnColors, 2000);
     
     // 定期重新应用
-    setInterval(applyColors, 5000);
+    setInterval(applyColumnColors, 3000);
     
     // 监听DOM变化
-    const observer = new MutationObserver(applyColors);
+    const observer = new MutationObserver(() => {
+        setTimeout(applyColumnColors, 100);
+    });
     observer.observe(document.body, { childList: true, subtree: true });
 })();
 </script>
@@ -409,6 +332,16 @@ if predict_clicked:
         st.session_state.prediction_result = None
         log(f"预测失败: {error_msg}")
 
+# 显示警告信息
+if st.session_state.warnings:
+    st.warning("⚠️ 参数超出建议范围：")
+    for warning in st.session_state.warnings:
+        st.write(f"• {warning}")
+
+# 显示错误信息
+if st.session_state.prediction_error:
+    st.error(f"❌ 预测失败: {st.session_state.prediction_error}")
+
 # 结果显示
 if st.session_state.prediction_result is not None:
     st.markdown("---")
@@ -417,8 +350,62 @@ if st.session_state.prediction_result is not None:
         <div style='background-color: #1E1E1E; color: white; font-size: 36px; font-weight: bold; 
                     text-align: center; padding: 20px; border-radius: 10px; margin-top: 20px; 
                     border: 2px solid #2E86AB;'>
-        🎯 预测电流响应: {st.session_state.prediction_result:.4f} μA
+        🎯 预测响应电流: {st.session_state.prediction_result:.4f} μA
         </div>
         """, 
         unsafe_allow_html=True
     )
+
+# 详细信息显示
+if show_details and st.session_state.prediction_result is not None:
+    st.markdown("### 📊 预测详情")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**输入参数：**")
+        for param, value in parameters.items():
+            st.write(f"• {param}: {value}")
+    
+    with col2:
+        st.markdown("**模型信息：**")
+        st.write(f"• 模型类型: GBDT")
+        st.write(f"• 特征数量: {len(predictor.feature_names)}")
+        st.write(f"• 目标变量: {predictor.target_name}")
+
+# 技术说明
+st.markdown("---")
+st.markdown("### 📖 技术说明")
+
+with st.expander("电化学检测原理"):
+    st.markdown("""
+    **差分脉冲伏安法 (DPV)** 是检测新烟碱农药的高灵敏度电化学技术：
+    
+    - **DT(ml)**: 样品滴涂量影响信号强度和检测精度
+    - **PH**: 溶液酸碱度影响电极反应和信号稳定性  
+    - **SS(mV/s)**: 扫描速率决定检测时间和分辨率
+    - **P(V)**: 检测电压设定目标化合物的氧化还原电位
+    - **TM(min)**: 孵化时间确保充分的电极表面反应
+    - **C0(uM)**: 底液浓度影响基线电流和检测范围
+    """)
+
+with st.expander("GBDT模型特点"):
+    st.markdown("""
+    **梯度提升决策树 (GBDT)** 用于电化学响应预测：
+    
+    - 高精度回归预测
+    - 自动特征重要性分析  
+    - 处理非线性关系
+    - 抗过拟合能力强
+    """)
+
+# 页脚
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: #666666; font-size: 12px;'>
+    © 2024 电化学传感检测系统 | 版本 1.2.0 | 基于GBDT模型
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
