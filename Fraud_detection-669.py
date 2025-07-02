@@ -19,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# 自定义样式
+# 自定义样式 - 使用更强力的CSS选择器
 st.markdown(
     """
     <style>
@@ -31,50 +31,58 @@ st.markdown(
         color: white !important;
     }
     
-    /* 第一列输入框 - 蓝色背景 */
-    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] input {
+    /* 强制覆盖所有number input的样式 */
+    .stNumberInput > div > div > input,
+    .stNumberInput input,
+    input[type="number"] {
+        font-size: 16px !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        border-width: 2px !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    /* 第一列和第三列（奇数位置）- 蓝色 */
+    .stNumberInput:nth-of-type(odd) > div > div > input,
+    .stNumberInput:nth-of-type(odd) input {
         background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
         color: #1565C0 !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
         border: 2px solid #2196F3 !important;
-        border-radius: 8px !important;
     }
     
-    /* 第二列输入框 - 橙色背景 */
-    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] input {
+    /* 第二列和第四列（偶数位置）- 橙色 */
+    .stNumberInput:nth-of-type(even) > div > div > input,
+    .stNumberInput:nth-of-type(even) input {
         background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
         color: #E65100 !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
         border: 2px solid #FF9800 !important;
-        border-radius: 8px !important;
     }
     
-    /* 第三列输入框 - 绿色背景 */
-    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] input {
+    /* 第五列和第六列 - 绿色 */
+    .stNumberInput:nth-of-type(5) > div > div > input,
+    .stNumberInput:nth-of-type(5) input,
+    .stNumberInput:nth-of-type(6) > div > div > input,
+    .stNumberInput:nth-of-type(6) input {
         background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
         color: #2E7D32 !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
         border: 2px solid #4CAF50 !important;
+    }
+    
+    /* 使用更通用的方法 - 所有输入框默认样式 */
+    [data-baseweb="input"] input {
+        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
+        color: #1565C0 !important;
+        border: 2px solid #2196F3 !important;
         border-radius: 8px !important;
+        font-weight: bold !important;
     }
     
-    /* 输入框焦点状态 */
-    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] input:focus {
-        box-shadow: 0 0 10px rgba(33, 150, 243, 0.5) !important;
-        border-color: #1976D2 !important;
-    }
-    
-    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] input:focus {
-        box-shadow: 0 0 10px rgba(255, 152, 0, 0.5) !important;
-        border-color: #F57C00 !important;
-    }
-    
-    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] input:focus {
-        box-shadow: 0 0 10px rgba(76, 175, 80, 0.5) !important;
-        border-color: #388E3C !important;
+    /* 聚焦状态 */
+    .stNumberInput input:focus,
+    input[type="number"]:focus {
+        box-shadow: 0 0 15px rgba(33, 150, 243, 0.6) !important;
+        outline: none !important;
+        transform: scale(1.02) !important;
     }
     
     .result-display {
@@ -266,6 +274,35 @@ default_values = {
     "C0(uM)": 50.0      # 底液初始浓度
 }
 
+# 强制添加自定义CSS到每个输入框
+st.markdown("""
+<script>
+setTimeout(function() {
+    const inputs = document.querySelectorAll('input[type="number"]');
+    inputs.forEach((input, index) => {
+        if (index < 2) {
+            // 第一列 - 蓝色
+            input.style.background = 'linear-gradient(135deg, #E3F2FD, #BBDEFB)';
+            input.style.color = '#1565C0';
+            input.style.border = '2px solid #2196F3';
+        } else if (index < 4) {
+            // 第二列 - 橙色
+            input.style.background = 'linear-gradient(135deg, #FFF3E0, #FFE0B2)';
+            input.style.color = '#E65100';
+            input.style.border = '2px solid #FF9800';
+        } else {
+            // 第三列 - 绿色
+            input.style.background = 'linear-gradient(135deg, #E8F5E8, #C8E6C9)';
+            input.style.color = '#2E7D32';
+            input.style.border = '2px solid #4CAF50';
+        }
+        input.style.borderRadius = '8px';
+        input.style.fontWeight = 'bold';
+    });
+}, 1000);
+</script>
+""", unsafe_allow_html=True)
+
 # 创建三列布局，每列2个参数
 col1, col2, col3 = st.columns(3)
 
@@ -394,7 +431,7 @@ if st.session_state.prediction_result is not None:
     
     # 警告显示
     if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><h4>⚠️ 参数范围警告</h4><ul>"
+        warnings_html = "<div class='warning-box'><h4⚠️ 参数范围警告</h4><ul>"
         for warning in st.session_state.warnings:
             warnings_html += f"<li>{warning}</li>"
         warnings_html += "</ul><p><em>建议检查参数设置，确保在实验合理范围内。</em></p></div>"
