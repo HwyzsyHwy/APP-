@@ -31,28 +31,28 @@ st.markdown(
         color: white !important;
     }
     
-    /* 第一列背景 - 蓝色系 */
-    [data-testid="column"]:nth-child(1) {
-        background: linear-gradient(135deg, rgba(46, 134, 171, 0.15), rgba(162, 59, 114, 0.15));
-        padding: 20px;
-        border-radius: 10px;
-        margin: 5px;
+    /* 第一列输入框 - 蓝色背景 */
+    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] input {
+        background-color: #E3F2FD !important;
+        color: black !important;
+        font-size: 16px !important;
+        border: 2px solid #2196F3 !important;
     }
     
-    /* 第二列背景 - 橙色系 */
-    [data-testid="column"]:nth-child(2) {
-        background: linear-gradient(135deg, rgba(241, 143, 1, 0.15), rgba(199, 62, 29, 0.15));
-        padding: 20px;
-        border-radius: 10px;
-        margin: 5px;
+    /* 第二列输入框 - 橙色背景 */
+    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] input {
+        background-color: #FFF3E0 !important;
+        color: black !important;
+        font-size: 16px !important;
+        border: 2px solid #FF9800 !important;
     }
     
-    /* 第三列背景 - 绿色系 */
-    [data-testid="column"]:nth-child(3) {
-        background: linear-gradient(135deg, rgba(78, 205, 196, 0.15), rgba(68, 160, 141, 0.15));
-        padding: 20px;
-        border-radius: 10px;
-        margin: 5px;
+    /* 第三列输入框 - 绿色背景 */
+    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] input {
+        background-color: #E8F5E8 !important;
+        color: black !important;
+        font-size: 16px !important;
+        border: 2px solid #4CAF50 !important;
     }
     
     .result-display {
@@ -65,12 +65,6 @@ st.markdown(
         border-radius: 10px;
         margin-top: 20px;
         border: 2px solid #2E86AB;
-    }
-    
-    [data-testid="stNumberInput"] input {
-        background-color: white !important;
-        color: black !important;
-        font-size: 16px !important;
     }
     
     .stButton button {
