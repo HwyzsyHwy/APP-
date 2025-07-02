@@ -33,26 +33,48 @@ st.markdown(
     
     /* 第一列输入框 - 蓝色背景 */
     [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] input {
-        background-color: #E3F2FD !important;
-        color: black !important;
+        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
+        color: #1565C0 !important;
         font-size: 16px !important;
+        font-weight: bold !important;
         border: 2px solid #2196F3 !important;
+        border-radius: 8px !important;
     }
     
     /* 第二列输入框 - 橙色背景 */
     [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] input {
-        background-color: #FFF3E0 !important;
-        color: black !important;
+        background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
+        color: #E65100 !important;
         font-size: 16px !important;
+        font-weight: bold !important;
         border: 2px solid #FF9800 !important;
+        border-radius: 8px !important;
     }
     
     /* 第三列输入框 - 绿色背景 */
     [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] input {
-        background-color: #E8F5E8 !important;
-        color: black !important;
+        background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
+        color: #2E7D32 !important;
         font-size: 16px !important;
+        font-weight: bold !important;
         border: 2px solid #4CAF50 !important;
+        border-radius: 8px !important;
+    }
+    
+    /* 输入框焦点状态 */
+    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] input:focus {
+        box-shadow: 0 0 10px rgba(33, 150, 243, 0.5) !important;
+        border-color: #1976D2 !important;
+    }
+    
+    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] input:focus {
+        box-shadow: 0 0 10px rgba(255, 152, 0, 0.5) !important;
+        border-color: #F57C00 !important;
+    }
+    
+    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] input:focus {
+        box-shadow: 0 0 10px rgba(76, 175, 80, 0.5) !important;
+        border-color: #388E3C !important;
     }
     
     .result-display {
