@@ -19,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# 强制输入框颜色填充 - 使用更强力的CSS和JavaScript
+# 超强力CSS和JavaScript颜色填充
 st.markdown(
     """
     <style>
@@ -31,7 +31,7 @@ st.markdown(
         color: white !important;
     }
     
-    /* 强制所有数字输入框的基础样式 */
+    /* 基础输入框样式 */
     input[type="number"] {
         font-size: 16px !important;
         font-weight: bold !important;
@@ -40,20 +40,20 @@ st.markdown(
         border-width: 2px !important;
     }
     
-    /* 通过data属性强制设置颜色 */
-    input[data-color="blue"] {
+    /* 强制颜色 - 使用!important覆盖 */
+    .blue-input {
         background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
         color: #1565C0 !important;
         border: 2px solid #2196F3 !important;
     }
     
-    input[data-color="orange"] {
+    .orange-input {
         background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
         color: #E65100 !important;
         border: 2px solid #FF9800 !important;
     }
     
-    input[data-color="green"] {
+    .green-input {
         background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
         color: #2E7D32 !important;
         border: 2px solid #4CAF50 !important;
@@ -62,6 +62,131 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# 超强力JavaScript - 立即执行且持续监控
+st.markdown("""
+<script>
+// 立即执行函数
+(function() {
+    let colorApplied = false;
+    
+    function applyColorsAggressively() {
+        try {
+            // 查找所有列容器
+            const allColumns = document.querySelectorAll('[data-testid="column"]');
+            
+            if (allColumns.length >= 3) {
+                console.log('找到', allColumns.length, '列');
+                
+                // 第一列 - 蓝色
+                const col1Inputs = allColumns[0].querySelectorAll('input[type="number"]');
+                col1Inputs.forEach((input, idx) => {
+                    input.className = input.className.replace(/blue-input|orange-input|green-input/g, '') + ' blue-input';
+                    input.style.cssText = `
+                        background: linear-gradient(135deg, #E3F2FD, #BBDEFB) !important;
+                        color: #1565C0 !important;
+                        border: 2px solid #2196F3 !important;
+                        border-radius: 8px !important;
+                        font-weight: bold !important;
+                        font-size: 16px !important;
+                        padding: 12px !important;
+                    `;
+                    console.log('第一列输入框', idx, '设置为蓝色');
+                });
+                
+                // 第二列 - 橙色
+                const col2Inputs = allColumns[1].querySelectorAll('input[type="number"]');
+                col2Inputs.forEach((input, idx) => {
+                    input.className = input.className.replace(/blue-input|orange-input|green-input/g, '') + ' orange-input';
+                    input.style.cssText = `
+                        background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
+                        color: #E65100 !important;
+                        border: 2px solid #FF9800 !important;
+                        border-radius: 8px !important;
+                        font-weight: bold !important;
+                        font-size: 16px !important;
+                        padding: 12px !important;
+                    `;
+                    console.log('第二列输入框', idx, '设置为橙色');
+                });
+                
+                // 第三列 - 绿色
+                const col3Inputs = allColumns[2].querySelectorAll('input[type="number"]');
+                col3Inputs.forEach((input, idx) => {
+                    input.className = input.className.replace(/blue-input|orange-input|green-input/g, '') + ' green-input';
+                    input.style.cssText = `
+                        background: linear-gradient(135deg, #E8F5E8, #C8E6C9) !important;
+                        color: #2E7D32 !important;
+                        border: 2px solid #4CAF50 !important;
+                        border-radius: 8px !important;
+                        font-weight: bold !important;
+                        font-size: 16px !important;
+                        padding: 12px !important;
+                    `;
+                    console.log('第三列输入框', idx, '设置为绿色');
+                });
+                
+                colorApplied = true;
+                console.log('颜色应用完成！');
+            } else {
+                console.log('列数不足，当前列数:', allColumns.length);
+            }
+        } catch (error) {
+            console.error('颜色应用出错:', error);
+        }
+    }
+    
+    // 立即执行
+    applyColorsAggressively();
+    
+    // 短间隔重复执行
+    const intervals = [50, 100, 200, 500, 1000, 2000, 3000, 5000];
+    intervals.forEach(delay => {
+        setTimeout(applyColorsAggressively, delay);
+    });
+    
+    // 持续监控
+    const persistentInterval = setInterval(() => {
+        if (!colorApplied) {
+            applyColorsAggressively();
+        }
+    }, 1000);
+    
+    // DOM变化监听
+    const observer = new MutationObserver((mutations) => {
+        let needsUpdate = false;
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList') {
+                const hasInputs = Array.from(mutation.addedNodes).some(node => 
+                    node.nodeType === 1 && (node.tagName === 'INPUT' || node.querySelector('input'))
+                );
+                if (hasInputs) {
+                    needsUpdate = true;
+                }
+            }
+        });
+        
+        if (needsUpdate) {
+            setTimeout(applyColorsAggressively, 100);
+        }
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: false
+    });
+    
+    // 页面可见性变化时重新应用
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            setTimeout(applyColorsAggressively, 200);
+        }
+    });
+    
+})();
+</script>
+""", unsafe_allow_html=True)
 
 # 初始化日志
 if 'log_messages' not in st.session_state:
@@ -254,103 +379,6 @@ with col3:
         format="%.1f",
         help="电解质底液中目标物的初始浓度"
     )
-
-# 强制JavaScript颜色应用 - 更精确的方法
-st.markdown("""
-<script>
-window.addEventListener('DOMContentLoaded', function() {
-    function forceApplyColors() {
-        // 获取所有number类型的输入框
-        const allInputs = document.querySelectorAll('input[type="number"]');
-        
-        // 清除所有已有的data-color属性
-        allInputs.forEach(input => {
-            input.removeAttribute('data-color');
-        });
-        
-        // 获取三列容器
-        const columns = document.querySelectorAll('[data-testid="column"]');
-        
-        if (columns.length >= 3) {
-            // 第一列 - 蓝色
-            const col1Inputs = columns[0].querySelectorAll('input[type="number"]');
-            col1Inputs.forEach(input => {
-                input.setAttribute('data-color', 'blue');
-                input.style.setProperty('background', 'linear-gradient(135deg, #E3F2FD, #BBDEFB)', 'important');
-                input.style.setProperty('color', '#1565C0', 'important');
-                input.style.setProperty('border', '2px solid #2196F3', 'important');
-                input.style.setProperty('border-radius', '8px', 'important');
-                input.style.setProperty('font-weight', 'bold', 'important');
-                input.style.setProperty('font-size', '16px', 'important');
-                input.style.setProperty('padding', '12px', 'important');
-            });
-            
-            // 第二列 - 橙色
-            const col2Inputs = columns[1].querySelectorAll('input[type="number"]');
-            col2Inputs.forEach(input => {
-                input.setAttribute('data-color', 'orange');
-                input.style.setProperty('background', 'linear-gradient(135deg, #FFF3E0, #FFE0B2)', 'important');
-                input.style.setProperty('color', '#E65100', 'important');
-                input.style.setProperty('border', '2px solid #FF9800', 'important');
-                input.style.setProperty('border-radius', '8px', 'important');
-                input.style.setProperty('font-weight', 'bold', 'important');
-                input.style.setProperty('font-size', '16px', 'important');
-                input.style.setProperty('padding', '12px', 'important');
-            });
-            
-            // 第三列 - 绿色
-            const col3Inputs = columns[2].querySelectorAll('input[type="number"]');
-            col3Inputs.forEach(input => {
-                input.setAttribute('data-color', 'green');
-                input.style.setProperty('background', 'linear-gradient(135deg, #E8F5E8, #C8E6C9)', 'important');
-                input.style.setProperty('color', '#2E7D32', 'important');
-                input.style.setProperty('border', '2px solid #4CAF50', 'important');
-                input.style.setProperty('border-radius', '8px', 'important');
-                input.style.setProperty('font-weight', 'bold', 'important');
-                input.style.setProperty('font-size', '16px', 'important');
-                input.style.setProperty('padding', '12px', 'important');
-            });
-        }
-        
-        console.log('颜色应用完成，输入框数量:', allInputs.length);
-    }
-    
-    // 立即执行
-    forceApplyColors();
-    
-    // 延迟执行多次
-    setTimeout(forceApplyColors, 100);
-    setTimeout(forceApplyColors, 500);
-    setTimeout(forceApplyColors, 1000);
-    setTimeout(forceApplyColors, 2000);
-    setTimeout(forceApplyColors, 3000);
-    
-    // 定期执行
-    setInterval(forceApplyColors, 5000);
-    
-    // 监听DOM变化
-    const observer = new MutationObserver(function(mutations) {
-        let shouldUpdate = false;
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList') {
-                const addedNodes = Array.from(mutation.addedNodes);
-                if (addedNodes.some(node => node.nodeType === 1 && (node.tagName === 'INPUT' || node.querySelector('input')))) {
-                    shouldUpdate = true;
-                }
-            }
-        });
-        if (shouldUpdate) {
-            setTimeout(forceApplyColors, 100);
-        }
-    });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-});
-</script>
-""", unsafe_allow_html=True)
 
 # 预测控制按钮
 st.markdown("### 🚀 执行预测")
