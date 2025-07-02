@@ -26,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# 自定义样式（保持原样）
+# 自定义样式
 st.markdown(
     """
     <style>
@@ -126,33 +126,12 @@ st.markdown(
         font-size: 14px !important;
     }
     
-    /* 填满屏幕 */
-    .stApp {
-        width: 100%;
-        min-width: 100%;
-        margin: 0 auto;
-    }
-    
-    .main .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        max-width: 100%;
-    }
-    
     /* 侧边栏模型信息样式 */
     .sidebar-model-info {
         background-color: #2E2E2E;
         padding: 10px;
         border-radius: 5px;
         margin-top: 20px;
-    }
-    
-    /* 性能指标样式 */
-    .performance-metrics {
-        background-color: #2E2E2E;
-        padding: 10px;
-        border-radius: 5px;
-        margin-top: 10px;
     }
     
     /* 技术说明样式 */
@@ -214,18 +193,18 @@ class ModelPredictor:
             'C0(uM)'            # 初始浓度
         ]
         
-        # 根据之前的数据统计信息设置训练范围（需要根据实际数据调整）
+        # 根据之前的数据统计信息设置训练范围
         self.training_ranges = {
-            'DT(ml)': {'min': 0.0, 'max': 10.0},      # 需要根据实际数据调整
-            'PH': {'min': 3.0, 'max': 9.0},           # 需要根据实际数据调整
-            'SS(mV/s)': {'min': 10.0, 'max': 200.0},  # 需要根据实际数据调整
-            'P(V)': {'min': -1.0, 'max': 1.0},        # 需要根据实际数据调整
-            'TM(min)': {'min': 0.0, 'max': 60.0},     # 需要根据实际数据调整
-            'C0(uM)': {'min': 1.0, 'max': 100.0}      # 需要根据实际数据调整
+            'DT(ml)': {'min': 0.0, 'max': 10.0},
+            'PH': {'min': 3.0, 'max': 9.0},
+            'SS(mV/s)': {'min': 10.0, 'max': 200.0},
+            'P(V)': {'min': -1.0, 'max': 1.0},
+            'TM(min)': {'min': 0.0, 'max': 60.0},
+            'C0(uM)': {'min': 1.0, 'max': 100.0}
         }
         
-        self.last_features = {}  # 存储上次的特征值
-        self.last_result = None  # 存储上次的预测结果
+        self.last_features = {}
+        self.last_result = None
         
         # 查找并加载模型
         self.model_path = self._find_model_file()
@@ -237,14 +216,12 @@ class ModelPredictor:
     
     def _find_model_file(self):
         """查找模型文件"""
-        # 根据训练代码的模型保存路径
         model_file_patterns = [
             "GBDT.joblib",
             "*GBDT*.joblib",
             "*gbdt*.joblib"
         ]
         
-        # 搜索目录
         search_dirs = [
             ".", "./models", "../models", "/app/models", "/app",
             r"C:\Users\HWY\Desktop\开题-7.2"
@@ -258,14 +235,12 @@ class ModelPredictor:
                 
             try:
                 for pattern in model_file_patterns:
-                    # 使用glob匹配文件
                     matches = glob.glob(os.path.join(directory, pattern))
                     for match in matches:
                         if os.path.isfile(match):
                             log(f"找到模型文件: {match}")
                             return match
                             
-                # 也检查目录中的所有.joblib文件
                 for file in os.listdir(directory):
                     if file.endswith('.joblib') and 'gbdt' in file.lower():
                         model_path = os.path.join(directory, file)
@@ -287,11 +262,9 @@ class ModelPredictor:
             log(f"加载Pipeline模型: {self.model_path}")
             self.pipeline = joblib.load(self.model_path)
             
-            # 验证Pipeline结构
             if hasattr(self.pipeline, 'predict') and hasattr(self.pipeline, 'named_steps'):
                 log(f"Pipeline加载成功，组件: {list(self.pipeline.named_steps.keys())}")
                 
-                # 验证Pipeline包含scaler和model
                 if 'scaler' in self.pipeline.named_steps and 'model' in self.pipeline.named_steps:
                     scaler_type = type(self.pipeline.named_steps['scaler']).__name__
                     model_type = type(self.pipeline.named_steps['model']).__name__
@@ -329,14 +302,12 @@ class ModelPredictor:
     
     def _prepare_features(self, features):
         """准备特征，确保顺序与训练时一致"""
-        # 创建特征字典，按训练时的顺序
         model_features = {}
         
         for feature in self.feature_names:
             if feature in features:
                 model_features[feature] = features[feature]
             else:
-                # 使用默认值（需要根据实际数据调整）
                 default_values = {
                     'DT(ml)': 5.0,
                     'PH': 7.0,
@@ -349,16 +320,14 @@ class ModelPredictor:
                 model_features[feature] = default_value
                 log(f"警告: 特征 '{feature}' 缺失，设为默认值: {default_value}")
         
-        # 创建DataFrame并按照正确顺序排列列
         df = pd.DataFrame([model_features])
-        df = df[self.feature_names]  # 确保列顺序与训练时一致
+        df = df[self.feature_names]
         
         log(f"准备好的特征DataFrame形状: {df.shape}, 列: {list(df.columns)}")
         return df
     
     def predict(self, features):
         """预测方法 - 使用Pipeline进行预测"""
-        # 检查输入是否有变化
         features_changed = False
         if self.last_features:
             for feature, value in features.items():
@@ -368,23 +337,18 @@ class ModelPredictor:
         else:
             features_changed = True
         
-        # 如果输入没有变化且有上次结果，直接返回上次结果
         if not features_changed and self.last_result is not None:
             log("输入未变化，使用上次的预测结果")
             return self.last_result
         
-        # 保存当前特征
         self.last_features = features.copy()
         
-        # 准备特征数据
         log(f"开始准备{len(features)}个特征数据进行预测")
         features_df = self._prepare_features(features)
         
-        # 使用Pipeline进行预测
         if self.model_loaded and self.pipeline is not None:
             try:
                 log("使用Pipeline进行预测（包含RobustScaler预处理）")
-                # Pipeline会自动进行预处理（RobustScaler）然后预测
                 result = float(self.pipeline.predict(features_df)[0])
                 log(f"预测成功: {result:.4f}")
                 self.last_result = result
@@ -393,7 +357,6 @@ class ModelPredictor:
                 log(f"Pipeline预测失败: {str(e)}")
                 log(traceback.format_exc())
                 
-                # 尝试重新加载模型
                 if self._find_model_file() and self._load_pipeline():
                     try:
                         result = float(self.pipeline.predict(features_df)[0])
@@ -403,7 +366,6 @@ class ModelPredictor:
                     except Exception as new_e:
                         log(f"重新加载后预测仍然失败: {str(new_e)}")
         
-        # 如果到这里，说明预测失败
         log("所有预测尝试都失败")
         raise ValueError(f"模型预测失败。请确保模型文件存在且格式正确。")
     
@@ -420,13 +382,11 @@ class ModelPredictor:
             pipeline_steps = list(self.pipeline.named_steps.keys())
             info["Pipeline组件"] = " → ".join(pipeline_steps)
             
-            # 如果有模型组件，显示其参数
             if 'model' in self.pipeline.named_steps:
                 model = self.pipeline.named_steps['model']
                 model_type = type(model).__name__
                 info["回归器类型"] = model_type
                 
-                # 显示部分关键超参数
                 if hasattr(model, 'n_estimators'):
                     info["树的数量"] = model.n_estimators
                 if hasattr(model, 'max_depth'):
@@ -439,12 +399,11 @@ class ModelPredictor:
 # 初始化预测器
 predictor = ModelPredictor()
 
-# 在侧边栏添加模型信息
+# 在侧边栏添加模型信息 - 这里是关键修复点！
 model_info = predictor.get_model_info()
 model_info_html = "<div class='sidebar-model-info'><h3>模型信息</h3>"
-for key, value in model_info_items():
+for key, value in model_info.items():  # 确保这里是 .items() 而不是 _items()
     model_info_html += f"<p><b>{key}</b>: {value}</p>"
-
 model_info_html += "</div>"
 st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
 
@@ -460,7 +419,7 @@ if 'prediction_error' not in st.session_state:
 if 'feature_values' not in st.session_state:
     st.session_state.feature_values = {}
 
-# 根据实际特征定义默认值（需要根据实际数据调整）
+# 默认值
 default_values = {
     "DT(ml)": 5.0,
     "PH": 7.0,
@@ -470,7 +429,7 @@ default_values = {
     "C0(uM)": 50.0
 }
 
-# 将6个特征平均分成三列（每列2个特征）
+# 将6个特征平均分成三列
 feature_categories = {
     "电化学参数": ["DT(ml)", "PH"],
     "测量条件": ["SS(mV/s)", "P(V)"],
@@ -595,7 +554,7 @@ with col3:
                 label_visibility="collapsed"
             )
 
-# 调试信息：显示所有当前输入值
+# 调试信息
 with st.expander("📊 显示当前输入值", expanded=False):
     debug_info = "<div style='columns: 3; column-gap: 20px;'>"
     for feature, value in features.items():
@@ -619,18 +578,14 @@ with col1:
     if predict_clicked:
         log("开始预测流程...")
         
-        # 保存当前输入到会话状态
         st.session_state.feature_values = features.copy()
         
         log(f"开始电化学响应预测，输入特征数: {len(features)}")
         
-        # 检查输入范围
         warnings = predictor.check_input_range(features)
         st.session_state.warnings = warnings
         
-        # 执行预测
         try:
-            # 确保预测器已正确加载
             if not predictor.model_loaded:
                 log("模型未加载，尝试重新加载")
                 if predictor._find_model_file() and predictor._load_pipeline():
@@ -641,7 +596,6 @@ with col1:
                     st.session_state.prediction_error = error_msg
                     st.rerun()
             
-            # 执行预测
             result = predictor.predict(features)
             if result is not None:
                 st.session_state.prediction_result = float(result)
@@ -671,20 +625,17 @@ with col2:
 if st.session_state.prediction_result is not None:
     st.markdown("---")
     
-    # 显示主预测结果
     result_container.markdown(
         f"<div class='yield-result'>电流响应 I(uA): {st.session_state.prediction_result:.4f}</div>", 
         unsafe_allow_html=True
     )
     
-    # 显示模型状态
     if not predictor.model_loaded:
         result_container.markdown(
             "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查模型文件是否存在。</div>", 
             unsafe_allow_html=True
         )
     
-    # 显示警告
     if st.session_state.warnings:
         warnings_html = "<div class='warning-box'><b>⚠️ 输入警告</b><ul>"
         for warning in st.session_state.warnings:
@@ -692,7 +643,6 @@ if st.session_state.prediction_result is not None:
         warnings_html += "</ul><p><i>建议调整输入值以获得更准确的预测结果。</i></p></div>"
         result_container.markdown(warnings_html, unsafe_allow_html=True)
     
-    # 显示预测详情
     with st.expander("📈 预测详情", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
