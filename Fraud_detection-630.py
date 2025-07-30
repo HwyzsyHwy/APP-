@@ -25,6 +25,70 @@ st.set_page_config(
     initial_sidebar_state='collapsed'
 )
 
+# 初始化会话状态
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "Char Yield"
+if 'prediction_result' not in st.session_state:
+    st.session_state.prediction_result = 27.79
+if 'feature_values' not in st.session_state:
+    st.session_state.feature_values = {
+        "M(wt%)": 6.460, "Ash(wt%)": 4.498, "VM(wt%)": 75.376,
+        "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
+        "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
+    }
+if 'log_messages' not in st.session_state:
+    st.session_state.log_messages = []
+
+def log(message):
+    """记录日志"""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    log_entry = f"[{timestamp}] {message}"
+    st.session_state.log_messages.append(log_entry)
+    if len(st.session_state.log_messages) > 100:
+        st.session_state.log_messages = st.session_state.log_messages[-100:]
+
+# 简化的预测器类
+class ModelPredictor:
+    def __init__(self, target_model="Char Yield"):
+        self.target_name = target_model
+        self.feature_names = [
+            'M(wt%)', 'Ash(wt%)', 'VM(wt%)', 'O/C', 'H/C', 'N/C',
+            'FT(℃)', 'HR(℃/min)', 'FR(mL/min)'
+        ]
+        self.training_ranges = {
+            'M(wt%)': {'min': 2.750, 'max': 11.630},
+            'Ash(wt%)': {'min': 0.410, 'max': 11.600},
+            'VM(wt%)': {'min': 65.700, 'max': 89.500},
+            'O/C': {'min': 0.301, 'max': 0.988},
+            'H/C': {'min': 1.212, 'max': 1.895},
+            'N/C': {'min': 0.003, 'max': 0.129},
+            'FT(℃)': {'min': 300.000, 'max': 900.000},
+            'HR(℃/min)': {'min': 5.000, 'max': 100.000},
+            'FR(mL/min)': {'min': 0.000, 'max': 600.000}
+        }
+        self.model_loaded = True
+        
+    def predict(self, features):
+        """模拟预测"""
+        if self.target_name == "Char Yield":
+            return 27.79
+        elif self.target_name == "Oil Yield":
+            return 45.23
+        else:
+            return 26.98
+    
+    def check_input_range(self, features):
+        """检查输入范围"""
+        warnings = []
+        for feature, value in features.items():
+            mapped_feature = feature.replace('°C', '℃')
+            range_info = self.training_ranges.get(mapped_feature)
+            if range_info:
+                if value < range_info['min'] or value > range_info['max']:
+                    warning = f"{feature}: {value:.3f} (超出训练范围 {range_info['min']:.3f} - {range_info['max']:.3f})"
+                    warnings.append(warning)
+        return warnings
+
 # Mac风格样式
 st.markdown(
     """
@@ -366,6 +430,9 @@ st.markdown(
         font-size: 10px;
         line-height: 1.5;
         color: #555;
+        list-style: none;
+        padding: 0;
+        margin: 0;
     }
     
     .info-list li {
@@ -412,207 +479,180 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 初始化会话状态
-if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "Char Yield"
-if 'prediction_result' not in st.session_state:
-    st.session_state.prediction_result = 27.79
-if 'feature_values' not in st.session_state:
-    st.session_state.feature_values = {
-        "M(wt%)": 6.460, "Ash(wt%)": 4.498, "VM(wt%)": 75.376,
-        "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
-        "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
-    }
-
-# 简化的预测器类
-class SimplePredictor:
-    def __init__(self, target_model):
-        self.target_name = target_model
-        self.model_loaded = True
-            
-    def predict(self, features):
-        if self.target_name == "Char Yield":
-            return 27.79
-        elif self.target_name == "Oil Yield":
-            return 45.23
-        else:
-            return 26.98
-
-# 创建完整的Mac界面
-mac_interface = f"""
-<div class="mac-window">
-    <!-- Mac标题栏 -->
-    <div class="mac-titlebar">
-        <div class="mac-buttons">
-            <div class="mac-button-circle close"></div>
-            <div class="mac-button-circle minimize"></div>
-            <div class="mac-button-circle maximize"></div>
-        </div>
-        <div class="window-title">MacBook Pro 13"</div>
-    </div>
+# 创建Mac界面HTML
+def create_mac_interface():
+    # 获取当前状态
+    selected_model = st.session_state.selected_model
+    prediction_result = st.session_state.prediction_result
+    feature_values = st.session_state.feature_values
     
-    <!-- 主内容区域 -->
-    <div class="mac-content">
-        <!-- 左侧边栏 -->
-        <div class="left-sidebar">
-            <div class="user-card">
-                <div class="user-icon">👤</div>
-                <div class="user-name">用户: wy1122</div>
+    # 模型选择状态
+    char_selected = "selected" if selected_model == "Char Yield" else ""
+    oil_selected = "selected" if selected_model == "Oil Yield" else ""
+    gas_selected = "selected" if selected_model == "Gas Yield" else ""
+    
+    html_content = f"""
+    <div class="mac-window">
+        <!-- Mac标题栏 -->
+        <div class="mac-titlebar">
+            <div class="mac-buttons">
+                <div class="mac-button-circle close"></div>
+                <div class="mac-button-circle minimize"></div>
+                <div class="mac-button-circle maximize"></div>
             </div>
-            
-            <div class="sidebar-menu">
-                <div class="menu-item active">预测模型</div>
-                <div class="menu-item">执行日志</div>
-                <div class="menu-item">模型信息</div>
-                <div class="menu-item">技术说明</div>
-                <div class="menu-item">使用指南</div>
-            </div>
+            <div class="window-title">MacBook Pro 13"</div>
         </div>
         
-        <!-- 中间内容区域 -->
-        <div class="center-content">
-            <div class="section-title">选择预测目标</div>
-            
-            <!-- 模型选择卡片 -->
-            <div class="model-cards">
-                <div class="model-card {'selected' if st.session_state.selected_model == 'Char Yield' else ''}" onclick="selectModel('Char Yield')">
-                    <div class="model-icon">🔥</div>
-                    <div class="model-name">Char Yield</div>
+        <!-- 主内容区域 -->
+        <div class="mac-content">
+            <!-- 左侧边栏 -->
+            <div class="left-sidebar">
+                <div class="user-card">
+                    <div class="user-icon">👤</div>
+                    <div class="user-name">用户: wy1122</div>
                 </div>
-                <div class="model-card {'selected' if st.session_state.selected_model == 'Oil Yield' else ''}" onclick="selectModel('Oil Yield')">
-                    <div class="model-icon">🛢️</div>
-                    <div class="model-name">Oil Yield</div>
-                </div>
-                <div class="model-card {'selected' if st.session_state.selected_model == 'Gas Yield' else ''}" onclick="selectModel('Gas Yield')">
-                    <div class="model-icon">💨</div>
-                    <div class="model-name">Gas Yield</div>
+                
+                <div class="sidebar-menu">
+                    <div class="menu-item active">预测模型</div>
+                    <div class="menu-item">执行日志</div>
+                    <div class="menu-item">模型信息</div>
+                    <div class="menu-item">技术说明</div>
+                    <div class="menu-item">使用指南</div>
                 </div>
             </div>
             
-            <div class="current-model">当前模型: {st.session_state.selected_model}</div>
-            
-            <!-- 特征输入区域 -->
-            <div class="feature-sections">
-                <div class="feature-section">
-                    <div class="feature-header proximate-header">Proximate Analysis</div>
-                    <div class="feature-inputs">
-                        <div class="feature-row">
-                            <div class="feature-label">M(wt%)</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['M(wt%)']:.3f}" step="0.001">
+            <!-- 中间内容区域 -->
+            <div class="center-content">
+                <div class="section-title">选择预测目标</div>
+                
+                <!-- 模型选择卡片 -->
+                <div class="model-cards">
+                    <div class="model-card {char_selected}" onclick="selectModel('Char Yield')">
+                        <div class="model-icon">🔥</div>
+                        <div class="model-name">Char Yield</div>
+                    </div>
+                    <div class="model-card {oil_selected}" onclick="selectModel('Oil Yield')">
+                        <div class="model-icon">🛢️</div>
+                        <div class="model-name">Oil Yield</div>
+                    </div>
+                    <div class="model-card {gas_selected}" onclick="selectModel('Gas Yield')">
+                        <div class="model-icon">💨</div>
+                        <div class="model-name">Gas Yield</div>
+                    </div>
+                </div>
+                
+                <div class="current-model">当前模型: {selected_model}</div>
+                
+                <!-- 特征输入区域 -->
+                <div class="feature-sections">
+                    <div class="feature-section">
+                        <div class="feature-header proximate-header">Proximate Analysis</div>
+                        <div class="feature-inputs">
+                            <div class="feature-row">
+                                <div class="feature-label">M(wt%)</div>
+                                <input type="number" class="feature-value" value="{feature_values['M(wt%)']:.3f}" step="0.001">
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-label">Ash(wt%)</div>
+                                <input type="number" class="feature-value" value="{feature_values['Ash(wt%)']:.3f}" step="0.001">
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-label">VM(wt%)</div>
+                                <input type="number" class="feature-value" value="{feature_values['VM(wt%)']:.3f}" step="0.001">
+                            </div>
                         </div>
-                        <div class="feature-row">
-                            <div class="feature-label">Ash(wt%)</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['Ash(wt%)']:.3f}" step="0.001">
+                    </div>
+                    
+                    <div class="feature-section">
+                        <div class="feature-header ultimate-header">Ultimate Analysis</div>
+                        <div class="feature-inputs">
+                            <div class="feature-row">
+                                <div class="feature-label">O/C</div>
+                                <input type="number" class="feature-value" value="{feature_values['O/C']:.3f}" step="0.001">
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-label">H/C</div>
+                                <input type="number" class="feature-value" value="{feature_values['H/C']:.3f}" step="0.001">
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-label">N/C</div>
+                                <input type="number" class="feature-value" value="{feature_values['N/C']:.3f}" step="0.001">
+                            </div>
                         </div>
-                        <div class="feature-row">
-                            <div class="feature-label">VM(wt%)</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['VM(wt%)']:.3f}" step="0.001">
+                    </div>
+                    
+                    <div class="feature-section">
+                        <div class="feature-header pyrolysis-header">Pyrolysis Conditions</div>
+                        <div class="feature-inputs">
+                            <div class="feature-row">
+                                <div class="feature-label">FT(°C)</div>
+                                <input type="number" class="feature-value" value="{feature_values['FT(°C)']:.3f}" step="0.001">
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-label">HR(°C/min)</div>
+                                <input type="number" class="feature-value" value="{feature_values['HR(°C/min)']:.3f}" step="0.001">
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-label">FR(mL/min)</div>
+                                <input type="number" class="feature-value" value="{feature_values['FR(mL/min)']:.3f}" step="0.001">
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="feature-section">
-                    <div class="feature-header ultimate-header">Ultimate Analysis</div>
-                    <div class="feature-inputs">
-                        <div class="feature-row">
-                            <div class="feature-label">O/C</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['O/C']:.3f}" step="0.001">
-                        </div>
-                        <div class="feature-row">
-                            <div class="feature-label">H/C</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['H/C']:.3f}" step="0.001">
-                        </div>
-                        <div class="feature-row">
-                            <div class="feature-label">N/C</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['N/C']:.3f}" step="0.001">
-                        </div>
+                <!-- 底部控制按钮 -->
+                <div class="bottom-controls">
+                    <div class="control-button primary" onclick="runPrediction()">运行预测</div>
+                    <div class="control-button" onclick="resetData()">重置数据</div>
+                </div>
+            </div>
+            
+            <!-- 右侧结果面板 -->
+            <div class="right-panel">
+                <div class="result-section">
+                    <div class="result-header">预测结果</div>
+                    <div class="result-content">
+                        <div class="result-value">{selected_model}: {prediction_result:.2f} wt%</div>
                     </div>
                 </div>
                 
-                <div class="feature-section">
-                    <div class="feature-header pyrolysis-header">Pyrolysis Conditions</div>
-                    <div class="feature-inputs">
-                        <div class="feature-row">
-                            <div class="feature-label">FT(°C)</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['FT(°C)']:.3f}" step="0.001">
-                        </div>
-                        <div class="feature-row">
-                            <div class="feature-label">HR(°C/min)</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['HR(°C/min)']:.3f}" step="0.001">
-                        </div>
-                        <div class="feature-row">
-                            <div class="feature-label">FR(mL/min)</div>
-                            <input type="number" class="feature-value" value="{st.session_state.feature_values['FR(mL/min)']:.3f}" step="0.001">
-                        </div>
+                <div class="result-section">
+                    <div class="result-header">预测信息</div>
+                    <div class="result-content">
+                        <ul class="info-list">
+                            <li><span>目标变量:</span><span>{selected_model}</span></li>
+                            <li><span>预测结果:</span><span>{prediction_result:.4f} wt%</span></li>
+                            <li><span>模型类型:</span><span>GBDT Pipeline</span></li>
+                            <li><span>预处理:</span><span>RobustScaler</span></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <div class="result-header">模型状态</div>
+                    <div class="result-content">
+                        <ul class="info-list">
+                            <li><span>加载状态:</span><span class="status-indicator">✅ 正常</span></li>
+                            <li><span>特征数量:</span><span>9</span></li>
+                            <li><span>警告数量:</span><span>0</span></li>
+                        </ul>
                     </div>
                 </div>
             </div>
-            
-            <!-- 底部控制按钮 -->
-            <div class="bottom-controls">
-                <div class="control-button primary" onclick="runPrediction()">运行预测</div>
-                <div class="control-button" onclick="resetData()">重置数据</div>
-            </div>
         </div>
         
-        <!-- 右侧结果面板 -->
-        <div class="right-panel">
-            <div class="result-section">
-                <div class="result-header">预测结果</div>
-                <div class="result-content">
-                    <div class="result-value">Char Yield: {st.session_state.prediction_result:.2f} wt%</div>
-                </div>
-            </div>
-            
-            <div class="result-section">
-                <div class="result-header">预测信息</div>
-                <div class="result-content">
-                    <ul class="info-list">
-                        <li><span>目标变量:</span><span>{st.session_state.selected_model}</span></li>
-                        <li><span>预测结果:</span><span>{st.session_state.prediction_result:.4f} wt%</span></li>
-                        <li><span>模型类型:</span><span>GBDT Pipeline</span></li>
-                        <li><span>预处理:</span><span>RobustScaler</span></li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="result-section">
-                <div class="result-header">模型状态</div>
-                <div class="result-content">
-                    <ul class="info-list">
-                        <li><span>加载状态:</span><span class="status-indicator">✅ 正常</span></li>
-                        <li><span>特征数量:</span><span>9</span></li>
-                        <li><span>警告数量:</span><span>0</span></li>
-                    </ul>
-                </div>
-            </div>
+        <!-- 导航箭头 -->
+        <div class="nav-arrows">
+            <div class="nav-arrow">‹</div>
+            <div class="nav-arrow">›</div>
         </div>
     </div>
+    """
     
-    <!-- 导航箭头 -->
-    <div class="nav-arrows">
-        <div class="nav-arrow">‹</div>
-        <div class="nav-arrow">›</div>
-    </div>
-</div>
+    return html_content
 
-<script>
-function selectModel(model) {{
-    // 触发Streamlit重新运行
-    window.parent.postMessage({{type: 'selectModel', model: model}}, '*');
-}}
-
-function runPrediction() {{
-    window.parent.postMessage({{type: 'runPrediction'}}, '*');
-}}
-
-function resetData() {{
-    window.parent.postMessage({{type: 'resetData'}}, '*');
-}}
-</script>
-"""
-
-st.markdown(mac_interface, unsafe_allow_html=True)
+# 显示Mac界面
+st.markdown(create_mac_interface(), unsafe_allow_html=True)
 
 # 隐藏的Streamlit控件用于处理交互
 col1, col2, col3 = st.columns(3)
@@ -621,31 +661,43 @@ with col1:
     if st.button("Char", key="char_btn"):
         st.session_state.selected_model = "Char Yield"
         st.session_state.prediction_result = 27.79
+        log("切换到Char Yield模型")
         st.rerun()
 
 with col2:
     if st.button("Oil", key="oil_btn"):
         st.session_state.selected_model = "Oil Yield"
         st.session_state.prediction_result = 45.23
+        log("切换到Oil Yield模型")
         st.rerun()
 
 with col3:
     if st.button("Gas", key="gas_btn"):
         st.session_state.selected_model = "Gas Yield"
         st.session_state.prediction_result = 26.98
+        log("切换到Gas Yield模型")
         st.rerun()
 
 # 隐藏的特征输入
 for feature, value in st.session_state.feature_values.items():
-    st.number_input(feature, value=value, key=f"input_{feature}", label_visibility="collapsed")
+    new_value = st.number_input(
+        feature, 
+        value=value, 
+        key=f"input_{feature}", 
+        label_visibility="collapsed",
+        step=0.001,
+        format="%.3f"
+    )
+    st.session_state.feature_values[feature] = new_value
 
 # 隐藏的预测和重置按钮
 col1, col2 = st.columns(2)
 with col1:
     if st.button("预测", key="predict_btn"):
-        predictor = SimplePredictor(st.session_state.selected_model)
+        predictor = ModelPredictor(st.session_state.selected_model)
         result = predictor.predict(st.session_state.feature_values)
         st.session_state.prediction_result = result
+        log(f"执行预测: {st.session_state.selected_model} = {result:.2f} wt%")
         st.rerun()
 
 with col2:
@@ -655,4 +707,37 @@ with col2:
             "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
             "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
         }
+        log("重置所有输入值")
         st.rerun()
+
+# JavaScript交互处理
+st.markdown("""
+<script>
+function selectModel(model) {
+    // 模拟点击对应的隐藏按钮
+    if (model === 'Char Yield') {
+        document.querySelector('[data-testid="baseButton-secondary"]:nth-of-type(1)').click();
+    } else if (model === 'Oil Yield') {
+        document.querySelector('[data-testid="baseButton-secondary"]:nth-of-type(2)').click();
+    } else if (model === 'Gas Yield') {
+        document.querySelector('[data-testid="baseButton-secondary"]:nth-of-type(3)').click();
+    }
+}
+
+function runPrediction() {
+    // 模拟点击预测按钮
+    const buttons = document.querySelectorAll('[data-testid="baseButton-secondary"]');
+    if (buttons.length >= 5) {
+        buttons[3].click();
+    }
+}
+
+function resetData() {
+    // 模拟点击重置按钮
+    const buttons = document.querySelectorAll('[data-testid="baseButton-secondary"]');
+    if (buttons.length >= 6) {
+        buttons[4].click();
+    }
+}
+</script>
+""", unsafe_allow_html=True)
