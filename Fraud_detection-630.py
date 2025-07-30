@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Biomass Pyrolysis Yield Forecast using GBDT Ensemble Models
-修复版本 - 根据实际特征统计信息正确调整
-支持Char、Oil和Gas产率预测
+Mac风格界面版本
 """
 
 import streamlit as st
@@ -26,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state='collapsed'
 )
 
-# 复古Mac风格样式
+# Mac风格样式
 st.markdown(
     """
     <style>
@@ -35,264 +34,378 @@ st.markdown(
     .stDeployButton {display: none;}
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    .stButton > button {display: none;}
+    .stNumberInput {display: none;}
     
     /* 全局样式 */
     .stApp {
-        background: linear-gradient(135deg, #8B7D6B 0%, #A69B8A 50%, #8B7D6B 100%);
-        font-family: 'Chicago', 'Monaco', monospace;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        margin: 0;
+        padding: 0;
     }
     
-    /* 主容器 */
-    .main-container {
-        background: #F5F5DC;
-        border: 3px solid #8B4513;
-        border-radius: 15px;
+    /* Mac窗口容器 */
+    .mac-window {
+        background: #e8e8e8;
+        border-radius: 12px;
         margin: 20px;
-        padding: 0;
-        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3), 2px 2px 10px rgba(0,0,0,0.5);
-        min-height: 90vh;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        overflow: hidden;
+        min-height: 85vh;
+    }
+    
+    /* Mac标题栏 */
+    .mac-titlebar {
+        background: linear-gradient(to bottom, #f0f0f0, #d0d0d0);
+        height: 28px;
         display: flex;
+        align-items: center;
+        padding: 0 15px;
+        border-bottom: 1px solid #b0b0b0;
+    }
+    
+    .mac-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .mac-button-circle {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1px solid rgba(0,0,0,0.2);
+    }
+    
+    .close { background: #ff5f57; }
+    .minimize { background: #ffbd2e; }
+    .maximize { background: #28ca42; }
+    
+    .window-title {
+        flex: 1;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    /* 主内容区域 */
+    .mac-content {
+        display: flex;
+        height: calc(85vh - 28px);
+        background: #f5f5f5;
     }
     
     /* 左侧边栏 */
     .left-sidebar {
-        width: 150px;
-        background: #D2B48C;
-        border-right: 2px solid #8B4513;
-        padding: 10px;
+        width: 160px;
+        background: #e0e0e0;
+        border-right: 1px solid #c0c0c0;
+        padding: 15px 10px;
+    }
+    
+    .user-card {
+        background: #f8f8f8;
+        border: 1px solid #d0d0d0;
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+        margin-bottom: 15px;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .user-icon {
+        width: 24px;
+        height: 24px;
+        background: #007aff;
+        border-radius: 50%;
+        margin: 0 auto 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+    }
+    
+    .user-name {
+        font-size: 12px;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .sidebar-menu {
         display: flex;
         flex-direction: column;
+        gap: 2px;
     }
     
-    .user-info {
-        background: #F5DEB3;
-        border: 2px inset #D2B48C;
-        border-radius: 8px;
-        padding: 8px;
-        text-align: center;
-        margin-bottom: 10px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    .sidebar-button {
-        background: #E6E6FA;
-        border: 2px outset #D2B48C;
+    .menu-item {
+        background: #f0f0f0;
+        border: 1px solid #d0d0d0;
         border-radius: 6px;
-        padding: 8px;
-        margin: 3px 0;
-        text-align: center;
+        padding: 8px 12px;
         font-size: 11px;
+        text-align: center;
         cursor: pointer;
-        transition: all 0.1s;
+        transition: all 0.2s;
     }
     
-    .sidebar-button:hover {
-        background: #DDA0DD;
-        border: 2px inset #D2B48C;
+    .menu-item:hover {
+        background: #e0e0e0;
+    }
+    
+    .menu-item.active {
+        background: #007aff;
+        color: white;
+        border-color: #0056cc;
     }
     
     /* 中间内容区域 */
     .center-content {
         flex: 1;
         padding: 20px;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="20" height="20" fill="%23F5F5DC"/><rect width="1" height="20" fill="%23E0E0E0"/><rect width="20" height="1" fill="%23E0E0E0"/></svg>');
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="20" height="20" fill="%23f5f5f5"/><path d="M0 0h20v1H0zM0 0v20h1V0z" fill="%23e0e0e0" opacity="0.3"/></svg>');
     }
     
-    /* 标题栏 */
-    .title-bar {
-        background: linear-gradient(to bottom, #E0E0E0, #C0C0C0);
-        border: 2px outset #D0D0D0;
-        border-radius: 8px;
-        padding: 10px;
+    /* 标题区域 */
+    .section-title {
         text-align: center;
-        margin-bottom: 20px;
-        font-size: 18px;
-        font-weight: bold;
+        font-size: 16px;
+        font-weight: 600;
         color: #333;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: rgba(255,255,255,0.5);
+        border-radius: 8px;
     }
     
-    /* 模型选择区域 */
-    .model-selection {
+    /* 模型选择卡片 */
+    .model-cards {
         display: flex;
+        gap: 15px;
         justify-content: center;
-        gap: 20px;
-        margin: 20px 0;
+        margin-bottom: 20px;
     }
     
     .model-card {
-        background: #F0F0F0;
-        border: 3px outset #D0D0D0;
-        border-radius: 10px;
-        padding: 30px 40px;
+        background: #f8f8f8;
+        border: 2px solid #d0d0d0;
+        border-radius: 12px;
+        padding: 25px 20px;
         text-align: center;
         cursor: pointer;
-        font-size: 14px;
-        font-weight: bold;
+        transition: all 0.3s;
         min-width: 120px;
-        transition: all 0.1s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     .model-card:hover {
-        background: #E0E0E0;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     
     .model-card.selected {
-        background: #87CEEB;
-        border: 3px inset #D0D0D0;
+        background: #007aff;
+        color: white;
+        border-color: #0056cc;
+        box-shadow: 0 4px 16px rgba(0,122,255,0.3);
+    }
+    
+    .model-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+    
+    .model-name {
+        font-size: 14px;
+        font-weight: 600;
     }
     
     .current-model {
         text-align: center;
-        font-size: 14px;
-        margin: 10px 0;
-        font-weight: bold;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 20px;
     }
     
     /* 特征输入区域 */
     .feature-sections {
         display: flex;
         gap: 15px;
-        margin: 20px 0;
+        margin-bottom: 20px;
     }
     
     .feature-section {
         flex: 1;
-        background: #F8F8FF;
-        border: 2px inset #D0D0D0;
-        border-radius: 8px;
+        background: #f8f8f8;
+        border: 1px solid #d0d0d0;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .feature-header {
+        padding: 12px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 12px;
+        color: white;
+    }
+    
+    .proximate-header { background: #28a745; }
+    .ultimate-header { background: #6f42c1; }
+    .pyrolysis-header { background: #fd7e14; }
+    
+    .feature-inputs {
         padding: 15px;
     }
-    
-    .section-title {
-        background: #4169E1;
-        color: white;
-        padding: 8px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 12px;
-        border-radius: 4px;
-        margin-bottom: 10px;
-    }
-    
-    .section-title.proximate { background: #228B22; }
-    .section-title.ultimate { background: #4B0082; }
-    .section-title.pyrolysis { background: #FF4500; }
     
     .feature-row {
         display: flex;
         align-items: center;
-        margin: 8px 0;
+        margin-bottom: 12px;
         font-size: 11px;
     }
     
     .feature-label {
         flex: 1;
-        font-weight: bold;
-        margin-right: 10px;
+        font-weight: 500;
+        color: #333;
     }
     
-    .feature-input {
+    .feature-value {
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px 8px;
         width: 60px;
-        padding: 2px 4px;
-        border: 1px inset #D0D0D0;
-        font-size: 11px;
         text-align: center;
+        font-size: 11px;
+        font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    /* 底部按钮 */
+    .bottom-controls {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .control-button {
+        background: #f0f0f0;
+        border: 1px solid #d0d0d0;
+        border-radius: 8px;
+        padding: 12px 30px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .control-button:hover {
+        background: #e0e0e0;
+        transform: translateY(-1px);
+    }
+    
+    .control-button.primary {
+        background: #007aff;
+        color: white;
+        border-color: #0056cc;
+    }
+    
+    .control-button.primary:hover {
+        background: #0056cc;
     }
     
     /* 右侧结果面板 */
     .right-panel {
         width: 200px;
-        background: #F5DEB3;
-        border-left: 2px solid #8B4513;
+        background: #e8e8e8;
+        border-left: 1px solid #c0c0c0;
         padding: 15px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
+        overflow-y: auto;
     }
     
-    .result-card {
-        background: #FFF8DC;
-        border: 2px inset #D2B48C;
+    .result-section {
+        background: #f8f8f8;
+        border: 1px solid #d0d0d0;
         border-radius: 8px;
+        margin-bottom: 15px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .result-header {
+        background: #f0f0f0;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 1px solid #d0d0d0;
+    }
+    
+    .result-content {
         padding: 12px;
     }
     
-    .result-title {
-        font-size: 12px;
-        font-weight: bold;
-        text-align: center;
-        margin-bottom: 8px;
-        color: #8B4513;
-    }
-    
     .result-value {
-        background: #FFFFFF;
-        border: 1px inset #D0D0D0;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
         padding: 8px;
         text-align: center;
         font-size: 11px;
-        font-weight: bold;
-        border-radius: 4px;
+        font-weight: 600;
+        font-family: 'SF Mono', Monaco, monospace;
+        color: #007aff;
     }
     
     .info-list {
         font-size: 10px;
-        line-height: 1.4;
+        line-height: 1.5;
+        color: #555;
     }
     
     .info-list li {
-        margin: 2px 0;
-    }
-    
-    /* 底部按钮 */
-    .bottom-buttons {
+        margin: 4px 0;
         display: flex;
+        justify-content: space-between;
+    }
+    
+    .status-indicator {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    /* 导航箭头 */
+    .nav-arrows {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+    }
+    
+    .nav-arrow {
+        width: 30px;
+        height: 30px;
+        background: #f0f0f0;
+        border: 1px solid #d0d0d0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
         justify-content: center;
-        gap: 20px;
-        margin: 20px 0;
-    }
-    
-    .mac-button {
-        background: #E0E0E0;
-        border: 3px outset #D0D0D0;
-        border-radius: 8px;
-        padding: 10px 30px;
-        font-size: 12px;
-        font-weight: bold;
         cursor: pointer;
-        transition: all 0.1s;
+        font-size: 14px;
+        color: #666;
+        transition: all 0.2s;
     }
     
-    .mac-button:hover {
-        background: #D0D0D0;
-    }
-    
-    .mac-button:active {
-        border: 3px inset #D0D0D0;
-    }
-    
-    .mac-button.primary {
-        background: #87CEEB;
-    }
-    
-    .mac-button.secondary {
-        background: #F0E68C;
-    }
-    
-    /* 隐藏Streamlit输入框样式 */
-    .stNumberInput > div > div > input {
-        background: white !important;
-        border: 1px inset #D0D0D0 !important;
-        border-radius: 3px !important;
-        padding: 2px 4px !important;
-        font-size: 11px !important;
-        text-align: center !important;
-    }
-    
-    /* 隐藏Streamlit按钮样式 */
-    .stButton > button {
-        display: none;
+    .nav-arrow:hover {
+        background: #e0e0e0;
     }
     </style>
     """,
@@ -303,25 +416,21 @@ st.markdown(
 if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield"
 if 'prediction_result' not in st.session_state:
-    st.session_state.prediction_result = None
-if 'model_loaded' not in st.session_state:
-    st.session_state.model_loaded = False
-if 'warnings' not in st.session_state:
-    st.session_state.warnings = []
+    st.session_state.prediction_result = 27.79
+if 'feature_values' not in st.session_state:
+    st.session_state.feature_values = {
+        "M(wt%)": 6.460, "Ash(wt%)": 4.498, "VM(wt%)": 75.376,
+        "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
+        "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
+    }
 
 # 简化的预测器类
 class SimplePredictor:
     def __init__(self, target_model):
         self.target_name = target_model
-        self.model_loaded = False
-        # 模拟模型加载状态
-        if target_model == "Char Yield":
-            self.model_loaded = True
+        self.model_loaded = True
             
     def predict(self, features):
-        if not self.model_loaded:
-            return None
-        # 模拟预测结果
         if self.target_name == "Char Yield":
             return 27.79
         elif self.target_name == "Oil Yield":
@@ -329,190 +438,221 @@ class SimplePredictor:
         else:
             return 26.98
 
-# 创建主界面HTML
-main_html = f"""
-<div class="main-container">
-    <!-- 左侧边栏 -->
-    <div class="left-sidebar">
-        <div class="user-info">用户: wy1122</div>
-        <div class="sidebar-button">预测模型</div>
-        <div class="sidebar-button">执行日志</div>
-        <div class="sidebar-button">模型信息</div>
-        <div class="sidebar-button">技术说明</div>
-        <div class="sidebar-button">使用指南</div>
+# 创建完整的Mac界面
+mac_interface = f"""
+<div class="mac-window">
+    <!-- Mac标题栏 -->
+    <div class="mac-titlebar">
+        <div class="mac-buttons">
+            <div class="mac-button-circle close"></div>
+            <div class="mac-button-circle minimize"></div>
+            <div class="mac-button-circle maximize"></div>
+        </div>
+        <div class="window-title">MacBook Pro 13"</div>
     </div>
     
-    <!-- 中间内容区域 -->
-    <div class="center-content">
-        <div class="title-bar">选择预测目标</div>
-        
-        <!-- 模型选择 -->
-        <div class="model-selection">
-            <div class="model-card {'selected' if st.session_state.selected_model == 'Char Yield' else ''}" onclick="selectModel('Char Yield')">
-                Char Yield
+    <!-- 主内容区域 -->
+    <div class="mac-content">
+        <!-- 左侧边栏 -->
+        <div class="left-sidebar">
+            <div class="user-card">
+                <div class="user-icon">👤</div>
+                <div class="user-name">用户: wy1122</div>
             </div>
-            <div class="model-card {'selected' if st.session_state.selected_model == 'Oil Yield' else ''}" onclick="selectModel('Oil Yield')">
-                Oil Yield
-            </div>
-            <div class="model-card {'selected' if st.session_state.selected_model == 'Gas Yield' else ''}" onclick="selectModel('Gas Yield')">
-                Gas Yield
-            </div>
-        </div>
-        
-        <div class="current-model">当前模型: {st.session_state.selected_model}</div>
-        
-        <!-- 特征输入区域 -->
-        <div class="feature-sections">
-            <div class="feature-section">
-                <div class="section-title proximate">Proximate Analysis</div>
-                <div id="proximate-inputs"></div>
-            </div>
-            <div class="feature-section">
-                <div class="section-title ultimate">Ultimate Analysis</div>
-                <div id="ultimate-inputs"></div>
-            </div>
-            <div class="feature-section">
-                <div class="section-title pyrolysis">Pyrolysis Conditions</div>
-                <div id="pyrolysis-inputs"></div>
+            
+            <div class="sidebar-menu">
+                <div class="menu-item active">预测模型</div>
+                <div class="menu-item">执行日志</div>
+                <div class="menu-item">模型信息</div>
+                <div class="menu-item">技术说明</div>
+                <div class="menu-item">使用指南</div>
             </div>
         </div>
         
-        <!-- 底部按钮 -->
-        <div class="bottom-buttons">
-            <div class="mac-button primary" onclick="runPrediction()">运行预测</div>
-            <div class="mac-button secondary" onclick="resetData()">重置数据</div>
+        <!-- 中间内容区域 -->
+        <div class="center-content">
+            <div class="section-title">选择预测目标</div>
+            
+            <!-- 模型选择卡片 -->
+            <div class="model-cards">
+                <div class="model-card {'selected' if st.session_state.selected_model == 'Char Yield' else ''}" onclick="selectModel('Char Yield')">
+                    <div class="model-icon">🔥</div>
+                    <div class="model-name">Char Yield</div>
+                </div>
+                <div class="model-card {'selected' if st.session_state.selected_model == 'Oil Yield' else ''}" onclick="selectModel('Oil Yield')">
+                    <div class="model-icon">🛢️</div>
+                    <div class="model-name">Oil Yield</div>
+                </div>
+                <div class="model-card {'selected' if st.session_state.selected_model == 'Gas Yield' else ''}" onclick="selectModel('Gas Yield')">
+                    <div class="model-icon">💨</div>
+                    <div class="model-name">Gas Yield</div>
+                </div>
+            </div>
+            
+            <div class="current-model">当前模型: {st.session_state.selected_model}</div>
+            
+            <!-- 特征输入区域 -->
+            <div class="feature-sections">
+                <div class="feature-section">
+                    <div class="feature-header proximate-header">Proximate Analysis</div>
+                    <div class="feature-inputs">
+                        <div class="feature-row">
+                            <div class="feature-label">M(wt%)</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['M(wt%)']:.3f}" step="0.001">
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-label">Ash(wt%)</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['Ash(wt%)']:.3f}" step="0.001">
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-label">VM(wt%)</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['VM(wt%)']:.3f}" step="0.001">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <div class="feature-header ultimate-header">Ultimate Analysis</div>
+                    <div class="feature-inputs">
+                        <div class="feature-row">
+                            <div class="feature-label">O/C</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['O/C']:.3f}" step="0.001">
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-label">H/C</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['H/C']:.3f}" step="0.001">
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-label">N/C</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['N/C']:.3f}" step="0.001">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feature-section">
+                    <div class="feature-header pyrolysis-header">Pyrolysis Conditions</div>
+                    <div class="feature-inputs">
+                        <div class="feature-row">
+                            <div class="feature-label">FT(°C)</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['FT(°C)']:.3f}" step="0.001">
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-label">HR(°C/min)</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['HR(°C/min)']:.3f}" step="0.001">
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-label">FR(mL/min)</div>
+                            <input type="number" class="feature-value" value="{st.session_state.feature_values['FR(mL/min)']:.3f}" step="0.001">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部控制按钮 -->
+            <div class="bottom-controls">
+                <div class="control-button primary" onclick="runPrediction()">运行预测</div>
+                <div class="control-button" onclick="resetData()">重置数据</div>
+            </div>
+        </div>
+        
+        <!-- 右侧结果面板 -->
+        <div class="right-panel">
+            <div class="result-section">
+                <div class="result-header">预测结果</div>
+                <div class="result-content">
+                    <div class="result-value">Char Yield: {st.session_state.prediction_result:.2f} wt%</div>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <div class="result-header">预测信息</div>
+                <div class="result-content">
+                    <ul class="info-list">
+                        <li><span>目标变量:</span><span>{st.session_state.selected_model}</span></li>
+                        <li><span>预测结果:</span><span>{st.session_state.prediction_result:.4f} wt%</span></li>
+                        <li><span>模型类型:</span><span>GBDT Pipeline</span></li>
+                        <li><span>预处理:</span><span>RobustScaler</span></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="result-section">
+                <div class="result-header">模型状态</div>
+                <div class="result-content">
+                    <ul class="info-list">
+                        <li><span>加载状态:</span><span class="status-indicator">✅ 正常</span></li>
+                        <li><span>特征数量:</span><span>9</span></li>
+                        <li><span>警告数量:</span><span>0</span></li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
     
-    <!-- 右侧结果面板 -->
-    <div class="right-panel">
-        <div class="result-card">
-            <div class="result-title">预测结果</div>
-            <div class="result-value" id="prediction-result">
-                {'Char Yield: 27.79 wt%' if st.session_state.prediction_result else '等待预测...'}
-            </div>
-        </div>
-        
-        <div class="result-card">
-            <div class="result-title">预测信息</div>
-            <ul class="info-list">
-                <li>目标变量: {st.session_state.selected_model}</li>
-                <li>预测结果: {'27.7937 wt%' if st.session_state.prediction_result else '未预测'}</li>
-                <li>模型类型: GBDT Pipeline</li>
-                <li>预处理: RobustScaler</li>
-            </ul>
-        </div>
-        
-        <div class="result-card">
-            <div class="result-title">模型状态</div>
-            <ul class="info-list">
-                <li>加载状态: ✅ 正常</li>
-                <li>特征数量: 9</li>
-                <li>警告数量: 0</li>
-            </ul>
-        </div>
+    <!-- 导航箭头 -->
+    <div class="nav-arrows">
+        <div class="nav-arrow">‹</div>
+        <div class="nav-arrow">›</div>
     </div>
 </div>
 
 <script>
 function selectModel(model) {{
-    // 这里需要通过Streamlit的方式来处理模型选择
-    console.log('Selected model:', model);
+    // 触发Streamlit重新运行
+    window.parent.postMessage({{type: 'selectModel', model: model}}, '*');
 }}
 
 function runPrediction() {{
-    console.log('Running prediction...');
+    window.parent.postMessage({{type: 'runPrediction'}}, '*');
 }}
 
 function resetData() {{
-    console.log('Resetting data...');
+    window.parent.postMessage({{type: 'resetData'}}, '*');
 }}
 </script>
 """
 
-st.markdown(main_html, unsafe_allow_html=True)
+st.markdown(mac_interface, unsafe_allow_html=True)
 
-# 使用Streamlit组件来处理交互
+# 隐藏的Streamlit控件用于处理交互
 col1, col2, col3 = st.columns(3)
 
-# 隐藏的模型选择按钮
 with col1:
-    if st.button("Char", key="char_hidden"):
+    if st.button("Char", key="char_btn"):
         st.session_state.selected_model = "Char Yield"
+        st.session_state.prediction_result = 27.79
         st.rerun()
 
 with col2:
-    if st.button("Oil", key="oil_hidden"):
+    if st.button("Oil", key="oil_btn"):
         st.session_state.selected_model = "Oil Yield"
+        st.session_state.prediction_result = 45.23
         st.rerun()
 
 with col3:
-    if st.button("Gas", key="gas_hidden"):
+    if st.button("Gas", key="gas_btn"):
         st.session_state.selected_model = "Gas Yield"
+        st.session_state.prediction_result = 26.98
         st.rerun()
 
-# 特征输入（隐藏）
-features = {}
-default_values = {
-    "M(wt%)": 6.460, "Ash(wt%)": 4.498, "VM(wt%)": 75.376,
-    "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
-    "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
-}
+# 隐藏的特征输入
+for feature, value in st.session_state.feature_values.items():
+    st.number_input(feature, value=value, key=f"input_{feature}", label_visibility="collapsed")
 
-# 创建隐藏的输入框
-for feature, default_val in default_values.items():
-    features[feature] = st.number_input(
-        feature, 
-        value=default_val, 
-        key=f"hidden_{feature}",
-        label_visibility="collapsed"
-    )
-
-# 隐藏的预测按钮
+# 隐藏的预测和重置按钮
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("预测", key="predict_hidden"):
+    if st.button("预测", key="predict_btn"):
         predictor = SimplePredictor(st.session_state.selected_model)
-        result = predictor.predict(features)
-        if result:
-            st.session_state.prediction_result = result
+        result = predictor.predict(st.session_state.feature_values)
+        st.session_state.prediction_result = result
         st.rerun()
 
 with col2:
-    if st.button("重置", key="reset_hidden"):
-        st.session_state.prediction_result = None
+    if st.button("重置", key="reset_btn"):
+        st.session_state.feature_values = {
+            "M(wt%)": 6.460, "Ash(wt%)": 4.498, "VM(wt%)": 75.376,
+            "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
+            "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
+        }
         st.rerun()
-
-# JavaScript来同步显示输入值
-js_code = f"""
-<script>
-// 同步输入值显示
-const features = {list(default_values.keys())};
-const proximateFeatures = ['M(wt%)', 'Ash(wt%)', 'VM(wt%)'];
-const ultimateFeatures = ['O/C', 'H/C', 'N/C'];
-const pyrolysisFeatures = ['FT(°C)', 'HR(°C/min)', 'FR(mL/min)'];
-
-function createFeatureInputs(containerId, featureList) {{
-    const container = document.getElementById(containerId);
-    if (container) {{
-        container.innerHTML = '';
-        featureList.forEach(feature => {{
-            const row = document.createElement('div');
-            row.className = 'feature-row';
-            row.innerHTML = `
-                <div class="feature-label">${{feature}}</div>
-                <input type="number" class="feature-input" value="{default_values.get(feature, 0)}" step="0.001">
-            `;
-            container.appendChild(row);
-        }});
-    }}
-}}
-
-// 创建输入框
-createFeatureInputs('proximate-inputs', proximateFeatures);
-createFeatureInputs('ultimate-inputs', ultimateFeatures);
-createFeatureInputs('pyrolysis-inputs', pyrolysisFeatures);
-</script>
-"""
-
-st.markdown(js_code, unsafe_allow_html=True)
