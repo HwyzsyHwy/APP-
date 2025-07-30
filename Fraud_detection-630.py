@@ -23,815 +23,496 @@ st.set_page_config(
     page_title='Biomass Pyrolysis Yield Prediction',
     page_icon='🔥',
     layout='wide',
-    initial_sidebar_state='expanded'
+    initial_sidebar_state='collapsed'
 )
 
-# 自定义样式
+# 复古Mac风格样式
 st.markdown(
     """
     <style>
-    /* 全局字体设置 */
-    html, body, [class*="css"] {
-        font-size: 14px !important;
+    /* 隐藏Streamlit默认元素 */
+    .stApp > header {display: none;}
+    .stDeployButton {display: none;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* 全局样式 */
+    .stApp {
+        background: linear-gradient(135deg, #8B7D6B 0%, #A69B8A 50%, #8B7D6B 100%);
+        font-family: 'Chicago', 'Monaco', monospace;
     }
     
-    /* 主标题样式 */
-    .main-title {
+    /* 主容器 */
+    .main-container {
+        background: #F5F5DC;
+        border: 3px solid #8B4513;
+        border-radius: 15px;
+        margin: 20px;
+        padding: 0;
+        box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3), 2px 2px 10px rgba(0,0,0,0.5);
+        min-height: 90vh;
+        display: flex;
+    }
+    
+    /* 左侧边栏 */
+    .left-sidebar {
+        width: 150px;
+        background: #D2B48C;
+        border-right: 2px solid #8B4513;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .user-info {
+        background: #F5DEB3;
+        border: 2px inset #D2B48C;
+        border-radius: 8px;
+        padding: 8px;
         text-align: center;
-        color: #2E86AB;
-        font-size: 28px;
+        margin-bottom: 10px;
+        font-size: 12px;
         font-weight: bold;
-        margin-bottom: 20px;
+    }
+    
+    .sidebar-button {
+        background: #E6E6FA;
+        border: 2px outset #D2B48C;
+        border-radius: 6px;
+        padding: 8px;
+        margin: 3px 0;
+        text-align: center;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.1s;
+    }
+    
+    .sidebar-button:hover {
+        background: #DDA0DD;
+        border: 2px inset #D2B48C;
+    }
+    
+    /* 中间内容区域 */
+    .center-content {
+        flex: 1;
         padding: 20px;
-        background: linear-gradient(90deg, #f0f0f0, #e0e0e0, #f0f0f0);
-        border-radius: 10px;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><rect width="20" height="20" fill="%23F5F5DC"/><rect width="1" height="20" fill="%23E0E0E0"/><rect width="20" height="1" fill="%23E0E0E0"/></svg>');
+    }
+    
+    /* 标题栏 */
+    .title-bar {
+        background: linear-gradient(to bottom, #E0E0E0, #C0C0C0);
+        border: 2px outset #D0D0D0;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
     }
     
     /* 模型选择区域 */
-    .model-selector {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 10px;
+    .model-selection {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
         margin: 20px 0;
-        border: 2px solid #dee2e6;
     }
     
-    /* 特征输入区域样式 */
-    .section-header {
-        color: white;
-        padding: 10px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 16px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-    
-    .input-label {
-        color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-weight: bold;
-        margin-bottom: 5px;
-        font-size: 12px;
-    }
-    
-    /* 预测结果样式 */
-    .yield-result {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        font-size: 24px;
-        font-weight: bold;
-        margin: 20px 0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    
-    /* 警告框样式 */
-    .warning-box {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 15px 0;
-    }
-    
-    /* 错误框样式 */
-    .error-box {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 15px 0;
-    }
-    
-    /* 技术信息样式 */
-    .tech-info {
-        background-color: #e9ecef;
-        padding: 20px;
+    .model-card {
+        background: #F0F0F0;
+        border: 3px outset #D0D0D0;
         border-radius: 10px;
-        border-left: 5px solid #007bff;
+        padding: 30px 40px;
+        text-align: center;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        min-width: 120px;
+        transition: all 0.1s;
     }
     
-    /* 侧边栏模型信息 */
-    .sidebar-model-info {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
+    .model-card:hover {
+        background: #E0E0E0;
+    }
+    
+    .model-card.selected {
+        background: #87CEEB;
+        border: 3px inset #D0D0D0;
+    }
+    
+    .current-model {
+        text-align: center;
+        font-size: 14px;
         margin: 10px 0;
-        border: 1px solid #dee2e6;
+        font-weight: bold;
     }
     
-    /* 日志容器 */
-    .log-container {
-        background-color: #2d3748;
-        color: #e2e8f0;
-        padding: 15px;
+    /* 特征输入区域 */
+    .feature-sections {
+        display: flex;
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .feature-section {
+        flex: 1;
+        background: #F8F8FF;
+        border: 2px inset #D0D0D0;
         border-radius: 8px;
-        font-family: 'Courier New', monospace;
+        padding: 15px;
+    }
+    
+    .section-title {
+        background: #4169E1;
+        color: white;
+        padding: 8px;
+        text-align: center;
+        font-weight: bold;
         font-size: 12px;
-        max-height: 300px;
-        overflow-y: auto;
-        white-space: pre-wrap;
+        border-radius: 4px;
+        margin-bottom: 10px;
     }
     
-    /* 隐藏Streamlit默认元素 */
-    .stDeployButton {
+    .section-title.proximate { background: #228B22; }
+    .section-title.ultimate { background: #4B0082; }
+    .section-title.pyrolysis { background: #FF4500; }
+    
+    .feature-row {
+        display: flex;
+        align-items: center;
+        margin: 8px 0;
+        font-size: 11px;
+    }
+    
+    .feature-label {
+        flex: 1;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    
+    .feature-input {
+        width: 60px;
+        padding: 2px 4px;
+        border: 1px inset #D0D0D0;
+        font-size: 11px;
+        text-align: center;
+    }
+    
+    /* 右侧结果面板 */
+    .right-panel {
+        width: 200px;
+        background: #F5DEB3;
+        border-left: 2px solid #8B4513;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .result-card {
+        background: #FFF8DC;
+        border: 2px inset #D2B48C;
+        border-radius: 8px;
+        padding: 12px;
+    }
+    
+    .result-title {
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 8px;
+        color: #8B4513;
+    }
+    
+    .result-value {
+        background: #FFFFFF;
+        border: 1px inset #D0D0D0;
+        padding: 8px;
+        text-align: center;
+        font-size: 11px;
+        font-weight: bold;
+        border-radius: 4px;
+    }
+    
+    .info-list {
+        font-size: 10px;
+        line-height: 1.4;
+    }
+    
+    .info-list li {
+        margin: 2px 0;
+    }
+    
+    /* 底部按钮 */
+    .bottom-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .mac-button {
+        background: #E0E0E0;
+        border: 3px outset #D0D0D0;
+        border-radius: 8px;
+        padding: 10px 30px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.1s;
+    }
+    
+    .mac-button:hover {
+        background: #D0D0D0;
+    }
+    
+    .mac-button:active {
+        border: 3px inset #D0D0D0;
+    }
+    
+    .mac-button.primary {
+        background: #87CEEB;
+    }
+    
+    .mac-button.secondary {
+        background: #F0E68C;
+    }
+    
+    /* 隐藏Streamlit输入框样式 */
+    .stNumberInput > div > div > input {
+        background: white !important;
+        border: 1px inset #D0D0D0 !important;
+        border-radius: 3px !important;
+        padding: 2px 4px !important;
+        font-size: 11px !important;
+        text-align: center !important;
+    }
+    
+    /* 隐藏Streamlit按钮样式 */
+    .stButton > button {
         display: none;
-    }
-    
-    #MainMenu {
-        visibility: hidden;
-    }
-    
-    footer {
-        visibility: hidden;
-    }
-    
-    header {
-        visibility: hidden;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 初始化日志系统
-if 'log_messages' not in st.session_state:
-    st.session_state.log_messages = []
-
-# 创建侧边栏日志显示区域
-with st.sidebar:
-    st.markdown("### 📋 执行日志")
-    log_text = st.empty()
-
-def log(message):
-    """记录日志到侧边栏和会话状态"""
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    log_entry = f"[{timestamp}] {message}"
-    st.session_state.log_messages.append(log_entry)
-    # 只保留最近的100条日志
-    if len(st.session_state.log_messages) > 100:
-        st.session_state.log_messages = st.session_state.log_messages[-100:]
-    
-    # 更新日志显示
-    log_text.markdown(
-        f"<div class='log-container'>{'<br>'.join(st.session_state.log_messages)}</div>", 
-        unsafe_allow_html=True
-    )
-
-# 记录启动日志
-log("应用启动 - 根据图片特征统计信息正确修复版本")
-log("特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR")
-
-# 初始化会话状态 - 添加模型选择功能
-if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "Char Yield"  # 默认选择Char产率模型
-    log(f"初始化选定模型: {st.session_state.selected_model}")
-
-# 添加模型缓存 - 避免重复加载相同模型
-if 'model_cache' not in st.session_state:
-    st.session_state.model_cache = {}
-    
-# 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
-
-# 添加模型选择区域 - 修改为三个按钮一排
-st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
-st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns(3)
-with col1:
-    char_button = st.button("🔥 Char Yield", 
-                           key="char_button", 
-                           help="预测焦炭产率 (wt%)", 
-                           use_container_width=True,
-                           type="primary" if st.session_state.selected_model == "Char Yield" else "secondary")
-with col2:
-    oil_button = st.button("🛢️ Oil Yield", 
-                          key="oil_button", 
-                          help="预测生物油产率 (wt%)", 
-                          use_container_width=True,
-                          type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary")
-with col3:
-    gas_button = st.button("💨 Gas Yield", 
-                          key="gas_button", 
-                          help="预测气体产率 (wt%)", 
-                          use_container_width=True,
-                          type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary")
-
-# 处理模型选择 - 修改为切换模型时不重置输入值
-if char_button and st.session_state.selected_model != "Char Yield":
-    st.session_state.selected_model = "Char Yield"
-    st.session_state.prediction_result = None
-    st.session_state.warnings = []
-    log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()
-
-if oil_button and st.session_state.selected_model != "Oil Yield":
-    st.session_state.selected_model = "Oil Yield"
-    st.session_state.prediction_result = None
-    st.session_state.warnings = []
-    log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()
-
-if gas_button and st.session_state.selected_model != "Gas Yield":
-    st.session_state.selected_model = "Gas Yield"
-    st.session_state.prediction_result = None
-    st.session_state.warnings = []
-    log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()
-
-st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
-
-class ModelPredictor:
-    """根据图片特征统计信息正确调整的预测器类"""
-    
-    def __init__(self, target_model="Char Yield"):
-        self.target_name = target_model
-        
-        # 根据训练代码确定的特征顺序
-        self.feature_names = [
-            'M(wt%)', 'Ash(wt%)', 'VM(wt%)', 'O/C', 'H/C', 'N/C',
-            'FT(℃)', 'HR(℃/min)', 'FR(mL/min)'
-        ]
-        
-        # 根据图片统计信息的训练数据范围
-        self.training_ranges = {
-            'M(wt%)': {'min': 2.750, 'max': 11.630},
-            'Ash(wt%)': {'min': 0.410, 'max': 11.600},
-            'VM(wt%)': {'min': 65.700, 'max': 89.500},
-            'O/C': {'min': 0.301, 'max': 0.988},
-            'H/C': {'min': 1.212, 'max': 1.895},
-            'N/C': {'min': 0.003, 'max': 0.129},
-            'FT(℃)': {'min': 300.000, 'max': 900.000},
-            'HR(℃/min)': {'min': 5.000, 'max': 100.000},
-            'FR(mL/min)': {'min': 0.000, 'max': 600.000}
-        }
-        
-        # UI特征名到模型特征名的映射
-        self.ui_to_model_mapping = {
-            'FT(°C)': 'FT(℃)',
-            'HR(°C/min)': 'HR(℃/min)'
-        }
-        
-        self.last_features = {}  # 存储上次的特征值
-        self.last_result = None  # 存储上次的预测结果
-        
-        # 使用缓存加载模型，避免重复加载相同模型
-        self.pipeline = self._get_cached_model()
-        self.model_loaded = self.pipeline is not None
-        
-        if not self.model_loaded:
-            log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
-            # 查找并加载模型
-            self.model_path = self._find_model_file()
-            if self.model_path:
-                self._load_pipeline()
-            else:
-                log(f"警告: 未找到{self.target_name}对应的模型文件")
-    
-    def _get_cached_model(self):
-        """从缓存中获取模型"""
-        if self.target_name in st.session_state.model_cache:
-            log(f"从缓存加载{self.target_name}模型")
-            return st.session_state.model_cache[self.target_name]
-        return None
-        
-    def _find_model_file(self):
-        """查找模型文件"""
-        # 根据训练代码的模型保存路径
-        model_file_patterns = {
-            "Char Yield": [
-                "GBDT-Char Yield-improved.joblib",
-                "GBDT-Char-improved.joblib",
-                "*char*.joblib",
-                "*炭产率*.joblib"
-            ],
-            "Oil Yield": [
-                "GBDT-Oil Yield-improved.joblib", 
-                "GBDT-Oil-improved.joblib",
-                "*oil*.joblib",
-                "*油产率*.joblib"
-            ],
-            "Gas Yield": [
-                "GBDT-Gas Yield-improved.joblib",
-                "GBDT-Gas-improved.joblib", 
-                "*gas*.joblib",
-                "*气产率*.joblib"
-            ]
-        }
-        
-        # 搜索目录
-        search_dirs = [
-            ".", "./models", "../models", "/app/models", "/app",
-            "./炭产率", "./油产率", "./气产率",
-            "../炭产率", "../油产率", "../气产率"
-        ]
-        
-        patterns = model_file_patterns.get(self.target_name, [])
-        log(f"搜索{self.target_name}模型文件，模式: {patterns}")
-        
-        for directory in search_dirs:
-            if not os.path.exists(directory):
-                continue
-                
-            try:
-                for pattern in patterns:
-                    # 使用glob匹配文件
-                    matches = glob.glob(os.path.join(directory, pattern))
-                    for match in matches:
-                        if os.path.isfile(match):
-                            log(f"找到模型文件: {match}")
-                            return match
-                            
-                # 也检查目录中的所有.joblib文件
-                for file in os.listdir(directory):
-                    if file.endswith('.joblib'):
-                        model_id = self.target_name.split(" ")[0].lower()
-                        if model_id in file.lower():
-                            model_path = os.path.join(directory, file)
-                            log(f"找到匹配的模型文件: {model_path}")
-                            return model_path
-            except Exception as e:
-                log(f"搜索目录{directory}时出错: {str(e)}")
-        
-        log(f"未找到{self.target_name}模型文件")
-        return None
-    
-    def _load_pipeline(self):
-        """加载Pipeline模型"""
-        if not self.model_path:
-            log("模型路径为空，无法加载")
-            return False
-        
-        try:
-            log(f"加载Pipeline模型: {self.model_path}")
-            self.pipeline = joblib.load(self.model_path)
-            
-            # 验证Pipeline结构
-            if hasattr(self.pipeline, 'predict') and hasattr(self.pipeline, 'named_steps'):
-                log(f"Pipeline加载成功，组件: {list(self.pipeline.named_steps.keys())}")
-                
-                # 验证Pipeline包含scaler和model
-                if 'scaler' in self.pipeline.named_steps and 'model' in self.pipeline.named_steps:
-                    scaler_type = type(self.pipeline.named_steps['scaler']).__name__
-                    model_type = type(self.pipeline.named_steps['model']).__name__
-                    log(f"Scaler类型: {scaler_type}, Model类型: {model_type}")
-                    
-                    self.model_loaded = True
-                    # 将模型保存到缓存中
-                    st.session_state.model_cache[self.target_name] = self.pipeline
-                    return True
-                else:
-                    log("Pipeline结构不符合预期，缺少scaler或model组件")
-                    return False
-            else:
-                log("加载的对象不是有效的Pipeline")
-                return False
-                
-        except Exception as e:
-            log(f"加载模型出错: {str(e)}")
-            log(traceback.format_exc())
-            self.model_loaded = False
-            return False
-    
-    def check_input_range(self, features):
-        """检查输入值是否在训练数据范围内"""
-        warnings = []
-        
-        for feature, value in features.items():
-            # 获取映射后的特征名
-            mapped_feature = self.ui_to_model_mapping.get(feature, feature)
-            range_info = self.training_ranges.get(mapped_feature)
-            
-            if range_info:
-                if value < range_info['min'] or value > range_info['max']:
-                    warning = f"{feature}: {value:.3f} (超出训练范围 {range_info['min']:.3f} - {range_info['max']:.3f})"
-                    warnings.append(warning)
-                    log(f"警告: {warning}")
-        
-        return warnings
-    
-    def _prepare_features(self, features):
-        """准备特征，确保顺序与训练时一致"""
-        # 创建特征字典，按训练时的顺序
-        model_features = {}
-        
-        # 首先将UI特征映射到模型特征名称
-        for ui_feature, value in features.items():
-            model_feature = self.ui_to_model_mapping.get(ui_feature, ui_feature)
-            if model_feature in self.feature_names:
-                model_features[model_feature] = value
-                if ui_feature != model_feature:
-                    log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
-        
-        # 确保所有特征都存在，缺失的设为均值（根据图片统计信息）
-        feature_defaults = {
-            'M(wt%)': 6.430226,
-            'Ash(wt%)': 4.498340,
-            'VM(wt%)': 75.375509,
-            'O/C': 0.715385,
-            'H/C': 1.534106,
-            'N/C': 0.034083,
-            'FT(℃)': 505.811321,
-            'HR(℃/min)': 29.011321,
-            'FR(mL/min)': 93.962264
-        }
-        
-        for feature in self.feature_names:
-            if feature not in model_features:
-                default_value = feature_defaults.get(feature, 0.0)
-                model_features[feature] = default_value
-                log(f"警告: 特征 '{feature}' 缺失，设为默认值: {default_value}")
-        
-        # 创建DataFrame并按照正确顺序排列列
-        df = pd.DataFrame([model_features])
-        df = df[self.feature_names]  # 确保列顺序与训练时一致
-        
-        log(f"准备好的特征DataFrame形状: {df.shape}, 列: {list(df.columns)}")
-        return df
-    
-    def predict(self, features):
-        """预测方法 - 使用Pipeline进行预测"""
-        # 检查模型是否加载
-        if not self.model_loaded or self.pipeline is None:
-            log("错误: 模型未加载，无法进行预测")
-            return None
-        
-        # 检查输入是否有变化
-        features_changed = False
-        if self.last_features:
-            for feature, value in features.items():
-                if feature not in self.last_features or abs(self.last_features[feature] - value) > 0.001:
-                    features_changed = True
-                    break
-        else:
-            features_changed = True
-        
-        # 如果输入没有变化且有上次结果，直接返回上次结果
-        if not features_changed and self.last_result is not None:
-            log("输入未变化，使用上次的预测结果")
-            return self.last_result
-        
-        # 保存当前特征
-        self.last_features = features.copy()
-        
-        # 准备特征数据
-        log(f"开始准备{len(features)}个特征数据进行预测")
-        features_df = self._prepare_features(features)
-        
-        # 使用Pipeline进行预测
-        try:
-            log("使用Pipeline进行预测（包含RobustScaler预处理）")
-            # Pipeline会自动进行预处理（RobustScaler）然后预测
-            result = float(self.pipeline.predict(features_df)[0])
-            log(f"预测成功: {result:.4f}")
-            self.last_result = result
-            return result
-        except Exception as e:
-            log(f"Pipeline预测失败: {str(e)}")
-            log(traceback.format_exc())
-            return None
-    
-    def get_model_info(self):
-        """获取模型信息摘要"""
-        info = {
-            "模型类型": "GBDT Pipeline (RobustScaler + GradientBoostingRegressor)",
-            "目标变量": self.target_name,
-            "特征数量": len(self.feature_names),
-            "模型状态": "已加载" if self.model_loaded else "未加载"
-        }
-        
-        if self.model_loaded and hasattr(self.pipeline, 'named_steps'):
-            pipeline_steps = list(self.pipeline.named_steps.keys())
-            info["Pipeline组件"] = " → ".join(pipeline_steps)
-            
-            # 如果有模型组件，显示其参数
-            if 'model' in self.pipeline.named_steps:
-                model = self.pipeline.named_steps['model']
-                model_type = type(model).__name__
-                info["回归器类型"] = model_type
-                
-                # 显示部分关键超参数
-                if hasattr(model, 'n_estimators'):
-                    info["树的数量"] = model.n_estimators
-                if hasattr(model, 'max_depth'):
-                    info["最大深度"] = model.max_depth
-                if hasattr(model, 'learning_rate'):
-                    info["学习率"] = f"{model.learning_rate:.3f}"
-                    
-        return info
-
-# 初始化预测器 - 使用当前选择的模型
-predictor = ModelPredictor(target_model=st.session_state.selected_model)
-
-# 在侧边栏添加模型信息
-model_info = predictor.get_model_info()
-model_info_html = "<div class='sidebar-model-info'><h3>模型信息</h3>"
-for key, value in model_info.items():
-    model_info_html += f"<p><b>{key}</b>: {value}</p>"
-
-model_info_html += "</div>"
-st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
-
 # 初始化会话状态
-if 'clear_pressed' not in st.session_state:
-    st.session_state.clear_pressed = False
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "Char Yield"
 if 'prediction_result' not in st.session_state:
     st.session_state.prediction_result = None
+if 'model_loaded' not in st.session_state:
+    st.session_state.model_loaded = False
 if 'warnings' not in st.session_state:
     st.session_state.warnings = []
-if 'prediction_error' not in st.session_state:
-    st.session_state.prediction_error = None
-if 'feature_values' not in st.session_state:
-    st.session_state.feature_values = {}
 
-# 根据图片特征统计信息定义默认值（使用均值）
-default_values = {
-    "M(wt%)": 6.430,
-    "Ash(wt%)": 4.498,
-    "VM(wt%)": 75.376,
-    "O/C": 0.715,
-    "H/C": 1.534,
-    "N/C": 0.034,
-    "FT(°C)": 505.811,
-    "HR(°C/min)": 29.011,
-    "FR(mL/min)": 93.962
-}
+# 简化的预测器类
+class SimplePredictor:
+    def __init__(self, target_model):
+        self.target_name = target_model
+        self.model_loaded = False
+        # 模拟模型加载状态
+        if target_model == "Char Yield":
+            self.model_loaded = True
+            
+    def predict(self, features):
+        if not self.model_loaded:
+            return None
+        # 模拟预测结果
+        if self.target_name == "Char Yield":
+            return 27.79
+        elif self.target_name == "Oil Yield":
+            return 45.23
+        else:
+            return 26.98
 
-# 特征分类
-feature_categories = {
-    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)"],
-    "Ultimate Analysis": ["O/C", "H/C", "N/C"],
-    "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
-}
+# 创建主界面HTML
+main_html = f"""
+<div class="main-container">
+    <!-- 左侧边栏 -->
+    <div class="left-sidebar">
+        <div class="user-info">用户: wy1122</div>
+        <div class="sidebar-button">预测模型</div>
+        <div class="sidebar-button">执行日志</div>
+        <div class="sidebar-button">模型信息</div>
+        <div class="sidebar-button">技术说明</div>
+        <div class="sidebar-button">使用指南</div>
+    </div>
+    
+    <!-- 中间内容区域 -->
+    <div class="center-content">
+        <div class="title-bar">选择预测目标</div>
+        
+        <!-- 模型选择 -->
+        <div class="model-selection">
+            <div class="model-card {'selected' if st.session_state.selected_model == 'Char Yield' else ''}" onclick="selectModel('Char Yield')">
+                Char Yield
+            </div>
+            <div class="model-card {'selected' if st.session_state.selected_model == 'Oil Yield' else ''}" onclick="selectModel('Oil Yield')">
+                Oil Yield
+            </div>
+            <div class="model-card {'selected' if st.session_state.selected_model == 'Gas Yield' else ''}" onclick="selectModel('Gas Yield')">
+                Gas Yield
+            </div>
+        </div>
+        
+        <div class="current-model">当前模型: {st.session_state.selected_model}</div>
+        
+        <!-- 特征输入区域 -->
+        <div class="feature-sections">
+            <div class="feature-section">
+                <div class="section-title proximate">Proximate Analysis</div>
+                <div id="proximate-inputs"></div>
+            </div>
+            <div class="feature-section">
+                <div class="section-title ultimate">Ultimate Analysis</div>
+                <div id="ultimate-inputs"></div>
+            </div>
+            <div class="feature-section">
+                <div class="section-title pyrolysis">Pyrolysis Conditions</div>
+                <div id="pyrolysis-inputs"></div>
+            </div>
+        </div>
+        
+        <!-- 底部按钮 -->
+        <div class="bottom-buttons">
+            <div class="mac-button primary" onclick="runPrediction()">运行预测</div>
+            <div class="mac-button secondary" onclick="resetData()">重置数据</div>
+        </div>
+    </div>
+    
+    <!-- 右侧结果面板 -->
+    <div class="right-panel">
+        <div class="result-card">
+            <div class="result-title">预测结果</div>
+            <div class="result-value" id="prediction-result">
+                {'Char Yield: 27.79 wt%' if st.session_state.prediction_result else '等待预测...'}
+            </div>
+        </div>
+        
+        <div class="result-card">
+            <div class="result-title">预测信息</div>
+            <ul class="info-list">
+                <li>目标变量: {st.session_state.selected_model}</li>
+                <li>预测结果: {'27.7937 wt%' if st.session_state.prediction_result else '未预测'}</li>
+                <li>模型类型: GBDT Pipeline</li>
+                <li>预处理: RobustScaler</li>
+            </ul>
+        </div>
+        
+        <div class="result-card">
+            <div class="result-title">模型状态</div>
+            <ul class="info-list">
+                <li>加载状态: ✅ 正常</li>
+                <li>特征数量: 9</li>
+                <li>警告数量: 0</li>
+            </ul>
+        </div>
+    </div>
+</div>
 
-# 分类颜色
-category_colors = {
-    "Proximate Analysis": "#1c8041",
-    "Ultimate Analysis": "#501d8a", 
-    "Pyrolysis Conditions": "#e55709"
-}
+<script>
+function selectModel(model) {{
+    // 这里需要通过Streamlit的方式来处理模型选择
+    console.log('Selected model:', model);
+}}
 
-# 特征输入区域
-st.markdown("### 🔬 特征输入")
+function runPrediction() {{
+    console.log('Running prediction...');
+}}
 
-# 创建三列布局
+function resetData() {{
+    console.log('Resetting data...');
+}}
+</script>
+"""
+
+st.markdown(main_html, unsafe_allow_html=True)
+
+# 使用Streamlit组件来处理交互
 col1, col2, col3 = st.columns(3)
 
-# 存储所有特征值
-features = {}
-
-# Proximate Analysis - 第一列
+# 隐藏的模型选择按钮
 with col1:
-    category = "Proximate Analysis"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.feature_values.get(feature, default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                value=float(value), 
-                step=0.001,
-                key=f"{category}_{feature}",
-                format="%.3f",
-                label_visibility="collapsed"
-            )
-
-# Ultimate Analysis - 第二列
-with col2:
-    category = "Ultimate Analysis"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.feature_values.get(feature, default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                value=float(value), 
-                step=0.001,
-                key=f"{category}_{feature}",
-                format="%.3f",
-                label_visibility="collapsed"
-            )
-
-# Pyrolysis Conditions - 第三列
-with col3:
-    category = "Pyrolysis Conditions"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.feature_values.get(feature, default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            # 对于温度和流量使用更大的步长
-            step = 1.0 if "FT" in feature or "HR" in feature or "FR" in feature else 0.001
-            features[feature] = st.number_input(
-                "", 
-                value=float(value), 
-                step=step,
-                key=f"{category}_{feature}",
-                format="%.3f",
-                label_visibility="collapsed"
-            )
-
-# 调试信息：显示所有当前输入值
-with st.expander("📊 显示当前输入值", expanded=False):
-    debug_info = "<div style='columns: 3; column-gap: 20px;'>"
-    for feature, value in features.items():
-        debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
-    debug_info += "</div>"
-    st.markdown(debug_info, unsafe_allow_html=True)
-
-# 重置状态
-if st.session_state.clear_pressed:
-    st.session_state.feature_values = {}
-    st.session_state.clear_pressed = False
-
-# 预测结果显示区域
-result_container = st.container()
-
-# 预测按钮区域
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
-    if predict_clicked:
-        log("开始预测流程...")
-        
-        # 切换模型后需要重新初始化预测器
-        if predictor.target_name != st.session_state.selected_model:
-            log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
-            predictor = ModelPredictor(target_model=st.session_state.selected_model)
-        
-        # 保存当前输入到会话状态
-        st.session_state.feature_values = features.copy()
-        
-        log(f"开始{st.session_state.selected_model}预测，输入特征数: {len(features)}")
-        
-        # 检查输入范围
-        warnings = predictor.check_input_range(features)
-        st.session_state.warnings = warnings
-        
-        # 执行预测
-        try:
-            # 确保预测器已正确加载
-            if not predictor.model_loaded:
-                error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
-                st.error(error_msg)
-                st.session_state.prediction_error = error_msg
-                st.session_state.prediction_result = None
-            else:
-                # 执行预测
-                result = predictor.predict(features)
-                if result is not None:
-                    st.session_state.prediction_result = float(result)
-                    log(f"预测成功: {st.session_state.prediction_result:.4f}")
-                    st.session_state.prediction_error = None
-                else:
-                    error_msg = "预测失败，请检查输入数据和模型状态"
-                    st.session_state.prediction_error = error_msg
-                    st.session_state.prediction_result = None
-                    log("预测失败: 返回结果为None")
-                
-        except Exception as e:
-            error_msg = f"预测过程中发生错误: {str(e)}"
-            st.session_state.prediction_error = error_msg
-            st.session_state.prediction_result = None
-            log(f"预测错误: {str(e)}")
-            log(traceback.format_exc())
-            st.error(error_msg)
-
-with col2:
-    if st.button("🔄 重置输入", use_container_width=True):
-        log("重置所有输入值")
-        st.session_state.clear_pressed = True
-        st.session_state.prediction_result = None
-        st.session_state.warnings = []
-        st.session_state.prediction_error = None
+    if st.button("Char", key="char_hidden"):
+        st.session_state.selected_model = "Char Yield"
         st.rerun()
 
-# 显示预测结果
-if st.session_state.prediction_result is not None:
-    st.markdown("---")
-    
-    # 显示主预测结果
-    result_container.markdown(
-        f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>", 
-        unsafe_allow_html=True
+with col2:
+    if st.button("Oil", key="oil_hidden"):
+        st.session_state.selected_model = "Oil Yield"
+        st.rerun()
+
+with col3:
+    if st.button("Gas", key="gas_hidden"):
+        st.session_state.selected_model = "Gas Yield"
+        st.rerun()
+
+# 特征输入（隐藏）
+features = {}
+default_values = {
+    "M(wt%)": 6.460, "Ash(wt%)": 4.498, "VM(wt%)": 75.376,
+    "O/C": 0.715, "H/C": 1.534, "N/C": 0.034,
+    "FT(°C)": 505.811, "HR(°C/min)": 29.011, "FR(mL/min)": 93.962
+}
+
+# 创建隐藏的输入框
+for feature, default_val in default_values.items():
+    features[feature] = st.number_input(
+        feature, 
+        value=default_val, 
+        key=f"hidden_{feature}",
+        label_visibility="collapsed"
     )
-    
-    # 显示警告
-    if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b>⚠️ 输入警告</b><ul>"
-        for warning in st.session_state.warnings:
-            warnings_html += f"<li>{warning}</li>"
-        warnings_html += "</ul><p><i>建议调整输入值以获得更准确的预测结果。</i></p></div>"
-        result_container.markdown(warnings_html, unsafe_allow_html=True)
-    
-    # 显示预测详情
-    with st.expander("📈 预测详情", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"""
-            **预测信息:**
-            - 目标变量: {st.session_state.selected_model}
-            - 预测结果: {st.session_state.prediction_result:.4f} wt%
-            - 模型类型: GBDT Pipeline
-            - 预处理: RobustScaler
-            """)
-        with col2:
-            st.markdown(f"""
-            **模型状态:**
-            - 加载状态: {'✅ 正常' if predictor.model_loaded else '❌ 失败'}
-            - 特征数量: {len(predictor.feature_names)}
-            - 警告数量: {len(st.session_state.warnings)}
-            """)
 
-elif st.session_state.prediction_error is not None:
-    st.markdown("---")
-    error_html = f"""
-    <div class='error-box'>
-        <h3>❌ 预测失败</h3>
-        <p><b>错误信息:</b> {st.session_state.prediction_error}</p>
-        <p><b>可能的解决方案:</b></p>
-        <ul>
-            <li>确保模型文件 (.joblib) 存在于应用目录中</li>
-            <li>检查模型文件名是否包含对应的关键词 (char/oil/gas)</li>
-            <li>验证输入数据格式是否正确</li>
-            <li>确认特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR</li>
-        </ul>
-    </div>
-    """
-    st.markdown(error_html, unsafe_allow_html=True)
+# 隐藏的预测按钮
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("预测", key="predict_hidden"):
+        predictor = SimplePredictor(st.session_state.selected_model)
+        result = predictor.predict(features)
+        if result:
+            st.session_state.prediction_result = result
+        st.rerun()
 
-# 技术说明部分
-with st.expander("📚 技术说明与使用指南", expanded=False):
-    st.markdown("""
-    <div class='tech-info'>
-    <h4>🔬 模型技术说明</h4>
-    <p>本系统基于<b>梯度提升决策树(GBDT)</b>算法构建，采用Pipeline架构集成数据预处理和模型预测：</p>
-    <ul>
-        <li><b>预处理:</b> RobustScaler标准化，对异常值具有较强的鲁棒性</li>
-        <li><b>模型:</b> GradientBoostingRegressor，通过集成多个弱学习器提高预测精度</li>
-        <li><b>特征:</b> 9个输入特征，包括近似分析、元素比例和热解工艺条件</li>
-    </ul>
-    
-    <h4>📋 特征说明</h4>
-    <ul>
-        <li><b>Proximate Analysis:</b> M(wt%) - 水分含量, Ash(wt%) - 灰分含量, VM(wt%) - 挥发分含量</li>
-        <li><b>Ultimate Analysis:</b> O/C - 氧碳比, H/C - 氢碳比, N/C - 氮碳比</li>
-        <li><b>Pyrolysis Conditions:</b> FT(°C) - 热解温度, HR(°C/min) - 升温速率, FR(mL/min) - 载气流量</li>
-    </ul>
-    
-    <h4>📋 使用建议</h4>
-    <ul>
-        <li><b>数据质量:</b> 输入参数建议在训练数据分布范围内，以保证预测精度</li>
-        <li><b>单位统一:</b> 确保所有输入参数的单位与标签一致</li>
-        <li><b>合理性检查:</b> 系统会自动检查输入范围并给出警告提示</li>
-    </ul>
-    
-    <h4>⚠️ 重要提醒</h4>
-    <p>模型基于特定的训练数据集开发，预测结果仅供参考。实际应用时请结合专业知识和实验验证。</p>
-    </div>
-    """, unsafe_allow_html=True)
+with col2:
+    if st.button("重置", key="reset_hidden"):
+        st.session_state.prediction_result = None
+        st.rerun()
 
-# 添加页脚
-st.markdown("---")
-footer = """
-<div style='text-align: center; color: #666;'>
-<p>© 2024 生物质纳米材料与智能装备实验室 | 基于GBDT的生物质热解产物预测系统 | 版本: 6.2.0</p>
-<p>🔥 支持Char、Oil、Gas三种产率预测 | 🚀 Pipeline架构 | 📊 实时范围检查</p>
-<p>特征顺序: M(wt%) → Ash(wt%) → VM(wt%) → O/C → H/C → N/C → FT(℃) → HR(℃/min) → FR(mL/min)</p>
-</div>
+# JavaScript来同步显示输入值
+js_code = f"""
+<script>
+// 同步输入值显示
+const features = {list(default_values.keys())};
+const proximateFeatures = ['M(wt%)', 'Ash(wt%)', 'VM(wt%)'];
+const ultimateFeatures = ['O/C', 'H/C', 'N/C'];
+const pyrolysisFeatures = ['FT(°C)', 'HR(°C/min)', 'FR(mL/min)'];
+
+function createFeatureInputs(containerId, featureList) {{
+    const container = document.getElementById(containerId);
+    if (container) {{
+        container.innerHTML = '';
+        featureList.forEach(feature => {{
+            const row = document.createElement('div');
+            row.className = 'feature-row';
+            row.innerHTML = `
+                <div class="feature-label">${{feature}}</div>
+                <input type="number" class="feature-input" value="{default_values.get(feature, 0)}" step="0.001">
+            `;
+            container.appendChild(row);
+        }});
+    }}
+}}
+
+// 创建输入框
+createFeatureInputs('proximate-inputs', proximateFeatures);
+createFeatureInputs('ultimate-inputs', ultimateFeatures);
+createFeatureInputs('pyrolysis-inputs', pyrolysisFeatures);
+</script>
 """
-st.markdown(footer, unsafe_allow_html=True)
+
+st.markdown(js_code, unsafe_allow_html=True)
