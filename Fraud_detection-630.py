@@ -192,7 +192,7 @@ if 'log_messages' not in st.session_state:
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "预测"
 
-# 在侧边栏创建日志显示区域
+# 在侧边栏创建日志显示区域 - 必须在log函数定义之前
 with st.sidebar:
     st.markdown("### 📋 执行日志")
     log_text = st.empty()
