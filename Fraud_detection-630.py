@@ -35,6 +35,14 @@ if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield"
 if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
+if 'prediction_result' not in st.session_state:
+    st.session_state.prediction_result = None
+if 'model_stats' not in st.session_state:
+    st.session_state.model_stats = {
+        "Char Yield": {"accuracy": 27.79, "features": 9, "warnings": 0},
+        "Oil Yield": {"accuracy": 45.23, "features": 9, "warnings": 0},
+        "Gas Yield": {"accuracy": 18.56, "features": 9, "warnings": 0}
+    }
 
 def add_log(message):
     """添加日志消息到会话状态"""
@@ -202,6 +210,71 @@ st.markdown("""
     border-radius: 8px;
     color: white;
 }
+/* 右侧信息面板样式 */
+.info-panel {
+    background-color: #f0f0f0;
+    border-radius: 15px;
+    padding: 0;
+    margin: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    height: fit-content;
+}
+.result-header {
+    background-color: #2c5aa0;
+    color: white;
+    padding: 15px;
+    border-radius: 15px 15px 0 0;
+    font-size: 16px;
+    font-weight: bold;
+}
+.result-value {
+    background-color: white;
+    padding: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c5aa0;
+    border-bottom: 1px solid #e0e0e0;
+}
+.info-section {
+    padding: 20px;
+}
+.info-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+}
+.info-item {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #555;
+}
+.info-item strong {
+    color: #333;
+}
+.status-normal {
+    color: #28a745;
+}
+.status-warning {
+    color: #ffc107;
+}
+.status-error {
+    color: #dc3545;
+}
+.expand-btn {
+    background-color: #f8f9fa;
+    border: none;
+    padding: 15px;
+    width: 100%;
+    text-align: center;
+    border-radius: 0 0 15px 15px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+}
+.expand-btn:hover {
+    background-color: #e9ecef;
+}
 /* 新增侧边栏样式 */
 .sidebar-user-info {
     text-align: center;
@@ -319,6 +392,19 @@ class ModelPredictor:
             "特征数量": len(self.feature_names),
             "模型状态": "已加载" if self.model_loaded else "未加载"
         }
+    
+    def predict(self, features):
+        """模拟预测功能"""
+        # 模拟预测结果
+        import random
+        random.seed(42)
+        base_values = {
+            "Char Yield": 27.79,
+            "Oil Yield": 45.23,
+            "Gas Yield": 18.56
+        }
+        result = base_values[self.target_name] + random.uniform(-5, 5)
+        return round(result, 2)
 
 # 根据当前页面显示不同内容
 if st.session_state.current_page == "预测模型":
@@ -360,16 +446,19 @@ if st.session_state.current_page == "预测模型":
 
     if char_button:
         st.session_state.selected_model = "Char Yield"
+        st.session_state.prediction_result = None
         add_log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
     if oil_button:
         st.session_state.selected_model = "Oil Yield"
+        st.session_state.prediction_result = None
         add_log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
     if gas_button:
         st.session_state.selected_model = "Gas Yield"
+        st.session_state.prediction_result = None
         add_log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
@@ -386,194 +475,235 @@ if st.session_state.current_page == "预测模型":
         "FT(°C)": 6.460, "HR(°C/min)": 6.460, "FR(mL/min)": 6.460
     }
 
-    # 创建三列布局的卡片式输入界面
-    col1, col2, col3 = st.columns(3)
-    features = {}
+    # 创建主要布局：左侧输入区域，右侧信息面板
+    main_col, info_col = st.columns([3, 1])
 
-    # Proximate Analysis 卡片
-    with col1:
-        st.markdown("""
-        <div class='analysis-card'>
-            <div class='card-title'>Proximate Analysis</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # M(wt%)
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>M(wt%)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
-        with col1_1:
-            features["M(wt%)"] = st.number_input("", value=default_values["M(wt%)"], key="input_M", label_visibility="collapsed")
-        with col1_2:
-            if st.button("-", key="m_minus"):
-                pass
-        with col1_3:
-            if st.button("+", key="m_plus"):
-                pass
-        
-        # Ash(wt%)
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>Ash(wt%)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
-        with col1_1:
-            features["Ash(wt%)"] = st.number_input("", value=default_values["Ash(wt%)"], key="input_Ash", label_visibility="collapsed")
-        with col1_2:
-            if st.button("-", key="ash_minus"):
-                pass
-        with col1_3:
-            if st.button("+", key="ash_plus"):
-                pass
-        
-        # VM(wt%)
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>VM(wt%)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
-        with col1_1:
-            features["VM(wt%)"] = st.number_input("", value=default_values["VM(wt%)"], key="input_VM", label_visibility="collapsed")
-        with col1_2:
-            if st.button("-", key="vm_minus"):
-                pass
-        with col1_3:
-            if st.button("+", key="vm_plus"):
-                pass
+    with main_col:
+        # 创建三列布局的卡片式输入界面
+        col1, col2, col3 = st.columns(3)
+        features = {}
 
-    # Ultimate Analysis 卡片
-    with col2:
-        st.markdown("""
-        <div class='analysis-card'>
-            <div class='card-title'>Ultimate Analysis</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # O/C
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>O/C</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
-        with col2_1:
-            features["O/C"] = st.number_input("", value=default_values["O/C"], key="input_OC", label_visibility="collapsed")
-        with col2_2:
-            if st.button("-", key="oc_minus"):
-                pass
-        with col2_3:
-            if st.button("+", key="oc_plus"):
-                pass
-        
-        # H/C
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>H/C</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
-        with col2_1:
-            features["H/C"] = st.number_input("", value=default_values["H/C"], key="input_HC", label_visibility="collapsed")
-        with col2_2:
-            if st.button("-", key="hc_minus"):
-                pass
-        with col2_3:
-            if st.button("+", key="hc_plus"):
-                pass
-        
-        # N/C
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>N/C</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
-        with col2_1:
-            features["N/C"] = st.number_input("", value=default_values["N/C"], key="input_NC", label_visibility="collapsed")
-        with col2_2:
-            if st.button("-", key="nc_minus"):
-                pass
-        with col2_3:
-            if st.button("+", key="nc_plus"):
-                pass
+        # Proximate Analysis 卡片
+        with col1:
+            st.markdown("""
+            <div class='analysis-card'>
+                <div class='card-title'>Proximate Analysis</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # M(wt%)
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>M(wt%)</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
+            with col1_1:
+                features["M(wt%)"] = st.number_input("", value=default_values["M(wt%)"], key="input_M", label_visibility="collapsed")
+            with col1_2:
+                if st.button("-", key="m_minus"):
+                    pass
+            with col1_3:
+                if st.button("+", key="m_plus"):
+                    pass
+            
+            # Ash(wt%)
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>Ash(wt%)</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
+            with col1_1:
+                features["Ash(wt%)"] = st.number_input("", value=default_values["Ash(wt%)"], key="input_Ash", label_visibility="collapsed")
+            with col1_2:
+                if st.button("-", key="ash_minus"):
+                    pass
+            with col1_3:
+                if st.button("+", key="ash_plus"):
+                    pass
+            
+            # VM(wt%)
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>VM(wt%)</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
+            with col1_1:
+                features["VM(wt%)"] = st.number_input("", value=default_values["VM(wt%)"], key="input_VM", label_visibility="collapsed")
+            with col1_2:
+                if st.button("-", key="vm_minus"):
+                    pass
+            with col1_3:
+                if st.button("+", key="vm_plus"):
+                    pass
 
-    # Pyrolysis Conditions 卡片
-    with col3:
-        st.markdown("""
-        <div class='analysis-card'>
-            <div class='card-title'>Pyrolysis Conditions</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # FT(°C)
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>FT(°C)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
-        with col3_1:
-            features["FT(°C)"] = st.number_input("", value=default_values["FT(°C)"], key="input_FT", label_visibility="collapsed")
-        with col3_2:
-            if st.button("-", key="ft_minus"):
-                pass
-        with col3_3:
-            if st.button("+", key="ft_plus"):
-                pass
-        
-        # HR(°C/min)
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>HR(°C/min)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
-        with col3_1:
-            features["HR(°C/min)"] = st.number_input("", value=default_values["HR(°C/min)"], key="input_HR", label_visibility="collapsed")
-        with col3_2:
-            if st.button("-", key="hr_minus"):
-                pass
-        with col3_3:
-            if st.button("+", key="hr_plus"):
-                pass
-        
-        # FR(mL/min)
-        st.markdown("""
-        <div class='input-row'>
-            <div class='input-label'>FR(mL/min)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
-        with col3_1:
-            features["FR(mL/min)"] = st.number_input("", value=default_values["FR(mL/min)"], key="input_FR", label_visibility="collapsed")
-        with col3_2:
-            if st.button("-", key="fr_minus"):
-                pass
-        with col3_3:
-            if st.button("+", key="fr_plus"):
-                pass
+        # Ultimate Analysis 卡片
+        with col2:
+            st.markdown("""
+            <div class='analysis-card'>
+                <div class='card-title'>Ultimate Analysis</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # O/C
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>O/C</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
+            with col2_1:
+                features["O/C"] = st.number_input("", value=default_values["O/C"], key="input_OC", label_visibility="collapsed")
+            with col2_2:
+                if st.button("-", key="oc_minus"):
+                    pass
+            with col2_3:
+                if st.button("+", key="oc_plus"):
+                    pass
+            
+            # H/C
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>H/C</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
+            with col2_1:
+                features["H/C"] = st.number_input("", value=default_values["H/C"], key="input_HC", label_visibility="collapsed")
+            with col2_2:
+                if st.button("-", key="hc_minus"):
+                    pass
+            with col2_3:
+                if st.button("+", key="hc_plus"):
+                    pass
+            
+            # N/C
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>N/C</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
+            with col2_1:
+                features["N/C"] = st.number_input("", value=default_values["N/C"], key="input_NC", label_visibility="collapsed")
+            with col2_2:
+                if st.button("-", key="nc_minus"):
+                    pass
+            with col2_3:
+                if st.button("+", key="nc_plus"):
+                    pass
 
-    # 操作按钮
-    st.markdown("""
-    <div class='action-buttons'>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("运行预测", type="primary", use_container_width=True):
-            add_log("开始预测流程...")
-            st.success(f"模拟预测结果: {st.session_state.selected_model} = 25.67 wt%")
-    
-    with col_btn2:
-        if st.button("重置数据", use_container_width=True):
-            add_log("重置所有输入数据")
-            st.rerun()
+        # Pyrolysis Conditions 卡片
+        with col3:
+            st.markdown("""
+            <div class='analysis-card'>
+                <div class='card-title'>Pyrolysis Conditions</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # FT(°C)
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>FT(°C)</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
+            with col3_1:
+                features["FT(°C)"] = st.number_input("", value=default_values["FT(°C)"], key="input_FT", label_visibility="collapsed")
+            with col3_2:
+                if st.button("-", key="ft_minus"):
+                    pass
+            with col3_3:
+                if st.button("+", key="ft_plus"):
+                    pass
+            
+            # HR(°C/min)
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>HR(°C/min)</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
+            with col3_1:
+                features["HR(°C/min)"] = st.number_input("", value=default_values["HR(°C/min)"], key="input_HR", label_visibility="collapsed")
+            with col3_2:
+                if st.button("-", key="hr_minus"):
+                    pass
+            with col3_3:
+                if st.button("+", key="hr_plus"):
+                    pass
+            
+            # FR(mL/min)
+            st.markdown("""
+            <div class='input-row'>
+                <div class='input-label'>FR(mL/min)</div>
+            </div>
+            """, unsafe_allow_html=True)
+            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
+            with col3_1:
+                features["FR(mL/min)"] = st.number_input("", value=default_values["FR(mL/min)"], key="input_FR", label_visibility="collapsed")
+            with col3_2:
+                if st.button("-", key="fr_minus"):
+                    pass
+            with col3_3:
+                if st.button("+", key="fr_plus"):
+                    pass
+
+        # 操作按钮
+        st.markdown("""
+        <div class='action-buttons'>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("运行预测", type="primary", use_container_width=True):
+                add_log("开始预测流程...")
+                # 执行预测
+                result = predictor.predict(features)
+                st.session_state.prediction_result = result
+                add_log(f"预测完成: {st.session_state.selected_model} = {result} wt%")
+                st.rerun()
+        
+        with col_btn2:
+            if st.button("重置数据", use_container_width=True):
+                add_log("重置所有输入数据")
+                st.session_state.prediction_result = None
+                st.rerun()
+
+    # 右侧信息面板
+    with info_col:
+        # 获取当前模型的统计信息
+        current_stats = st.session_state.model_stats[st.session_state.selected_model]
+        
+        # 预测结果显示
+        result_text = f"{st.session_state.prediction_result} wt%" if st.session_state.prediction_result else "等待预测"
+        
+        st.markdown(f"""
+        <div class='info-panel'>
+            <div class='result-header'>预测结果</div>
+            <div class='result-value'>{st.session_state.selected_model}: {result_text}</div>
+            
+            <div class='info-section'>
+                <div class='info-title'>预测信息</div>
+                <div class='info-item'><strong>目标变量：</strong>{st.session_state.selected_model}</div>
+                <div class='info-item'><strong>预测结果：</strong>{result_text}</div>
+                <div class='info-item'><strong>模型类型：</strong>GBDT Pipeline</div>
+                <div class='info-item'><strong>预处理：</strong>RobustScaler</div>
+            </div>
+            
+            <div class='info-section'>
+                <div class='info-title'>模型状态</div>
+                <div class='info-item'><strong>加载状态：</strong><span class='status-normal'>✅ 正常</span></div>
+                <div class='info-item'><strong>特征数量：</strong>{current_stats['features']}</div>
+                <div class='info-item'><strong>警告数量：</strong>{current_stats['warnings']}</div>
+            </div>
+            
+            <button class='expand-btn'>></button>
+        </div>
+        """, unsafe_allow_html=True)
 
 elif st.session_state.current_page == "执行日志":
     st.markdown("<h1 class='main-title'>执行日志</h1>", unsafe_allow_html=True)
