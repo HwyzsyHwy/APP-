@@ -78,8 +78,13 @@ st.markdown("""
     max-width: 100% !important;
 }
 
-/* 侧边栏整体样式 - 手机界面风格 */
-.css-1d391kg {
+/* 侧边栏整体样式 - 使用多个选择器确保生效 */
+.css-1d391kg, .css-1lcbmhc, .css-17eq0hr, .css-1y4p8pa, section[data-testid="stSidebar"] {
+    background-color: #f8f9fa !important;
+}
+
+/* 侧边栏容器 */
+section[data-testid="stSidebar"] {
     background-color: #f8f9fa !important;
     border-radius: 20px !important;
     margin: 10px !important;
@@ -88,7 +93,7 @@ st.markdown("""
 }
 
 /* 侧边栏内容区域 */
-.css-1lcbmhc {
+section[data-testid="stSidebar"] > div {
     background-color: #f8f9fa !important;
     padding: 20px 15px !important;
     border-radius: 20px !important;
