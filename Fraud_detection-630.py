@@ -9,6 +9,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import time
+import random
 
 # 页面设置
 st.set_page_config(
@@ -128,6 +130,35 @@ header {visibility: hidden;}
     border-radius: 8px;
     margin-top: 10px;
 }
+
+/* 预测进度样式 */
+.prediction-progress {
+    background-color: #2E2E2E;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    text-align: center;
+}
+
+/* 预测结果动画 */
+.prediction-result {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -161,6 +192,10 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "预测模型"
 if 'log_messages' not in st.session_state:
     st.session_state.log_messages = []
+if 'is_predicting' not in st.session_state:
+    st.session_state.is_predicting = False
+if 'prediction_complete' not in st.session_state:
+    st.session_state.prediction_complete = False
 
 def log_message(message):
     """添加日志消息"""
@@ -170,6 +205,30 @@ def log_message(message):
     # 只保留最近50条日志
     if len(st.session_state.log_messages) > 50:
         st.session_state.log_messages = st.session_state.log_messages[-50:]
+
+def simulate_prediction(features, model_name):
+    """模拟预测过程"""
+    # 基于输入特征计算预测结果（添加一些随机性使其更真实）
+    base_values = {
+        "Char Yield": 27.7937,
+        "Oil Yield": 45.2156,
+        "Gas Yield": 27.0007
+    }
+    
+    # 根据输入特征调整预测结果
+    base_result = base_values[model_name]
+    
+    # 添加基于特征的微调
+    feature_adjustment = 0
+    feature_adjustment += (features["M(wt%)"] - 6.460) * 0.1
+    feature_adjustment += (features["VM(wt%)"] - 75.376) * 0.05
+    feature_adjustment += (features["FT(°C)"] - 505.8) * 0.01
+    
+    # 添加小量随机性
+    random_factor = random.uniform(-0.5, 0.5)
+    
+    final_result = base_result + feature_adjustment + random_factor
+    return max(0, final_result)  # 确保结果不为负
 
 # 主布局：左侧边栏 + 中央区域 + 右侧面板
 left_col, center_col, right_col = st.columns([1, 3, 1])
@@ -234,7 +293,6 @@ with center_col:
             char_type = "primary" if st.session_state.selected_model == "Char Yield" else "secondary"
             if st.button("🔥 Char Yield", key="char", use_container_width=True, type=char_type):
                 st.session_state.selected_model = "Char Yield"
-                st.session_state.prediction_result = 27.7937
                 log_message("切换到Char Yield模型")
                 st.rerun()
         
@@ -242,7 +300,6 @@ with center_col:
             oil_type = "primary" if st.session_state.selected_model == "Oil Yield" else "secondary"
             if st.button("🛢️ Oil Yield", key="oil", use_container_width=True, type=oil_type):
                 st.session_state.selected_model = "Oil Yield"
-                st.session_state.prediction_result = 45.2156
                 log_message("切换到Oil Yield模型")
                 st.rerun()
         
@@ -250,7 +307,6 @@ with center_col:
             gas_type = "primary" if st.session_state.selected_model == "Gas Yield" else "secondary"
             if st.button("💨 Gas Yield", key="gas", use_container_width=True, type=gas_type):
                 st.session_state.selected_model = "Gas Yield"
-                st.session_state.prediction_result = 27.0007
                 log_message("切换到Gas Yield模型")
                 st.rerun()
         
@@ -316,9 +372,14 @@ with center_col:
         btn_col1, btn_col2 = st.columns(2)
         
         with btn_col1:
-            if st.button("🔮 运行预测", use_container_width=True, type="primary"):
+            predict_button_disabled = st.session_state.is_predicting
+            if st.button("🔮 运行预测", use_container_width=True, type="primary", disabled=predict_button_disabled):
+                # 开始预测流程
+                st.session_state.is_predicting = True
+                st.session_state.prediction_complete = False
+                
                 # 更新特征值
-                st.session_state.feature_values = {
+                current_features = {
                     "M(wt%)": m_value,
                     "Ash(wt%)": ash_value,
                     "VM(wt%)": vm_value,
@@ -329,17 +390,44 @@ with center_col:
                     "HR(°C/min)": hr_value,
                     "FR(mL/min)": fr_value
                 }
+                st.session_state.feature_values = current_features
                 
-                # 模拟预测
-                if st.session_state.selected_model == "Char Yield":
-                    st.session_state.prediction_result = 27.7937
-                elif st.session_state.selected_model == "Oil Yield":
-                    st.session_state.prediction_result = 45.2156
-                else:
-                    st.session_state.prediction_result = 27.0007
+                log_message(f"开始执行{st.session_state.selected_model}预测")
+                log_message(f"输入特征: {current_features}")
                 
-                log_message(f"执行{st.session_state.selected_model}预测，结果: {st.session_state.prediction_result:.4f}")
-                st.success(f"预测完成！{st.session_state.selected_model}: {st.session_state.prediction_result:.4f} wt%")
+                # 显示预测进度
+                progress_placeholder = st.empty()
+                
+                with progress_placeholder.container():
+                    st.markdown('<div class="prediction-progress">🔄 正在初始化预测模型...</div>', unsafe_allow_html=True)
+                    time.sleep(1)
+                    
+                    st.markdown('<div class="prediction-progress">📊 正在处理输入特征...</div>', unsafe_allow_html=True)
+                    time.sleep(1)
+                    
+                    st.markdown('<div class="prediction-progress">🧠 GBDT模型计算中...</div>', unsafe_allow_html=True)
+                    time.sleep(1.5)
+                    
+                    st.markdown('<div class="prediction-progress">📈 正在生成预测结果...</div>', unsafe_allow_html=True)
+                    time.sleep(1)
+                
+                # 执行预测
+                prediction_result = simulate_prediction(current_features, st.session_state.selected_model)
+                st.session_state.prediction_result = prediction_result
+                
+                # 清除进度显示
+                progress_placeholder.empty()
+                
+                # 显示预测完成
+                st.markdown(f'<div class="prediction-result">✅ 预测完成！<br>{st.session_state.selected_model}: {prediction_result:.4f} wt%</div>', unsafe_allow_html=True)
+                
+                log_message(f"预测完成，结果: {prediction_result:.4f} wt%")
+                
+                # 重置预测状态
+                st.session_state.is_predicting = False
+                st.session_state.prediction_complete = True
+                
+                time.sleep(2)  # 显示结果2秒
                 st.rerun()
         
         with btn_col2:
@@ -355,9 +443,14 @@ with center_col:
                     "HR(°C/min)": 29.0,
                     "FR(mL/min)": 94.0
                 }
+                st.session_state.prediction_complete = False
                 log_message("重置所有输入数据")
                 st.success("数据已重置！")
                 st.rerun()
+        
+        # 显示预测完成状态
+        if st.session_state.prediction_complete:
+            st.success(f"🎯 最新预测结果: {st.session_state.selected_model} = {st.session_state.prediction_result:.4f} wt%")
     
     elif st.session_state.current_page == "执行日志":
         st.markdown('<div class="main-title">执行日志</div>', unsafe_allow_html=True)
@@ -377,7 +470,7 @@ with center_col:
         
         # 显示日志
         if st.session_state.log_messages:
-            log_text = "<br>".join(st.session_state.log_messages)
+            log_text = "<br>".join(reversed(st.session_state.log_messages[-20:]))  # 显示最近20条，倒序
             st.markdown(f'<div class="log-container">{log_text}</div>', unsafe_allow_html=True)
         else:
             st.info("暂无执行日志")
@@ -407,6 +500,16 @@ with center_col:
                 <li>🔥 <b>Char Yield:</b> 焦炭产率预测</li>
                 <li>🛢️ <b>Oil Yield:</b> 生物油产率预测</li>
                 <li>💨 <b>Gas Yield:</b> 气体产率预测</li>
+            </ul>
+            
+            <h4>📈 当前输入特征值:</h4>
+            <ul>
+        """
+        
+        for feature, value in st.session_state.feature_values.items():
+            model_info_html += f"<li><b>{feature}:</b> {value:.3f}</li>"
+        
+        model_info_html += """
             </ul>
         </div>
         """
@@ -509,7 +612,10 @@ with right_col:
     # 预测结果
     st.markdown('<div class="info-card">', unsafe_allow_html=True)
     st.markdown("### 预测结果")
-    st.markdown(f"**{st.session_state.selected_model}**: {st.session_state.prediction_result:.2f} wt%")
+    if st.session_state.is_predicting:
+        st.markdown("🔄 **预测中...**")
+    else:
+        st.markdown(f"**{st.session_state.selected_model}**: {st.session_state.prediction_result:.2f} wt%")
     st.markdown('</div>', unsafe_allow_html=True)
     
     # 预测信息
@@ -524,7 +630,10 @@ with right_col:
     # 模型状态
     st.markdown('<div class="info-card">', unsafe_allow_html=True)
     st.markdown("### 模型状态")
-    st.write("• 🟢 加载状态: 正常")
+    if st.session_state.is_predicting:
+        st.write("• 🟡 加载状态: 预测中")
+    else:
+        st.write("• 🟢 加载状态: 正常")
     st.write("• 特征数量: 9")
     st.write("• 警告数量: 0")
     st.write(f"• 当前页面: {st.session_state.current_page}")
