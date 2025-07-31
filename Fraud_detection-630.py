@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Biomass Pyrolysis Yield Forecast using GBDT Ensemble Models
-修复版本 - 根据实际特征统计信息正确调整
-支持Char、Oil和Gas产率预测
+Biomass Pyrolysis Yield Prediction using GBDT Ensemble Models
+Enhanced version with accurate feature statistics adjustment
+Supporting Char, Oil and Gas yield predictions
 """
 
 import streamlit as st
@@ -26,11 +26,11 @@ st.set_page_config(
     initial_sidebar_state='expanded'
 )
 
-# 初始化会话状态
+# Initialize session state
 if 'log_messages' not in st.session_state:
     st.session_state.log_messages = []
 if 'current_page' not in st.session_state:
-    st.session_state.current_page = "预测模型"
+    st.session_state.current_page = "Prediction Model"
 if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield"
 if 'model_cache' not in st.session_state:
@@ -43,7 +43,7 @@ if 'model_stats' not in st.session_state:
         "Oil Yield": {"accuracy": 45.23, "features": 9, "warnings": 0},
         "Gas Yield": {"accuracy": 18.56, "features": 9, "warnings": 0}
     }
-# 添加折叠状态
+# Add collapse states
 if 'prediction_info_expanded' not in st.session_state:
     st.session_state.prediction_info_expanded = True
 if 'model_status_expanded' not in st.session_state:
@@ -52,7 +52,7 @@ if 'sidebar_collapsed' not in st.session_state:
     st.session_state.sidebar_collapsed = False
 
 def add_log(message):
-    """添加日志消息到会话状态"""
+    """Add log message to session state"""
     timestamp = datetime.now().strftime("%H:%M:%S")
     log_entry = f"[{timestamp}] {message}"
     st.session_state.log_messages.append(log_entry)
@@ -60,20 +60,27 @@ def add_log(message):
         st.session_state.log_messages = st.session_state.log_messages[-100:]
 
 def display_logs():
-    """显示日志"""
+    """Display logs"""
     if st.session_state.log_messages:
         log_content = '<br>'.join(st.session_state.log_messages)
         st.markdown(f"<div class='log-container'>{log_content}</div>", unsafe_allow_html=True)
 
-# 自定义样式
+# Custom styles
 st.markdown("""
 <style>
-/* 全局背景设置 */
+/* Global font settings */
+* {
+    font-family: 'Times New Roman', serif !important;
+    font-size: 20px !important;
+    font-weight: normal !important;
+}
+
+/* Global background settings */
 .stApp {
     background-color: #f5f5f5 !important;
 }
 
-/* 主内容区域 */
+/* Main content area */
 .main .block-container {
     padding-top: 2rem !important;
     background-color: #f5f5f5 !important;
@@ -389,115 +396,96 @@ section[data-testid="stSidebar"] > div {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* 侧边栏底部折叠按钮 */
-.sidebar-bottom {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: #f8f9fa;
-    border-top: 1px solid #e0e0e0;
-    padding: 15px;
-    text-align: center;
-    border-radius: 0 0 20px 20px;
-    z-index: 1000;
-}
-
-.collapse-button {
+/* Sidebar bottom collapse button */
+.sidebar-collapse-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
     background-color: transparent;
-    border: none;
-    color: #6c757d;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 10px 20px;
+    border: 1px solid #e0e0e0;
     border-radius: 15px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
     transition: all 0.3s ease;
-    width: 100%;
+    font-family: 'Times New Roman', serif !important;
+    font-size: 20px !important;
+    color: #6c757d;
 }
 
-.collapse-button:hover {
+.sidebar-collapse-btn:hover {
     background-color: #e9ecef;
     color: #333;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# 记录启动日志
-add_log("应用启动")
-add_log(f"初始化选定模型: {st.session_state.selected_model}")
+# Record startup logs
+add_log("Application started")
+add_log(f"Initialized selected model: {st.session_state.selected_model}")
 
-# 侧边栏导航 - 新的布局
+# Sidebar navigation - new layout
 with st.sidebar:
-    # 用户信息区域
+    # User information area
     st.markdown("""
     <div class='sidebar-user-info'>
         <div class='user-avatar'>👤</div>
-        <div class='user-name'>用户：wy1122</div>
+        <div class='user-name'>User: wy1122</div>
     </div>
     """, unsafe_allow_html=True)
-    
-    # 导航按钮
-    st.markdown("### ")  # 空标题用于间距
-    
-    # 预测模型按钮
-    if st.button("预测模型", key="nav_predict", use_container_width=True, 
-                type="primary" if st.session_state.current_page == "预测模型" else "secondary"):
-        st.session_state.current_page = "预测模型"
-        add_log("切换到预测模型页面")
-        st.rerun()
-    
-    # 执行日志按钮
-    if st.button("执行日志", key="nav_logs", use_container_width=True,
-                type="primary" if st.session_state.current_page == "执行日志" else "secondary"):
-        st.session_state.current_page = "执行日志"
-        add_log("切换到执行日志页面")
-        st.rerun()
-    
-    # 模型信息按钮
-    if st.button("模型信息", key="nav_model_info", use_container_width=True,
-                type="primary" if st.session_state.current_page == "模型信息" else "secondary"):
-        st.session_state.current_page = "模型信息"
-        add_log("切换到模型信息页面")
-        st.rerun()
-    
-    # 技术说明按钮
-    if st.button("技术说明", key="nav_tech", use_container_width=True,
-                type="primary" if st.session_state.current_page == "技术说明" else "secondary"):
-        st.session_state.current_page = "技术说明"
-        add_log("切换到技术说明页面")
-        st.rerun()
-    
-    # 使用指南按钮
-    if st.button("使用指南", key="nav_guide", use_container_width=True,
-                type="primary" if st.session_state.current_page == "使用指南" else "secondary"):
-        st.session_state.current_page = "使用指南"
-        add_log("切换到使用指南页面")
-        st.rerun()
-    
-    # 添加间距，为底部按钮留出空间
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
 
-# 侧边栏底部折叠按钮 - 放在侧边栏外部但固定在底部
-if st.button("＜", key="collapse_sidebar", help="折叠/展开侧边栏"):
-    st.session_state.sidebar_collapsed = not st.session_state.sidebar_collapsed
-    add_log(f"侧边栏状态: {'折叠' if st.session_state.sidebar_collapsed else '展开'}")
-    st.rerun()
+    # Navigation buttons
+    st.markdown("### ")  # Empty title for spacing
 
-# 在页面底部添加折叠按钮的HTML
-st.markdown("""
-<div class='sidebar-bottom'>
-    <div class='collapse-button' onclick='toggleSidebar()'>＜</div>
-</div>
-<script>
-function toggleSidebar() {
-    // 这里可以添加JavaScript来控制侧边栏的显示/隐藏
-    console.log('Toggle sidebar');
-}
-</script>
-""", unsafe_allow_html=True)
+    # Prediction model button
+    if st.button("Prediction Model", key="nav_predict", use_container_width=True,
+                type="primary" if st.session_state.current_page == "Prediction Model" else "secondary"):
+        st.session_state.current_page = "Prediction Model"
+        add_log("Switched to prediction model page")
+        st.rerun()
 
-# 简化的预测器类
+    # Execution logs button
+    if st.button("Execution Logs", key="nav_logs", use_container_width=True,
+                type="primary" if st.session_state.current_page == "Execution Logs" else "secondary"):
+        st.session_state.current_page = "Execution Logs"
+        add_log("Switched to execution logs page")
+        st.rerun()
+
+    # Model information button
+    if st.button("Model Information", key="nav_model_info", use_container_width=True,
+                type="primary" if st.session_state.current_page == "Model Information" else "secondary"):
+        st.session_state.current_page = "Model Information"
+        add_log("Switched to model information page")
+        st.rerun()
+
+    # Technical description button
+    if st.button("Technical Description", key="nav_tech", use_container_width=True,
+                type="primary" if st.session_state.current_page == "Technical Description" else "secondary"):
+        st.session_state.current_page = "Technical Description"
+        add_log("Switched to technical description page")
+        st.rerun()
+
+    # User guide button
+    if st.button("User Guide", key="nav_guide", use_container_width=True,
+                type="primary" if st.session_state.current_page == "User Guide" else "secondary"):
+        st.session_state.current_page = "User Guide"
+        add_log("Switched to user guide page")
+        st.rerun()
+
+    # Add spacing and collapse button at bottom
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # Collapse button at bottom of sidebar
+    if st.button("＜", key="sidebar_collapse", help="Collapse/Expand Sidebar"):
+        st.session_state.sidebar_collapsed = not st.session_state.sidebar_collapsed
+        add_log(f"Sidebar state: {'Collapsed' if st.session_state.sidebar_collapsed else 'Expanded'}")
+        st.rerun()
+
+# Remove the external collapse button as it's now inside sidebar
+
+# Simplified predictor class
 class ModelPredictor:
     def __init__(self, target_model="Char Yield"):
         self.target_name = target_model
@@ -506,19 +494,19 @@ class ModelPredictor:
             'FT(℃)', 'HR(℃/min)', 'FR(mL/min)'
         ]
         self.model_loaded = False
-        add_log(f"初始化预测器: {self.target_name}")
-    
+        add_log(f"Initialized predictor: {self.target_name}")
+
     def get_model_info(self):
         return {
-            "模型类型": "GBDT Pipeline",
-            "目标变量": self.target_name,
-            "特征数量": len(self.feature_names),
-            "模型状态": "已加载" if self.model_loaded else "未加载"
+            "Model Type": "GBDT Pipeline",
+            "Target Variable": self.target_name,
+            "Feature Count": len(self.feature_names),
+            "Model Status": "Loaded" if self.model_loaded else "Not Loaded"
         }
-    
+
     def predict(self, features):
-        """模拟预测功能"""
-        # 模拟预测结果
+        """Simulate prediction functionality"""
+        # Simulate prediction results
         import random
         random.seed(42)
         base_values = {
@@ -529,14 +517,14 @@ class ModelPredictor:
         result = base_values[self.target_name] + random.uniform(-5, 5)
         return round(result, 2)
 
-# 根据当前页面显示不同内容
-if st.session_state.current_page == "预测模型":
-    # 主页面内容
-    st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
+# Display different content based on current page
+if st.session_state.current_page == "Prediction Model":
+    # Main page content
+    st.markdown("<h1 class='main-title'>Biomass Pyrolysis Product Prediction System Based on GBDT Ensemble Models</h1>", unsafe_allow_html=True)
 
-    # 模型选择区域
+    # Model selection area
     st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='color: #333; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #333; text-align: center; margin-bottom: 30px; font-family: Times New Roman, serif; font-size: 20px;'>Select Prediction Target</h3>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
 
@@ -570,35 +558,35 @@ if st.session_state.current_page == "预测模型":
     if char_button:
         st.session_state.selected_model = "Char Yield"
         st.session_state.prediction_result = None
-        add_log(f"切换到模型: {st.session_state.selected_model}")
+        add_log(f"Switched to model: {st.session_state.selected_model}")
         st.rerun()
 
     if oil_button:
         st.session_state.selected_model = "Oil Yield"
         st.session_state.prediction_result = None
-        add_log(f"切换到模型: {st.session_state.selected_model}")
+        add_log(f"Switched to model: {st.session_state.selected_model}")
         st.rerun()
 
     if gas_button:
         st.session_state.selected_model = "Gas Yield"
         st.session_state.prediction_result = None
-        add_log(f"切换到模型: {st.session_state.selected_model}")
+        add_log(f"Switched to model: {st.session_state.selected_model}")
         st.rerun()
 
-    st.markdown(f"<div class='current-model'>当前模型：{st.session_state.selected_model}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='current-model'>Current Model: {st.session_state.selected_model}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 初始化预测器
+    # Initialize predictor
     predictor = ModelPredictor(target_model=st.session_state.selected_model)
 
-    # 默认值
+    # Default values
     default_values = {
         "M(wt%)": 6.460, "Ash(wt%)": 6.460, "VM(wt%)": 6.460,
         "O/C": 6.460, "H/C": 6.460, "N/C": 6.460,
         "FT(°C)": 6.460, "HR(°C/min)": 6.460, "FR(mL/min)": 6.460
     }
 
-    # 创建主要布局：左侧输入区域，右侧信息面板
+    # Create main layout: left input area, right information panel
     main_col, info_col = st.columns([3, 1])
 
     with main_col:
@@ -782,130 +770,130 @@ if st.session_state.current_page == "预测模型":
         
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
-            if st.button("运行预测", type="primary", use_container_width=True):
-                add_log("开始预测流程...")
-                # 执行预测
+            if st.button("Run Prediction", type="primary", use_container_width=True):
+                add_log("Starting prediction process...")
+                # Execute prediction
                 result = predictor.predict(features)
                 st.session_state.prediction_result = result
-                add_log(f"预测完成: {st.session_state.selected_model} = {result} wt%")
+                add_log(f"Prediction completed: {st.session_state.selected_model} = {result} wt%")
                 st.rerun()
-        
+
         with col_btn2:
-            if st.button("重置数据", use_container_width=True):
-                add_log("重置所有输入数据")
+            if st.button("Reset Data", use_container_width=True):
+                add_log("Reset all input data")
                 st.session_state.prediction_result = None
                 st.rerun()
 
-    # 右侧信息面板 - 添加折叠功能
+    # Right information panel - add collapse functionality
     with info_col:
-        # 获取当前模型的统计信息
+        # Get current model statistics
         current_stats = st.session_state.model_stats[st.session_state.selected_model]
-        
-        # 预测结果显示
-        result_text = f"{st.session_state.prediction_result} wt%" if st.session_state.prediction_result else "等待预测"
-        
-        # 使用Streamlit容器而不是HTML
+
+        # Prediction result display
+        result_text = f"{st.session_state.prediction_result} wt%" if st.session_state.prediction_result else "Awaiting prediction"
+
+        # Use Streamlit container instead of HTML
         with st.container():
-            # 预测结果标题
-            st.markdown("### 预测结果")
-            
-            # 预测结果值
+            # Prediction result title
+            st.markdown("### Prediction Results")
+
+            # Prediction result value
             if st.session_state.prediction_result:
-                # 根据模型类型显示中文名称
+                # Display model type names
                 model_names = {
-                    "Char Yield": "炭产量",
-                    "Oil Yield": "油产量", 
-                    "Gas Yield": "气产量"
+                    "Char Yield": "Char Yield",
+                    "Oil Yield": "Oil Yield",
+                    "Gas Yield": "Gas Yield"
                 }
-                model_chinese = model_names.get(st.session_state.selected_model, st.session_state.selected_model)
-                st.success(f"**{model_chinese}**: {st.session_state.prediction_result} wt%")
+                model_name = model_names.get(st.session_state.selected_model, st.session_state.selected_model)
+                st.success(f"**{model_name}**: {st.session_state.prediction_result} wt%")
             else:
-                st.info("等待预测...")
-            
+                st.info("Awaiting prediction...")
+
             st.markdown("---")
-            
-            # 预测信息 - 可折叠
+
+            # Prediction information - collapsible
             col_header, col_toggle = st.columns([4, 1])
             with col_header:
-                st.markdown("### 预测信息")
+                st.markdown("### Prediction Information")
             with col_toggle:
-                if st.button("▼" if st.session_state.prediction_info_expanded else "▶", 
-                           key="toggle_prediction_info", 
-                           help="展开/折叠预测信息"):
+                if st.button("▼" if st.session_state.prediction_info_expanded else "▶",
+                           key="toggle_prediction_info",
+                           help="Expand/Collapse prediction information"):
                     st.session_state.prediction_info_expanded = not st.session_state.prediction_info_expanded
                     st.rerun()
-            
+
             if st.session_state.prediction_info_expanded:
-                st.write(f"• **目标变量**: {st.session_state.selected_model}")
-                st.write(f"• **预测结果**: {result_text}")
-                st.write(f"• **模型类型**: GBDT Pipeline")
-                st.write(f"• **预处理**: RobustScaler")
-            
+                st.write(f"• **Target Variable**: {st.session_state.selected_model}")
+                st.write(f"• **Prediction Result**: {result_text}")
+                st.write(f"• **Model Type**: GBDT Pipeline")
+                st.write(f"• **Preprocessing**: RobustScaler")
+
             st.markdown("---")
-            
-            # 模型状态 - 可折叠
+
+            # Model status - collapsible
             col_header2, col_toggle2 = st.columns([4, 1])
             with col_header2:
-                st.markdown("### 模型状态")
+                st.markdown("### Model Status")
             with col_toggle2:
-                if st.button("▼" if st.session_state.model_status_expanded else "▶", 
-                           key="toggle_model_status", 
-                           help="展开/折叠模型状态"):
+                if st.button("▼" if st.session_state.model_status_expanded else "▶",
+                           key="toggle_model_status",
+                           help="Expand/Collapse model status"):
                     st.session_state.model_status_expanded = not st.session_state.model_status_expanded
                     st.rerun()
-            
-            if st.session_state.model_status_expanded:
-                st.write(f"• **加载状态**: ✅ 正常")
-                st.write(f"• **特征数量**: {current_stats['features']}")
-                st.write(f"• **警告数量**: {current_stats['warnings']}")
-            
-            st.markdown("---")
-            
-            # 更多详细信息按钮
-            if st.button("更多详细信息...", use_container_width=True):
-                st.info("显示更多模型详细信息和统计数据...")
 
-elif st.session_state.current_page == "执行日志":
-    st.markdown("<h1 class='main-title'>执行日志</h1>", unsafe_allow_html=True)
+            if st.session_state.model_status_expanded:
+                st.write(f"• **Loading Status**: ✅ Normal")
+                st.write(f"• **Feature Count**: {current_stats['features']}")
+                st.write(f"• **Warning Count**: {current_stats['warnings']}")
+
+            st.markdown("---")
+
+            # More detailed information button
+            if st.button("More Details...", use_container_width=True):
+                st.info("Display more detailed model information and statistics...")
+
+elif st.session_state.current_page == "Execution Logs":
+    st.markdown("<h1 class='main-title'>Execution Logs</h1>", unsafe_allow_html=True)
     display_logs()
 
-elif st.session_state.current_page == "模型信息":
-    st.markdown("<h1 class='main-title'>模型信息</h1>", unsafe_allow_html=True)
+elif st.session_state.current_page == "Model Information":
+    st.markdown("<h1 class='main-title'>Model Information</h1>", unsafe_allow_html=True)
     predictor = ModelPredictor(target_model=st.session_state.selected_model)
     model_info = predictor.get_model_info()
-    
+
     for key, value in model_info.items():
         st.write(f"**{key}**: {value}")
 
-elif st.session_state.current_page == "技术说明":
-    st.markdown("<h1 class='main-title'>技术说明</h1>", unsafe_allow_html=True)
+elif st.session_state.current_page == "Technical Description":
+    st.markdown("<h1 class='main-title'>Technical Description</h1>", unsafe_allow_html=True)
     st.markdown("""
     <div class='tech-info'>
-    <h4>🔬 模型技术说明</h4>
-    <p>本系统基于<b>梯度提升决策树(GBDT)</b>算法构建，采用Pipeline架构集成数据预处理和模型预测。</p>
-    
-    <h4>📋 特征说明</h4>
+    <h4>🔬 Model Technical Description</h4>
+    <p>This system is constructed based on the <b>Gradient Boosting Decision Tree (GBDT)</b> algorithm, employing a Pipeline architecture that integrates data preprocessing and model prediction.</p>
+
+    <h4>📋 Feature Description</h4>
     <ul>
-        <li><b>Proximate Analysis:</b> M(wt%) - 水分含量, Ash(wt%) - 灰分含量, VM(wt%) - 挥发分含量</li>
-        <li><b>Ultimate Analysis:</b> O/C - 氧碳比, H/C - 氢碳比, N/C - 氮碳比</li>
-        <li><b>Pyrolysis Conditions:</b> FT(°C) - 热解温度, HR(°C/min) - 升温速率, FR(mL/min) - 载气流量</li>
+        <li><b>Proximate Analysis:</b> M(wt%) - Moisture content, Ash(wt%) - Ash content, VM(wt%) - Volatile matter content</li>
+        <li><b>Ultimate Analysis:</b> O/C - Oxygen-to-carbon ratio, H/C - Hydrogen-to-carbon ratio, N/C - Nitrogen-to-carbon ratio</li>
+        <li><b>Pyrolysis Conditions:</b> FT(°C) - Final temperature, HR(°C/min) - Heating rate, FR(mL/min) - Flow rate</li>
     </ul>
     </div>
     """, unsafe_allow_html=True)
 
-elif st.session_state.current_page == "使用指南":
-    st.markdown("<h1 class='main-title'>使用指南</h1>", unsafe_allow_html=True)
+elif st.session_state.current_page == "User Guide":
+    st.markdown("<h1 class='main-title'>User Guide</h1>", unsafe_allow_html=True)
     st.markdown("""
-    ### 📋 使用步骤
-    1. 在侧边栏选择"预测模型"
-    2. 选择要预测的目标（Char/Oil/Gas Yield）
-    3. 输入生物质特征参数
-    4. 点击"运行预测"获取结果
-    
-    ### ⚠️ 注意事项
-    - 确保输入参数在合理范围内
-    - 模型预测结果仅供参考
-    - 实际应用需结合专业知识验证
+    ### 📋 Usage Steps
+    1. Select "Prediction Model" in the sidebar
+    2. Choose the prediction target (Char/Oil/Gas Yield)
+    3. Input biomass characteristic parameters
+    4. Click "Run Prediction" to obtain results
+
+    ### ⚠️ Important Notes
+    - Ensure input parameters are within reasonable ranges
+    - Model prediction results are for reference only
+    - Practical applications should be validated with professional knowledge
     """)
 
 # 页脚
