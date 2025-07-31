@@ -66,19 +66,44 @@ def display_logs():
 # 自定义样式
 st.markdown("""
 <style>
+/* 全局背景设置 */
+.stApp {
+    background-color: #f5f5f5 !important;
+}
+
+/* 主内容区域 */
+.main .block-container {
+    padding-top: 2rem !important;
+    background-color: #f5f5f5 !important;
+    max-width: 100% !important;
+}
+
+/* 侧边栏整体样式 */
+.css-1d391kg {
+    background-color: #f8f9fa !important;
+}
+
+/* 侧边栏内容区域 */
+.css-1lcbmhc {
+    background-color: #f8f9fa !important;
+    padding-top: 2rem !important;
+}
+
 .main-title {
     text-align: center;
     font-size: 32px !important;
     font-weight: bold;
     margin-bottom: 20px;
-    color: white !important;
+    color: #333 !important;
 }
+
 .model-selector {
     text-align: center;
     margin-bottom: 30px;
 }
+
 .model-card {
-    background-color: #f0f0f0;
+    background-color: white;
     border-radius: 15px;
     padding: 20px;
     margin: 10px;
@@ -86,98 +111,116 @@ st.markdown("""
     cursor: pointer;
     transition: all 0.3s;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
 }
+
 .model-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.15);
 }
+
 .model-icon {
     font-size: 48px;
     margin-bottom: 10px;
 }
+
 .model-name {
     font-size: 18px;
     font-weight: bold;
-    color: #2c5aa0;
+    color: #333;
 }
+
 .current-model {
-    background-color: #2c5aa0;
+    background-color: #1f4e79;
     color: white;
     font-size: 16px;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 25px;
     margin: 20px 0;
     text-align: center;
 }
+
 .analysis-card {
-    background-color: #f0f0f0;
+    background-color: white;
     border-radius: 15px;
     padding: 20px;
     margin: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
 }
+
 .card-title {
-    background-color: #2c5aa0;
+    background-color: #1f4e79;
     color: white;
     font-weight: bold;
     font-size: 16px;
     text-align: center;
     padding: 10px;
-    border-radius: 8px;
+    border-radius: 25px;
     margin-bottom: 15px;
 }
+
 .input-row {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
-    background-color: #2c5aa0;
+    background-color: white;
     border-radius: 8px;
     padding: 8px;
+    border: 1px solid #e0e0e0;
 }
+
 .input-label {
-    background-color: #2c5aa0;
+    background-color: #1f4e79;
     color: white;
     padding: 8px 12px;
-    border-radius: 5px;
+    border-radius: 20px;
     font-size: 14px;
     font-weight: bold;
     min-width: 80px;
     text-align: center;
     margin-right: 10px;
 }
+
 .action-buttons {
     display: flex;
     gap: 20px;
     margin-top: 30px;
     justify-content: center;
 }
+
 .action-btn {
     padding: 15px 30px;
-    border-radius: 8px;
+    border-radius: 25px;
     border: none;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s;
 }
+
 .predict-btn {
-    background-color: #2c5aa0;
+    background-color: #1f4e79;
     color: white;
 }
+
 .reset-btn {
-    background-color: #6c757d;
-    color: white;
+    background-color: #e9ecef;
+    color: #6c757d;
 }
+
 .yield-result {
-    background-color: #1E1E1E;
-    color: white;
+    background-color: white;
+    color: #333;
     font-size: 36px;
     font-weight: bold;
     text-align: center;
     padding: 15px;
     border-radius: 8px;
     margin-top: 20px;
+    border: 1px solid #e0e0e0;
 }
+
 .warning-box {
     background-color: rgba(255, 165, 0, 0.2);
     border-left: 5px solid orange;
@@ -185,6 +228,7 @@ st.markdown("""
     margin: 10px 0;
     border-radius: 5px;
 }
+
 .error-box {
     background-color: rgba(255, 0, 0, 0.2);
     border-left: 5px solid red;
@@ -192,6 +236,7 @@ st.markdown("""
     margin: 10px 0;
     border-radius: 5px;
 }
+
 .log-container {
     background-color: #1E1E1E;
     color: #00FF00;
@@ -203,24 +248,34 @@ st.markdown("""
     overflow-y: auto;
     white-space: pre-wrap;
 }
+
 .sidebar-model-info {
-    background-color: #2E2E2E;
+    background-color: white;
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
 }
+
 .tech-info {
-    background-color: #2E2E2E;
+    background-color: white;
     padding: 15px;
     border-radius: 8px;
-    color: white;
+    color: #333;
+    border: 1px solid #e0e0e0;
 }
-/* 新增侧边栏样式 */
+
+/* 侧边栏用户信息样式 */
 .sidebar-user-info {
     text-align: center;
     padding: 20px 10px;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
 }
+
 .user-avatar {
     width: 60px;
     height: 60px;
@@ -232,33 +287,47 @@ st.markdown("""
     margin: 0 auto 10px auto;
     color: white;
     font-size: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+
 .user-name {
     color: #333;
     font-size: 14px;
     margin-top: 5px;
+    font-weight: 500;
 }
-.sidebar-nav-button {
-    width: 100%;
-    margin-bottom: 8px;
-    padding: 12px;
-    border-radius: 25px;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s;
+
+/* Streamlit按钮样式覆盖 */
+.stButton > button {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    padding: 12px 16px !important;
+    border-radius: 25px !important;
+    border: 1px solid #e0e0e0 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
 }
-.nav-button-active {
-    background-color: #1f4e79;
-    color: white;
+
+.stButton > button:hover {
+    background-color: #dee2e6 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
-.nav-button-inactive {
-    background-color: #e0e0e0;
-    color: #666;
+
+/* 主要按钮样式 */
+.stButton > button[kind="primary"] {
+    background-color: #1f4e79 !important;
+    color: white !important;
+    border: 1px solid #1f4e79 !important;
 }
-.nav-button-inactive:hover {
-    background-color: #d0d0d0;
+
+.stButton > button[kind="primary"]:hover {
+    background-color: #164063 !important;
 }
+
 /* 折叠按钮样式 */
 .collapse-header {
     display: flex;
@@ -269,12 +338,37 @@ st.markdown("""
     border-bottom: 1px solid #ddd;
     margin-bottom: 10px;
 }
+
 .collapse-icon {
     font-size: 14px;
     transition: transform 0.3s;
 }
+
 .collapse-icon.expanded {
     transform: rotate(90deg);
+}
+
+/* 底部导航按钮样式 */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: center;
+}
+
+.bottom-nav-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -370,7 +464,7 @@ if st.session_state.current_page == "预测模型":
 
     # 模型选择区域
     st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #333; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
 
