@@ -192,34 +192,32 @@ if 'log_messages' not in st.session_state:
 if 'current_page' not in st.session_state:
     st.session_state.current_page = "预测"
 
-# 在侧边栏创建日志显示区域 - 必须在log函数定义之前
-with st.sidebar:
-    st.markdown("### 📋 执行日志")
-    log_text = st.empty()
-
-def log(message):
-    """记录日志到侧边栏和会话状态"""
+def add_log(message):
+    """添加日志消息到会话状态"""
     timestamp = datetime.now().strftime("%H:%M:%S")
     log_entry = f"[{timestamp}] {message}"
     st.session_state.log_messages.append(log_entry)
     # 只保留最近的100条日志
     if len(st.session_state.log_messages) > 100:
         st.session_state.log_messages = st.session_state.log_messages[-100:]
-    
-    # 更新日志显示
-    log_text.markdown(
-        f"<div class='log-container'>{'<br>'.join(st.session_state.log_messages)}</div>", 
-        unsafe_allow_html=True
-    )
+
+def display_logs():
+    """显示日志"""
+    if st.session_state.log_messages:
+        log_content = '<br>'.join(st.session_state.log_messages)
+        st.markdown(
+            f"<div class='log-container'>{log_content}</div>", 
+            unsafe_allow_html=True
+        )
 
 # 记录启动日志
-log("应用启动 - 根据图片特征统计信息正确修复版本")
-log("特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR")
+add_log("应用启动 - 根据图片特征统计信息正确修复版本")
+add_log("特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
     st.session_state.selected_model = "Char Yield"  # 默认选择Char产率模型
-    log(f"初始化选定模型: {st.session_state.selected_model}")
+    add_log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 添加模型缓存 - 避免重复加载相同模型
 if 'model_cache' not in st.session_state:
@@ -245,6 +243,10 @@ with st.sidebar:
     if st.button("📋 使用指南", use_container_width=True, type="primary" if st.session_state.current_page == "使用指南" else "secondary"):
         st.session_state.current_page = "使用指南"
         st.rerun()
+    
+    # 显示日志
+    st.markdown("### 📋 执行日志")
+    display_logs()
 
 # 根据当前页面显示不同内容
 if st.session_state.current_page == "预测":
@@ -279,21 +281,21 @@ if st.session_state.current_page == "预测":
         st.session_state.selected_model = "Char Yield"
         st.session_state.prediction_result = None
         st.session_state.warnings = []
-        log(f"切换到模型: {st.session_state.selected_model}")
+        add_log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
     if oil_button and st.session_state.selected_model != "Oil Yield":
         st.session_state.selected_model = "Oil Yield"
         st.session_state.prediction_result = None
         st.session_state.warnings = []
-        log(f"切换到模型: {st.session_state.selected_model}")
+        add_log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
     if gas_button and st.session_state.selected_model != "Gas Yield":
         st.session_state.selected_model = "Gas Yield"
         st.session_state.prediction_result = None
         st.session_state.warnings = []
-        log(f"切换到模型: {st.session_state.selected_model}")
+        add_log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
     st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
@@ -345,7 +347,7 @@ if st.session_state.current_page == "预测":
             self.model_loaded = self.pipeline is not None
             
             if not self.model_loaded:
-                log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
+                add_log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
                 # 查找并加载模型
                 self.model_path = self._find_model_file()
                 if self.model_path:
@@ -354,7 +356,7 @@ if st.session_state.current_page == "预测":
         def _get_cached_model(self):
             """从缓存中获取模型"""
             if self.target_name in st.session_state.model_cache:
-                log(f"从缓存加载{self.target_name}模型")
+                add_log(f"从缓存加载{self.target_name}模型")
                 return st.session_state.model_cache[self.target_name]
             return None
             
@@ -390,7 +392,7 @@ if st.session_state.current_page == "预测":
             ]
             
             patterns = model_file_patterns.get(self.target_name, [])
-            log(f"搜索{self.target_name}模型文件，模式: {patterns}")
+            add_log(f"搜索{self.target_name}模型文件，模式: {patterns}")
             
             for directory in search_dirs:
                 if not os.path.exists(directory):
@@ -402,7 +404,7 @@ if st.session_state.current_page == "预测":
                         matches = glob.glob(os.path.join(directory, pattern))
                         for match in matches:
                             if os.path.isfile(match):
-                                log(f"找到模型文件: {match}")
+                                add_log(f"找到模型文件: {match}")
                                 return match
                                 
                     # 也检查目录中的所有.joblib文件
@@ -411,48 +413,48 @@ if st.session_state.current_page == "预测":
                             model_id = self.target_name.split(" ")[0].lower()
                             if model_id in file.lower():
                                 model_path = os.path.join(directory, file)
-                                log(f"找到匹配的模型文件: {model_path}")
+                                add_log(f"找到匹配的模型文件: {model_path}")
                                 return model_path
                 except Exception as e:
-                    log(f"搜索目录{directory}时出错: {str(e)}")
+                    add_log(f"搜索目录{directory}时出错: {str(e)}")
             
-            log(f"未找到{self.target_name}模型文件")
+            add_log(f"未找到{self.target_name}模型文件")
             return None
         
         def _load_pipeline(self):
             """加载Pipeline模型"""
             if not self.model_path:
-                log("模型路径为空，无法加载")
+                add_log("模型路径为空，无法加载")
                 return False
             
             try:
-                log(f"加载Pipeline模型: {self.model_path}")
+                add_log(f"加载Pipeline模型: {self.model_path}")
                 self.pipeline = joblib.load(self.model_path)
                 
                 # 验证Pipeline结构
                 if hasattr(self.pipeline, 'predict') and hasattr(self.pipeline, 'named_steps'):
-                    log(f"Pipeline加载成功，组件: {list(self.pipeline.named_steps.keys())}")
+                    add_log(f"Pipeline加载成功，组件: {list(self.pipeline.named_steps.keys())}")
                     
                     # 验证Pipeline包含scaler和model
                     if 'scaler' in self.pipeline.named_steps and 'model' in self.pipeline.named_steps:
                         scaler_type = type(self.pipeline.named_steps['scaler']).__name__
                         model_type = type(self.pipeline.named_steps['model']).__name__
-                        log(f"Scaler类型: {scaler_type}, Model类型: {model_type}")
+                        add_log(f"Scaler类型: {scaler_type}, Model类型: {model_type}")
                         
                         self.model_loaded = True
                         # 将模型保存到缓存中
                         st.session_state.model_cache[self.target_name] = self.pipeline
                         return True
                     else:
-                        log("Pipeline结构不符合预期，缺少scaler或model组件")
+                        add_log("Pipeline结构不符合预期，缺少scaler或model组件")
                         return False
                 else:
-                    log("加载的对象不是有效的Pipeline")
+                    add_log("加载的对象不是有效的Pipeline")
                     return False
                     
             except Exception as e:
-                log(f"加载模型出错: {str(e)}")
-                log(traceback.format_exc())
+                add_log(f"加载模型出错: {str(e)}")
+                add_log(traceback.format_exc())
                 self.model_loaded = False
                 return False
         
@@ -469,7 +471,7 @@ if st.session_state.current_page == "预测":
                     if value < range_info['min'] or value > range_info['max']:
                         warning = f"{feature}: {value:.3f} (超出训练范围 {range_info['min']:.3f} - {range_info['max']:.3f})"
                         warnings.append(warning)
-                        log(f"警告: {warning}")
+                        add_log(f"警告: {warning}")
             
             return warnings
         
@@ -484,7 +486,7 @@ if st.session_state.current_page == "预测":
                 if model_feature in self.feature_names:
                     model_features[model_feature] = value
                     if ui_feature != model_feature:
-                        log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
+                        add_log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
             
             # 确保所有特征都存在，缺失的设为均值（根据图片统计信息）
             feature_defaults = {
@@ -503,13 +505,13 @@ if st.session_state.current_page == "预测":
                 if feature not in model_features:
                     default_value = feature_defaults.get(feature, 0.0)
                     model_features[feature] = default_value
-                    log(f"警告: 特征 '{feature}' 缺失，设为默认值: {default_value}")
+                    add_log(f"警告: 特征 '{feature}' 缺失，设为默认值: {default_value}")
             
             # 创建DataFrame并按照正确顺序排列列
             df = pd.DataFrame([model_features])
             df = df[self.feature_names]  # 确保列顺序与训练时一致
             
-            log(f"准备好的特征DataFrame形状: {df.shape}, 列: {list(df.columns)}")
+            add_log(f"准备好的特征DataFrame形状: {df.shape}, 列: {list(df.columns)}")
             return df
         
         def predict(self, features):
@@ -526,41 +528,41 @@ if st.session_state.current_page == "预测":
             
             # 如果输入没有变化且有上次结果，直接返回上次结果
             if not features_changed and self.last_result is not None:
-                log("输入未变化，使用上次的预测结果")
+                add_log("输入未变化，使用上次的预测结果")
                 return self.last_result
             
             # 保存当前特征
             self.last_features = features.copy()
             
             # 准备特征数据
-            log(f"开始准备{len(features)}个特征数据进行预测")
+            add_log(f"开始准备{len(features)}个特征数据进行预测")
             features_df = self._prepare_features(features)
             
             # 使用Pipeline进行预测
             if self.model_loaded and self.pipeline is not None:
                 try:
-                    log("使用Pipeline进行预测（包含RobustScaler预处理）")
+                    add_log("使用Pipeline进行预测（包含RobustScaler预处理）")
                     # Pipeline会自动进行预处理（RobustScaler）然后预测
                     result = float(self.pipeline.predict(features_df)[0])
-                    log(f"预测成功: {result:.4f}")
+                    add_log(f"预测成功: {result:.4f}")
                     self.last_result = result
                     return result
                 except Exception as e:
-                    log(f"Pipeline预测失败: {str(e)}")
-                    log(traceback.format_exc())
+                    add_log(f"Pipeline预测失败: {str(e)}")
+                    add_log(traceback.format_exc())
                     
                     # 尝试重新加载模型
                     if self._find_model_file() and self._load_pipeline():
                         try:
                             result = float(self.pipeline.predict(features_df)[0])
-                            log(f"重新加载后预测成功: {result:.4f}")
+                            add_log(f"重新加载后预测成功: {result:.4f}")
                             self.last_result = result
                             return result
                         except Exception as new_e:
-                            log(f"重新加载后预测仍然失败: {str(new_e)}")
+                            add_log(f"重新加载后预测仍然失败: {str(new_e)}")
             
             # 如果到这里，说明预测失败
-            log("所有预测尝试都失败")
+            add_log("所有预测尝试都失败")
             raise ValueError(f"模型预测失败。请确保模型文件存在且格式正确。当前模型: {self.target_name}")
         
         def get_model_info(self):
@@ -738,17 +740,17 @@ if st.session_state.current_page == "预测":
     with col1:
         predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
         if predict_clicked:
-            log("开始预测流程...")
+            add_log("开始预测流程...")
             
             # 切换模型后需要重新初始化预测器
             if predictor.target_name != st.session_state.selected_model:
-                log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
+                add_log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
                 predictor = ModelPredictor(target_model=st.session_state.selected_model)
             
             # 保存当前输入到会话状态
             st.session_state.feature_values = features.copy()
             
-            log(f"开始{st.session_state.selected_model}预测，输入特征数: {len(features)}")
+            add_log(f"开始{st.session_state.selected_model}预测，输入特征数: {len(features)}")
             
             # 检查输入范围
             warnings = predictor.check_input_range(features)
@@ -758,9 +760,9 @@ if st.session_state.current_page == "预测":
             try:
                 # 确保预测器已正确加载
                 if not predictor.model_loaded:
-                    log("模型未加载，尝试重新加载")
+                    add_log("模型未加载，尝试重新加载")
                     if predictor._find_model_file() and predictor._load_pipeline():
-                        log("重新加载模型成功")
+                        add_log("重新加载模型成功")
                     else:
                         error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
                         st.error(error_msg)
@@ -771,22 +773,22 @@ if st.session_state.current_page == "预测":
                 result = predictor.predict(features)
                 if result is not None:
                     st.session_state.prediction_result = float(result)
-                    log(f"预测成功: {st.session_state.prediction_result:.4f}")
+                    add_log(f"预测成功: {st.session_state.prediction_result:.4f}")
                     st.session_state.prediction_error = None
                 else:
-                    log("警告: 预测结果为空")
+                    add_log("警告: 预测结果为空")
                     st.session_state.prediction_error = "预测结果为空"
                     
             except Exception as e:
                 error_msg = f"预测过程中发生错误: {str(e)}"
                 st.session_state.prediction_error = error_msg
-                log(f"预测错误: {str(e)}")
-                log(traceback.format_exc())
+                add_log(f"预测错误: {str(e)}")
+                add_log(traceback.format_exc())
                 st.error(error_msg)
 
     with col2:
         if st.button("🔄 重置输入", use_container_width=True):
-            log("重置所有输入值")
+            add_log("重置所有输入值")
             st.session_state.clear_pressed = True
             st.session_state.prediction_result = None
             st.session_state.warnings = []
