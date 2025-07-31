@@ -186,21 +186,26 @@ footer {{visibility: hidden;}}
     position: fixed;
     left: 0;
     top: 50px;
-    width: 160px;
+    width: 180px;
     height: calc(100vh - 50px);
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px;
-    border-right: 1px solid #ddd;
+    background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 20px 15px;
+    border-right: 2px solid #e9ecef;
     overflow-y: auto;
     z-index: 999;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }}
 
 /* 用户信息区域 */
 .user-section {{
     text-align: center;
-    padding: 15px 0;
-    border-bottom: 1px solid #ddd;
-    margin-bottom: 15px;
+    padding: 20px 0;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 20px;
+    background: white;
+    border-radius: 8px;
+    margin: 10px 0 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }}
 
 .user-avatar {{
@@ -217,43 +222,64 @@ footer {{visibility: hidden;}}
     font-weight: bold;
 }}
 
+.user-avatar-img {{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: block;
+    object-fit: cover;
+    border: 3px solid #26a69a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}}
+
 .user-name {{
     color: #333;
-    font-size: 12px;
+    font-size: 13px;
     margin: 0;
+    font-weight: 500;
 }}
 
 /* 导航按钮 */
 .nav-button {{
     width: 100%;
-    padding: 10px 12px;
-    margin: 6px 0;
-    background: #26a69a;
-    color: white;
+    padding: 12px 15px;
+    margin: 8px 0;
     border: none;
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: 6px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.3s;
     text-align: center;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }}
 
 .nav-button:hover {{
-    background: #00897b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }}
 
 .nav-button.active {{
-    background: #00897b;
+    background: #26a69a;
+    color: white;
+    box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
 }}
 
 .nav-button.inactive {{
-    background: #bbb;
+    background: #e0e0e0;
+    color: #666;
     cursor: default;
+}}
+
+.nav-button.inactive:hover {{
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }}
 
 /* 主内容区域 */
 .main-content {{
-    margin-left: 160px;
+    margin-left: 180px;
     margin-top: 50px;
     padding: 20px;
     min-height: calc(100vh - 50px);
@@ -647,7 +673,7 @@ st.markdown(f"""
 st.markdown(f"""
 <div class="sidebar">
     <div class="user-section">
-        <div class="user-avatar">👤</div>
+        <img src="{USER_ICON_URL}" class="user-avatar-img" alt="用户头像">
         <div class="user-name">用户：wy1122</div>
     </div>
 
