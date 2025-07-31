@@ -15,10 +15,10 @@ import traceback
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-# 清除缓存，强制重新渲染
+# Clear cache, force re-rendering
 st.cache_data.clear()
 
-# 页面设置
+# Page configuration
 st.set_page_config(
     page_title='Biomass Pyrolysis Yield Prediction',
     page_icon='🔥',
@@ -87,12 +87,12 @@ st.markdown("""
     max-width: 100% !important;
 }
 
-/* 侧边栏整体样式 - 使用多个选择器确保生效 */
+/* Sidebar overall style - use multiple selectors to ensure effectiveness */
 .css-1d391kg, .css-1lcbmhc, .css-17eq0hr, .css-1y4p8pa, section[data-testid="stSidebar"] {
     background-color: #f8f9fa !important;
 }
 
-/* 侧边栏容器 */
+/* Sidebar container */
 section[data-testid="stSidebar"] {
     background-color: #f8f9fa !important;
     border-radius: 20px !important;
@@ -101,7 +101,7 @@ section[data-testid="stSidebar"] {
     border: 1px solid #e0e0e0 !important;
 }
 
-/* 侧边栏内容区域 */
+/* Sidebar content area */
 section[data-testid="stSidebar"] > div {
     background-color: #f8f9fa !important;
     padding: 20px 15px !important;
@@ -114,6 +114,7 @@ section[data-testid="stSidebar"] > div {
     font-weight: bold;
     margin-bottom: 20px;
     color: #333 !important;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .model-selector {
@@ -147,6 +148,7 @@ section[data-testid="stSidebar"] > div {
     font-size: 18px;
     font-weight: bold;
     color: #333;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .current-model {
@@ -157,6 +159,7 @@ section[data-testid="stSidebar"] > div {
     border-radius: 25px;
     margin: 20px 0;
     text-align: center;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .analysis-card {
@@ -177,6 +180,7 @@ section[data-testid="stSidebar"] > div {
     padding: 10px;
     border-radius: 25px;
     margin-bottom: 15px;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .input-row {
@@ -199,6 +203,7 @@ section[data-testid="stSidebar"] > div {
     min-width: 80px;
     text-align: center;
     margin-right: 10px;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .action-buttons {
@@ -216,6 +221,7 @@ section[data-testid="stSidebar"] > div {
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .predict-btn {
@@ -238,6 +244,7 @@ section[data-testid="stSidebar"] > div {
     border-radius: 8px;
     margin-top: 20px;
     border: 1px solid #e0e0e0;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .warning-box {
@@ -282,9 +289,10 @@ section[data-testid="stSidebar"] > div {
     border-radius: 8px;
     color: #333;
     border: 1px solid #e0e0e0;
+    font-family: 'Times New Roman', serif !important;
 }
 
-/* 侧边栏用户信息样式 - 手机界面风格 */
+/* Sidebar user information style - mobile interface style */
 .sidebar-user-info {
     text-align: center;
     padding: 25px 15px;
@@ -314,9 +322,10 @@ section[data-testid="stSidebar"] > div {
     font-size: 16px;
     margin-top: 5px;
     font-weight: 600;
+    font-family: 'Times New Roman', serif !important;
 }
 
-/* Streamlit按钮样式覆盖 - 手机界面风格 */
+/* Streamlit button style override - mobile interface style */
 .stButton > button {
     width: 100% !important;
     margin-bottom: 12px !important;
@@ -329,6 +338,7 @@ section[data-testid="stSidebar"] > div {
     background-color: #e9ecef !important;
     color: #6c757d !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    font-family: 'Times New Roman', serif !important;
 }
 
 .stButton > button:hover {
@@ -337,7 +347,7 @@ section[data-testid="stSidebar"] > div {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 }
 
-/* 主要按钮样式 - 深蓝色 */
+/* Primary button style - dark blue */
 .stButton > button[kind="primary"] {
     background-color: #1f4e79 !important;
     color: white !important;
@@ -350,7 +360,7 @@ section[data-testid="stSidebar"] > div {
     box-shadow: 0 6px 16px rgba(31,78,121,0.4) !important;
 }
 
-/* 折叠按钮样式 */
+/* Collapse button style */
 .collapse-header {
     display: flex;
     justify-content: space-between;
@@ -370,7 +380,7 @@ section[data-testid="stSidebar"] > div {
     transform: rotate(90deg);
 }
 
-/* 底部导航按钮样式 */
+/* Bottom navigation button style */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -394,6 +404,7 @@ section[data-testid="stSidebar"] > div {
     font-weight: 600;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-family: 'Times New Roman', serif !important;
 }
 
 /* Sidebar bottom collapse button */
@@ -435,48 +446,48 @@ with st.sidebar:
         <div class='user-name'>User: wy1122</div>
     </div>
     """, unsafe_allow_html=True)
-
+    
     # Navigation buttons
     st.markdown("### ")  # Empty title for spacing
-
+    
     # Prediction model button
-    if st.button("Prediction Model", key="nav_predict", use_container_width=True,
+    if st.button("Prediction Model", key="nav_predict", use_container_width=True, 
                 type="primary" if st.session_state.current_page == "Prediction Model" else "secondary"):
         st.session_state.current_page = "Prediction Model"
         add_log("Switched to prediction model page")
         st.rerun()
-
+    
     # Execution logs button
     if st.button("Execution Logs", key="nav_logs", use_container_width=True,
                 type="primary" if st.session_state.current_page == "Execution Logs" else "secondary"):
         st.session_state.current_page = "Execution Logs"
         add_log("Switched to execution logs page")
         st.rerun()
-
+    
     # Model information button
     if st.button("Model Information", key="nav_model_info", use_container_width=True,
                 type="primary" if st.session_state.current_page == "Model Information" else "secondary"):
         st.session_state.current_page = "Model Information"
         add_log("Switched to model information page")
         st.rerun()
-
+    
     # Technical description button
     if st.button("Technical Description", key="nav_tech", use_container_width=True,
                 type="primary" if st.session_state.current_page == "Technical Description" else "secondary"):
         st.session_state.current_page = "Technical Description"
         add_log("Switched to technical description page")
         st.rerun()
-
+    
     # User guide button
     if st.button("User Guide", key="nav_guide", use_container_width=True,
                 type="primary" if st.session_state.current_page == "User Guide" else "secondary"):
         st.session_state.current_page = "User Guide"
         add_log("Switched to user guide page")
         st.rerun()
-
+    
     # Add spacing and collapse button at bottom
     st.markdown("<br><br>", unsafe_allow_html=True)
-
+    
     # Collapse button at bottom of sidebar
     if st.button("＜", key="sidebar_collapse", help="Collapse/Expand Sidebar"):
         st.session_state.sidebar_collapsed = not st.session_state.sidebar_collapsed
@@ -495,7 +506,7 @@ class ModelPredictor:
         ]
         self.model_loaded = False
         add_log(f"Initialized predictor: {self.target_name}")
-
+    
     def get_model_info(self):
         return {
             "Model Type": "GBDT Pipeline",
@@ -503,7 +514,7 @@ class ModelPredictor:
             "Feature Count": len(self.feature_names),
             "Model Status": "Loaded" if self.model_loaded else "Not Loaded"
         }
-
+    
     def predict(self, features):
         """Simulate prediction functionality"""
         # Simulate prediction results
@@ -590,11 +601,11 @@ if st.session_state.current_page == "Prediction Model":
     main_col, info_col = st.columns([3, 1])
 
     with main_col:
-        # 创建三列布局的卡片式输入界面
+        # Create three-column layout card-style input interface
         col1, col2, col3 = st.columns(3)
         features = {}
 
-        # Proximate Analysis 卡片
+        # Proximate Analysis card
         with col1:
             st.markdown("""
             <div class='analysis-card'>
@@ -650,7 +661,7 @@ if st.session_state.current_page == "Prediction Model":
                 if st.button("+", key="vm_plus"):
                     pass
 
-        # Ultimate Analysis 卡片
+        # Ultimate Analysis card
         with col2:
             st.markdown("""
             <div class='analysis-card'>
@@ -706,7 +717,7 @@ if st.session_state.current_page == "Prediction Model":
                 if st.button("+", key="nc_plus"):
                     pass
 
-        # Pyrolysis Conditions 卡片
+        # Pyrolysis Conditions card
         with col3:
             st.markdown("""
             <div class='analysis-card'>
@@ -762,7 +773,7 @@ if st.session_state.current_page == "Prediction Model":
                 if st.button("+", key="fr_plus"):
                     pass
 
-        # 操作按钮
+        # Operation buttons
         st.markdown("""
         <div class='action-buttons'>
         </div>
@@ -777,7 +788,7 @@ if st.session_state.current_page == "Prediction Model":
                 st.session_state.prediction_result = result
                 add_log(f"Prediction completed: {st.session_state.selected_model} = {result} wt%")
                 st.rerun()
-
+        
         with col_btn2:
             if st.button("Reset Data", use_container_width=True):
                 add_log("Reset all input data")
@@ -788,67 +799,67 @@ if st.session_state.current_page == "Prediction Model":
     with info_col:
         # Get current model statistics
         current_stats = st.session_state.model_stats[st.session_state.selected_model]
-
+        
         # Prediction result display
         result_text = f"{st.session_state.prediction_result} wt%" if st.session_state.prediction_result else "Awaiting prediction"
-
+        
         # Use Streamlit container instead of HTML
         with st.container():
             # Prediction result title
             st.markdown("### Prediction Results")
-
+            
             # Prediction result value
             if st.session_state.prediction_result:
                 # Display model type names
                 model_names = {
                     "Char Yield": "Char Yield",
-                    "Oil Yield": "Oil Yield",
+                    "Oil Yield": "Oil Yield", 
                     "Gas Yield": "Gas Yield"
                 }
                 model_name = model_names.get(st.session_state.selected_model, st.session_state.selected_model)
                 st.success(f"**{model_name}**: {st.session_state.prediction_result} wt%")
             else:
                 st.info("Awaiting prediction...")
-
+            
             st.markdown("---")
-
+            
             # Prediction information - collapsible
             col_header, col_toggle = st.columns([4, 1])
             with col_header:
                 st.markdown("### Prediction Information")
             with col_toggle:
-                if st.button("▼" if st.session_state.prediction_info_expanded else "▶",
-                           key="toggle_prediction_info",
+                if st.button("▼" if st.session_state.prediction_info_expanded else "▶", 
+                           key="toggle_prediction_info", 
                            help="Expand/Collapse prediction information"):
                     st.session_state.prediction_info_expanded = not st.session_state.prediction_info_expanded
                     st.rerun()
-
+            
             if st.session_state.prediction_info_expanded:
                 st.write(f"• **Target Variable**: {st.session_state.selected_model}")
                 st.write(f"• **Prediction Result**: {result_text}")
                 st.write(f"• **Model Type**: GBDT Pipeline")
                 st.write(f"• **Preprocessing**: RobustScaler")
-
+            
             st.markdown("---")
-
+            
             # Model status - collapsible
             col_header2, col_toggle2 = st.columns([4, 1])
             with col_header2:
                 st.markdown("### Model Status")
             with col_toggle2:
-                if st.button("▼" if st.session_state.model_status_expanded else "▶",
-                           key="toggle_model_status",
+                if st.button("▼" if st.session_state.model_status_expanded else "▶", 
+                           key="toggle_model_status", 
                            help="Expand/Collapse model status"):
                     st.session_state.model_status_expanded = not st.session_state.model_status_expanded
                     st.rerun()
-
+            
             if st.session_state.model_status_expanded:
                 st.write(f"• **Loading Status**: ✅ Normal")
                 st.write(f"• **Feature Count**: {current_stats['features']}")
                 st.write(f"• **Warning Count**: {current_stats['warnings']}")
-
+            
             st.markdown("---")
-
+            
             # More detailed information button
             if st.button("More Details...", use_container_width=True):
                 st.info("Display more detailed model information and statistics...")
@@ -861,7 +872,7 @@ elif st.session_state.current_page == "Model Information":
     st.markdown("<h1 class='main-title'>Model Information</h1>", unsafe_allow_html=True)
     predictor = ModelPredictor(target_model=st.session_state.selected_model)
     model_info = predictor.get_model_info()
-
+    
     for key, value in model_info.items():
         st.write(f"**{key}**: {value}")
 
@@ -871,7 +882,7 @@ elif st.session_state.current_page == "Technical Description":
     <div class='tech-info'>
     <h4>🔬 Model Technical Description</h4>
     <p>This system is constructed based on the <b>Gradient Boosting Decision Tree (GBDT)</b> algorithm, employing a Pipeline architecture that integrates data preprocessing and model prediction.</p>
-
+    
     <h4>📋 Feature Description</h4>
     <ul>
         <li><b>Proximate Analysis:</b> M(wt%) - Moisture content, Ash(wt%) - Ash content, VM(wt%) - Volatile matter content</li>
@@ -889,17 +900,17 @@ elif st.session_state.current_page == "User Guide":
     2. Choose the prediction target (Char/Oil/Gas Yield)
     3. Input biomass characteristic parameters
     4. Click "Run Prediction" to obtain results
-
+    
     ### ⚠️ Important Notes
     - Ensure input parameters are within reasonable ranges
     - Model prediction results are for reference only
     - Practical applications should be validated with professional knowledge
     """)
 
-# 页脚
+# Footer
 st.markdown("---")
 st.markdown("""
-<div style='text-align: center; color: #666;'>
-<p>© 2024 生物质纳米材料与智能装备实验室 | 基于GBDT的生物质热解产物预测系统</p>
+<div style='text-align: center; color: #666; font-family: Times New Roman, serif; font-size: 20px;'>
+<p>© 2024 Biomass Nanomaterials and Intelligent Equipment Laboratory | GBDT-based Biomass Pyrolysis Product Prediction System</p>
 </div>
 """, unsafe_allow_html=True)
