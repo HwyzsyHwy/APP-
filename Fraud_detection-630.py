@@ -210,71 +210,6 @@ st.markdown("""
     border-radius: 8px;
     color: white;
 }
-/* 右侧信息面板样式 */
-.info-panel {
-    background-color: #f0f0f0;
-    border-radius: 15px;
-    padding: 0;
-    margin: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    height: fit-content;
-}
-.result-header {
-    background-color: #2c5aa0;
-    color: white;
-    padding: 15px;
-    border-radius: 15px 15px 0 0;
-    font-size: 16px;
-    font-weight: bold;
-}
-.result-value {
-    background-color: white;
-    padding: 20px;
-    font-size: 18px;
-    font-weight: bold;
-    color: #2c5aa0;
-    border-bottom: 1px solid #e0e0e0;
-}
-.info-section {
-    padding: 20px;
-}
-.info-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 15px;
-}
-.info-item {
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: #555;
-}
-.info-item strong {
-    color: #333;
-}
-.status-normal {
-    color: #28a745;
-}
-.status-warning {
-    color: #ffc107;
-}
-.status-error {
-    color: #dc3545;
-}
-.expand-btn {
-    background-color: #f8f9fa;
-    border: none;
-    padding: 15px;
-    width: 100%;
-    text-align: center;
-    border-radius: 0 0 15px 15px;
-    cursor: pointer;
-    font-size: 16px;
-    color: #666;
-}
-.expand-btn:hover {
-    background-color: #e9ecef;
-}
 /* 新增侧边栏样式 */
 .sidebar-user-info {
     text-align: center;
@@ -673,7 +608,7 @@ if st.session_state.current_page == "预测模型":
                 st.session_state.prediction_result = None
                 st.rerun()
 
-    # 右侧信息面板
+    # 右侧信息面板 - 使用Streamlit原生组件而不是HTML
     with info_col:
         # 获取当前模型的统计信息
         current_stats = st.session_state.model_stats[st.session_state.selected_model]
@@ -681,29 +616,46 @@ if st.session_state.current_page == "预测模型":
         # 预测结果显示
         result_text = f"{st.session_state.prediction_result} wt%" if st.session_state.prediction_result else "等待预测"
         
-        st.markdown(f"""
-        <div class='info-panel'>
-            <div class='result-header'>预测结果</div>
-            <div class='result-value'>{st.session_state.selected_model}: {result_text}</div>
+        # 使用Streamlit容器而不是HTML
+        with st.container():
+            # 预测结果标题
+            st.markdown("### 预测结果")
             
-            <div class='info-section'>
-                <div class='info-title'>预测信息</div>
-                <div class='info-item'><strong>目标变量：</strong>{st.session_state.selected_model}</div>
-                <div class='info-item'><strong>预测结果：</strong>{result_text}</div>
-                <div class='info-item'><strong>模型类型：</strong>GBDT Pipeline</div>
-                <div class='info-item'><strong>预处理：</strong>RobustScaler</div>
-            </div>
+            # 预测结果值
+            if st.session_state.prediction_result:
+                # 根据模型类型显示中文名称
+                model_names = {
+                    "Char Yield": "炭产量",
+                    "Oil Yield": "油产量", 
+                    "Gas Yield": "气产量"
+                }
+                model_chinese = model_names.get(st.session_state.selected_model, st.session_state.selected_model)
+                st.success(f"**{model_chinese}**: {st.session_state.prediction_result} wt%")
+            else:
+                st.info("等待预测...")
             
-            <div class='info-section'>
-                <div class='info-title'>模型状态</div>
-                <div class='info-item'><strong>加载状态：</strong><span class='status-normal'>✅ 正常</span></div>
-                <div class='info-item'><strong>特征数量：</strong>{current_stats['features']}</div>
-                <div class='info-item'><strong>警告数量：</strong>{current_stats['warnings']}</div>
-            </div>
+            st.markdown("---")
             
-            <button class='expand-btn'>></button>
-        </div>
-        """, unsafe_allow_html=True)
+            # 预测信息
+            st.markdown("### 预测信息")
+            st.write(f"• **目标变量**: {st.session_state.selected_model}")
+            st.write(f"• **预测结果**: {result_text}")
+            st.write(f"• **模型类型**: GBDT Pipeline")
+            st.write(f"• **预处理**: RobustScaler")
+            
+            st.markdown("---")
+            
+            # 模型状态
+            st.markdown("### 模型状态")
+            st.write(f"• **加载状态**: ✅ 正常")
+            st.write(f"• **特征数量**: {current_stats['features']}")
+            st.write(f"• **警告数量**: {current_stats['warnings']}")
+            
+            st.markdown("---")
+            
+            # 展开按钮
+            if st.button(">", use_container_width=True):
+                st.info("更多详细信息...")
 
 elif st.session_state.current_page == "执行日志":
     st.markdown("<h1 class='main-title'>执行日志</h1>", unsafe_allow_html=True)
