@@ -43,6 +43,11 @@ if 'model_stats' not in st.session_state:
         "Oil Yield": {"accuracy": 45.23, "features": 9, "warnings": 0},
         "Gas Yield": {"accuracy": 18.56, "features": 9, "warnings": 0}
     }
+# 添加折叠状态
+if 'prediction_info_expanded' not in st.session_state:
+    st.session_state.prediction_info_expanded = True
+if 'model_status_expanded' not in st.session_state:
+    st.session_state.model_status_expanded = True
 
 def add_log(message):
     """添加日志消息到会话状态"""
@@ -253,6 +258,23 @@ st.markdown("""
 }
 .nav-button-inactive:hover {
     background-color: #d0d0d0;
+}
+/* 折叠按钮样式 */
+.collapse-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+}
+.collapse-icon {
+    font-size: 14px;
+    transition: transform 0.3s;
+}
+.collapse-icon.expanded {
+    transform: rotate(90deg);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -608,7 +630,7 @@ if st.session_state.current_page == "预测模型":
                 st.session_state.prediction_result = None
                 st.rerun()
 
-    # 右侧信息面板 - 使用Streamlit原生组件而不是HTML
+    # 右侧信息面板 - 添加折叠功能
     with info_col:
         # 获取当前模型的统计信息
         current_stats = st.session_state.model_stats[st.session_state.selected_model]
@@ -636,26 +658,46 @@ if st.session_state.current_page == "预测模型":
             
             st.markdown("---")
             
-            # 预测信息
-            st.markdown("### 预测信息")
-            st.write(f"• **目标变量**: {st.session_state.selected_model}")
-            st.write(f"• **预测结果**: {result_text}")
-            st.write(f"• **模型类型**: GBDT Pipeline")
-            st.write(f"• **预处理**: RobustScaler")
+            # 预测信息 - 可折叠
+            col_header, col_toggle = st.columns([4, 1])
+            with col_header:
+                st.markdown("### 预测信息")
+            with col_toggle:
+                if st.button("▼" if st.session_state.prediction_info_expanded else "▶", 
+                           key="toggle_prediction_info", 
+                           help="展开/折叠预测信息"):
+                    st.session_state.prediction_info_expanded = not st.session_state.prediction_info_expanded
+                    st.rerun()
+            
+            if st.session_state.prediction_info_expanded:
+                st.write(f"• **目标变量**: {st.session_state.selected_model}")
+                st.write(f"• **预测结果**: {result_text}")
+                st.write(f"• **模型类型**: GBDT Pipeline")
+                st.write(f"• **预处理**: RobustScaler")
             
             st.markdown("---")
             
-            # 模型状态
-            st.markdown("### 模型状态")
-            st.write(f"• **加载状态**: ✅ 正常")
-            st.write(f"• **特征数量**: {current_stats['features']}")
-            st.write(f"• **警告数量**: {current_stats['warnings']}")
+            # 模型状态 - 可折叠
+            col_header2, col_toggle2 = st.columns([4, 1])
+            with col_header2:
+                st.markdown("### 模型状态")
+            with col_toggle2:
+                if st.button("▼" if st.session_state.model_status_expanded else "▶", 
+                           key="toggle_model_status", 
+                           help="展开/折叠模型状态"):
+                    st.session_state.model_status_expanded = not st.session_state.model_status_expanded
+                    st.rerun()
+            
+            if st.session_state.model_status_expanded:
+                st.write(f"• **加载状态**: ✅ 正常")
+                st.write(f"• **特征数量**: {current_stats['features']}")
+                st.write(f"• **警告数量**: {current_stats['warnings']}")
             
             st.markdown("---")
             
-            # 展开按钮
-            if st.button(">", use_container_width=True):
-                st.info("更多详细信息...")
+            # 更多详细信息按钮
+            if st.button("更多详细信息...", use_container_width=True):
+                st.info("显示更多模型详细信息和统计数据...")
 
 elif st.session_state.current_page == "执行日志":
     st.markdown("<h1 class='main-title'>执行日志</h1>", unsafe_allow_html=True)
