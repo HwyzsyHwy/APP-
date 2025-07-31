@@ -62,8 +62,8 @@ class ModelPredictor:
             'O/C': {'min': 0.301, 'max': 0.988},
             'H/C': {'min': 1.212, 'max': 1.895},
             'N/C': {'min': 0.003, 'max': 0.129},
-            'FT(℃)': {'min': 300.000, 'max': 900.000},
-            'HR(℃/min)': {'min': 5.000, 'max': 100.000},
+            'FT(°C)': {'min': 300.000, 'max': 900.000},
+            'HR(°C/min)': {'min': 5.000, 'max': 100.000},
             'FR(mL/min)': {'min': 0.000, 'max': 600.000}
         }
         self.model_loaded = True
@@ -81,8 +81,7 @@ class ModelPredictor:
         """检查输入范围"""
         warnings = []
         for feature, value in features.items():
-            mapped_feature = feature.replace('°C', '℃')
-            range_info = self.training_ranges.get(mapped_feature)
+            range_info = self.training_ranges.get(feature)
             if range_info:
                 if value < range_info['min'] or value > range_info['max']:
                     warning = f"{feature}: {value:.3f} (超出训练范围 {range_info['min']:.3f} - {range_info['max']:.3f})"
@@ -481,17 +480,25 @@ st.markdown(
 
 # 创建Mac界面HTML
 def create_mac_interface():
-    # 获取当前状态
-    selected_model = st.session_state.selected_model
-    prediction_result = st.session_state.prediction_result
-    feature_values = st.session_state.feature_values
+    # 确定选中的模型卡片
+    char_selected = "selected" if st.session_state.selected_model == "Char Yield" else ""
+    oil_selected = "selected" if st.session_state.selected_model == "Oil Yield" else ""
+    gas_selected = "selected" if st.session_state.selected_model == "Gas Yield" else ""
     
-    # 模型选择状态
-    char_selected = "selected" if selected_model == "Char Yield" else ""
-    oil_selected = "selected" if selected_model == "Oil Yield" else ""
-    gas_selected = "selected" if selected_model == "Gas Yield" else ""
+    # 获取特征值
+    m_val = st.session_state.feature_values.get("M(wt%)", 6.460)
+    ash_val = st.session_state.feature_values.get("Ash(wt%)", 4.498)
+    vm_val = st.session_state.feature_values.get("VM(wt%)", 75.376)
+    oc_val = st.session_state.feature_values.get("O/C", 0.715)
+    hc_val = st.session_state.feature_values.get("H/C", 1.534)
+    nc_val = st.session_state.feature_values.get("N/C", 0.034)
+    ft_val = st.session_state.feature_values.get("FT(°C)", 505.811)
+    hr_val = st.session_state.feature_values.get("HR(°C/min)", 29.011)
+    fr_val = st.session_state.feature_values.get("FR(mL/min)", 93.962)
     
-    html_content = f"""
+    result_val = st.session_state.prediction_result
+    
+    html = f"""
     <div class="mac-window">
         <!-- Mac标题栏 -->
         <div class="mac-titlebar">
@@ -527,21 +534,21 @@ def create_mac_interface():
                 
                 <!-- 模型选择卡片 -->
                 <div class="model-cards">
-                    <div class="model-card {char_selected}" onclick="selectModel('Char Yield')">
+                    <div class="model-card {char_selected}">
                         <div class="model-icon">🔥</div>
                         <div class="model-name">Char Yield</div>
                     </div>
-                    <div class="model-card {oil_selected}" onclick="selectModel('Oil Yield')">
+                    <div class="model-card {oil_selected}">
                         <div class="model-icon">🛢️</div>
                         <div class="model-name">Oil Yield</div>
                     </div>
-                    <div class="model-card {gas_selected}" onclick="selectModel('Gas Yield')">
+                    <div class="model-card {gas_selected}">
                         <div class="model-icon">💨</div>
                         <div class="model-name">Gas Yield</div>
                     </div>
                 </div>
                 
-                <div class="current-model">当前模型: {selected_model}</div>
+                <div class="current-model">当前模型: {st.session_state.selected_model}</div>
                 
                 <!-- 特征输入区域 -->
                 <div class="feature-sections">
@@ -550,15 +557,15 @@ def create_mac_interface():
                         <div class="feature-inputs">
                             <div class="feature-row">
                                 <div class="feature-label">M(wt%)</div>
-                                <input type="number" class="feature-value" value="{feature_values['M(wt%)']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{m_val:.3f}" step="0.001">
                             </div>
                             <div class="feature-row">
                                 <div class="feature-label">Ash(wt%)</div>
-                                <input type="number" class="feature-value" value="{feature_values['Ash(wt%)']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{ash_val:.3f}" step="0.001">
                             </div>
                             <div class="feature-row">
                                 <div class="feature-label">VM(wt%)</div>
-                                <input type="number" class="feature-value" value="{feature_values['VM(wt%)']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{vm_val:.3f}" step="0.001">
                             </div>
                         </div>
                     </div>
@@ -568,15 +575,15 @@ def create_mac_interface():
                         <div class="feature-inputs">
                             <div class="feature-row">
                                 <div class="feature-label">O/C</div>
-                                <input type="number" class="feature-value" value="{feature_values['O/C']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{oc_val:.3f}" step="0.001">
                             </div>
                             <div class="feature-row">
                                 <div class="feature-label">H/C</div>
-                                <input type="number" class="feature-value" value="{feature_values['H/C']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{hc_val:.3f}" step="0.001">
                             </div>
                             <div class="feature-row">
                                 <div class="feature-label">N/C</div>
-                                <input type="number" class="feature-value" value="{feature_values['N/C']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{nc_val:.3f}" step="0.001">
                             </div>
                         </div>
                     </div>
@@ -586,15 +593,15 @@ def create_mac_interface():
                         <div class="feature-inputs">
                             <div class="feature-row">
                                 <div class="feature-label">FT(°C)</div>
-                                <input type="number" class="feature-value" value="{feature_values['FT(°C)']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{ft_val:.3f}" step="0.001">
                             </div>
                             <div class="feature-row">
                                 <div class="feature-label">HR(°C/min)</div>
-                                <input type="number" class="feature-value" value="{feature_values['HR(°C/min)']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{hr_val:.3f}" step="0.001">
                             </div>
                             <div class="feature-row">
                                 <div class="feature-label">FR(mL/min)</div>
-                                <input type="number" class="feature-value" value="{feature_values['FR(mL/min)']:.3f}" step="0.001">
+                                <input type="number" class="feature-value" value="{fr_val:.3f}" step="0.001">
                             </div>
                         </div>
                     </div>
@@ -602,8 +609,8 @@ def create_mac_interface():
                 
                 <!-- 底部控制按钮 -->
                 <div class="bottom-controls">
-                    <div class="control-button primary" onclick="runPrediction()">运行预测</div>
-                    <div class="control-button" onclick="resetData()">重置数据</div>
+                    <div class="control-button primary">运行预测</div>
+                    <div class="control-button">重置数据</div>
                 </div>
             </div>
             
@@ -612,7 +619,7 @@ def create_mac_interface():
                 <div class="result-section">
                     <div class="result-header">预测结果</div>
                     <div class="result-content">
-                        <div class="result-value">{selected_model}: {prediction_result:.2f} wt%</div>
+                        <div class="result-value">{st.session_state.selected_model}: {result_val:.2f} wt%</div>
                     </div>
                 </div>
                 
@@ -620,8 +627,8 @@ def create_mac_interface():
                     <div class="result-header">预测信息</div>
                     <div class="result-content">
                         <ul class="info-list">
-                            <li><span>目标变量:</span><span>{selected_model}</span></li>
-                            <li><span>预测结果:</span><span>{prediction_result:.4f} wt%</span></li>
+                            <li><span>目标变量:</span><span>{st.session_state.selected_model}</span></li>
+                            <li><span>预测结果:</span><span>{result_val:.4f} wt%</span></li>
                             <li><span>模型类型:</span><span>GBDT Pipeline</span></li>
                             <li><span>预处理:</span><span>RobustScaler</span></li>
                         </ul>
@@ -648,8 +655,7 @@ def create_mac_interface():
         </div>
     </div>
     """
-    
-    return html_content
+    return html
 
 # 显示Mac界面
 st.markdown(create_mac_interface(), unsafe_allow_html=True)
@@ -661,21 +667,21 @@ with col1:
     if st.button("Char", key="char_btn"):
         st.session_state.selected_model = "Char Yield"
         st.session_state.prediction_result = 27.79
-        log("切换到Char Yield模型")
+        log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
 with col2:
     if st.button("Oil", key="oil_btn"):
         st.session_state.selected_model = "Oil Yield"
         st.session_state.prediction_result = 45.23
-        log("切换到Oil Yield模型")
+        log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
 with col3:
     if st.button("Gas", key="gas_btn"):
         st.session_state.selected_model = "Gas Yield"
         st.session_state.prediction_result = 26.98
-        log("切换到Gas Yield模型")
+        log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
 
 # 隐藏的特征输入
@@ -684,11 +690,10 @@ for feature, value in st.session_state.feature_values.items():
         feature, 
         value=value, 
         key=f"input_{feature}", 
-        label_visibility="collapsed",
-        step=0.001,
-        format="%.3f"
+        label_visibility="collapsed"
     )
-    st.session_state.feature_values[feature] = new_value
+    if abs(new_value - value) > 0.001:
+        st.session_state.feature_values[feature] = new_value
 
 # 隐藏的预测和重置按钮
 col1, col2 = st.columns(2)
@@ -697,7 +702,7 @@ with col1:
         predictor = ModelPredictor(st.session_state.selected_model)
         result = predictor.predict(st.session_state.feature_values)
         st.session_state.prediction_result = result
-        log(f"执行预测: {st.session_state.selected_model} = {result:.2f} wt%")
+        log(f"预测完成: {result:.4f}")
         st.rerun()
 
 with col2:
@@ -710,34 +715,5 @@ with col2:
         log("重置所有输入值")
         st.rerun()
 
-# JavaScript交互处理
-st.markdown("""
-<script>
-function selectModel(model) {
-    // 模拟点击对应的隐藏按钮
-    if (model === 'Char Yield') {
-        document.querySelector('[data-testid="baseButton-secondary"]:nth-of-type(1)').click();
-    } else if (model === 'Oil Yield') {
-        document.querySelector('[data-testid="baseButton-secondary"]:nth-of-type(2)').click();
-    } else if (model === 'Gas Yield') {
-        document.querySelector('[data-testid="baseButton-secondary"]:nth-of-type(3)').click();
-    }
-}
-
-function runPrediction() {
-    // 模拟点击预测按钮
-    const buttons = document.querySelectorAll('[data-testid="baseButton-secondary"]');
-    if (buttons.length >= 5) {
-        buttons[3].click();
-    }
-}
-
-function resetData() {
-    // 模拟点击重置按钮
-    const buttons = document.querySelectorAll('[data-testid="baseButton-secondary"]');
-    if (buttons.length >= 6) {
-        buttons[4].click();
-    }
-}
-</script>
-""", unsafe_allow_html=True)
+# 记录启动日志
+log("Mac风格界面启动成功")
