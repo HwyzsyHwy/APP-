@@ -66,74 +66,194 @@ def display_logs():
 # 自定义样式
 st.markdown("""
 <style>
+/* 隐藏Streamlit默认元素 */
+.stApp > header {visibility: hidden;}
+.stDeployButton {display:none;}
+footer {visibility: hidden;}
+.stStatus {display: none;}
+
+/* 主容器样式 */
+.main-container {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+}
+
+/* 顶部导航栏 */
+.top-nav {
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #2c5aa0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 16px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.nav-btn {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.nav-btn.active {
+    background-color: #2c5aa0;
+}
+
+/* 主标题 */
 .main-title {
     text-align: center;
-    font-size: 32px !important;
+    font-size: 24px;
     font-weight: bold;
-    margin-bottom: 20px;
-    color: white !important;
+    color: white;
+    margin: 20px 0;
 }
-.model-selector {
+
+/* 模型选择区域 */
+.model-selection {
     text-align: center;
-    margin-bottom: 30px;
+    margin: 30px 0;
 }
+
+.model-selection h3 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.model-cards {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
 .model-card {
-    background-color: #f0f0f0;
+    background-color: white;
     border-radius: 15px;
-    padding: 20px;
-    margin: 10px;
+    padding: 30px;
+    width: 200px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
+
 .model-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
 }
+
+.model-card.selected {
+    border: 3px solid #2c5aa0;
+    background-color: #e3f2fd;
+}
+
 .model-icon {
     font-size: 48px;
     margin-bottom: 10px;
 }
+
 .model-name {
     font-size: 18px;
     font-weight: bold;
     color: #2c5aa0;
 }
+
 .current-model {
     background-color: #2c5aa0;
     color: white;
-    font-size: 16px;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 10px 20px;
+    border-radius: 25px;
+    display: inline-block;
     margin: 20px 0;
-    text-align: center;
 }
+
+/* 主要内容区域 */
+.content-area {
+    display: flex;
+    gap: 20px;
+    padding: 0 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.input-section {
+    flex: 3;
+}
+
+.info-panel {
+    flex: 1;
+    background-color: white;
+    border-radius: 15px;
+    padding: 0;
+    height: fit-content;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 输入卡片 */
+.analysis-cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
 .analysis-card {
-    background-color: #f0f0f0;
+    background-color: white;
     border-radius: 15px;
     padding: 20px;
-    margin: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    flex: 1;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
+
 .card-title {
     background-color: #2c5aa0;
     color: white;
     font-weight: bold;
     font-size: 16px;
     text-align: center;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.input-group {
     margin-bottom: 15px;
 }
+
 .input-row {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
-    background-color: #2c5aa0;
-    border-radius: 8px;
-    padding: 8px;
+    gap: 10px;
 }
+
 .input-label {
     background-color: #2c5aa0;
     color: white;
@@ -143,16 +263,46 @@ st.markdown("""
     font-weight: bold;
     min-width: 80px;
     text-align: center;
-    margin-right: 10px;
 }
+
+.input-field {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.input-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.control-btn {
+    background-color: #2c5aa0;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    min-width: 35px;
+}
+
+.control-btn:hover {
+    background-color: #1a4480;
+}
+
+/* 操作按钮 */
 .action-buttons {
     display: flex;
     gap: 20px;
-    margin-top: 30px;
     justify-content: center;
+    margin-top: 30px;
 }
+
 .action-btn {
-    padding: 15px 30px;
+    padding: 15px 40px;
     border-radius: 8px;
     border: none;
     font-size: 16px;
@@ -160,121 +310,143 @@ st.markdown("""
     cursor: pointer;
     transition: all 0.3s;
 }
+
 .predict-btn {
     background-color: #2c5aa0;
     color: white;
 }
+
+.predict-btn:hover {
+    background-color: #1a4480;
+}
+
 .reset-btn {
     background-color: #6c757d;
     color: white;
 }
-.yield-result {
-    background-color: #1E1E1E;
+
+.reset-btn:hover {
+    background-color: #545b62;
+}
+
+/* 右侧信息面板 */
+.result-header {
+    background-color: #2c5aa0;
     color: white;
-    font-size: 36px;
-    font-weight: bold;
-    text-align: center;
     padding: 15px;
-    border-radius: 8px;
-    margin-top: 20px;
+    border-radius: 15px 15px 0 0;
+    font-size: 16px;
+    font-weight: bold;
 }
-.warning-box {
-    background-color: rgba(255, 165, 0, 0.2);
-    border-left: 5px solid orange;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
+
+.result-value {
+    background-color: #e8f5e8;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #2c5aa0;
+    border-bottom: 1px solid #e0e0e0;
 }
-.error-box {
-    background-color: rgba(255, 0, 0, 0.2);
-    border-left: 5px solid red;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
+
+.info-section {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
 }
-.log-container {
-    background-color: #1E1E1E;
-    color: #00FF00;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    padding: 10px;
-    border-radius: 5px;
-    max-height: 300px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-}
-.sidebar-model-info {
-    background-color: #2E2E2E;
-    padding: 10px;
-    border-radius: 5px;
+
+.info-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
     margin-bottom: 10px;
 }
-.tech-info {
-    background-color: #2E2E2E;
-    padding: 15px;
-    border-radius: 8px;
-    color: white;
-}
-/* 新增侧边栏样式 */
-.sidebar-user-info {
-    text-align: center;
-    padding: 20px 10px;
-    margin-bottom: 20px;
-}
-.user-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: #1f4e79;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 10px auto;
-    color: white;
-    font-size: 24px;
-}
-.user-name {
-    color: #333;
+
+.info-item {
+    margin-bottom: 5px;
     font-size: 14px;
-    margin-top: 5px;
+    color: #555;
 }
-.sidebar-nav-button {
-    width: 100%;
-    margin-bottom: 8px;
-    padding: 12px;
-    border-radius: 25px;
+
+.status-normal {
+    color: #28a745;
+}
+
+.expand-btn {
+    background-color: #f8f9fa;
     border: none;
-    font-size: 14px;
+    padding: 15px;
+    width: 100%;
+    text-align: center;
+    border-radius: 0 0 15px 15px;
     cursor: pointer;
-    transition: all 0.3s;
-}
-.nav-button-active {
-    background-color: #1f4e79;
-    color: white;
-}
-.nav-button-inactive {
-    background-color: #e0e0e0;
+    font-size: 16px;
     color: #666;
 }
-.nav-button-inactive:hover {
-    background-color: #d0d0d0;
+
+.expand-btn:hover {
+    background-color: #e9ecef;
 }
-/* 折叠按钮样式 */
-.collapse-header {
+
+/* 底部按钮 */
+.bottom-buttons {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 30px;
+    padding-bottom: 30px;
+}
+
+.bottom-btn {
+    background-color: #2c5aa0;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
-    padding: 5px 0;
-    border-bottom: 1px solid #ddd;
-    margin-bottom: 10px;
+    min-width: 120px;
 }
-.collapse-icon {
-    font-size: 14px;
-    transition: transform 0.3s;
+
+.bottom-btn.secondary {
+    background-color: #6c757d;
 }
-.collapse-icon.expanded {
-    transform: rotate(90deg);
+
+.bottom-btn:hover {
+    opacity: 0.9;
+}
+
+/* 隐藏Streamlit默认样式 */
+.stButton > button {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: inherit !important;
+}
+
+.stSelectbox > div > div {
+    background-color: white;
+}
+
+.stNumberInput > div > div > input {
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .analysis-cards {
+        flex-direction: column;
+    }
+    
+    .content-area {
+        flex-direction: column;
+    }
+    
+    .model-cards {
+        flex-direction: column;
+        align-items: center;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -282,54 +454,6 @@ st.markdown("""
 # 记录启动日志
 add_log("应用启动")
 add_log(f"初始化选定模型: {st.session_state.selected_model}")
-
-# 侧边栏导航 - 新的布局
-with st.sidebar:
-    # 用户信息区域
-    st.markdown("""
-    <div class='sidebar-user-info'>
-        <div class='user-avatar'>👤</div>
-        <div class='user-name'>用户：wy1122</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # 导航按钮
-    st.markdown("### ")  # 空标题用于间距
-    
-    # 预测模型按钮
-    if st.button("预测模型", key="nav_predict", use_container_width=True, 
-                type="primary" if st.session_state.current_page == "预测模型" else "secondary"):
-        st.session_state.current_page = "预测模型"
-        add_log("切换到预测模型页面")
-        st.rerun()
-    
-    # 执行日志按钮
-    if st.button("执行日志", key="nav_logs", use_container_width=True,
-                type="primary" if st.session_state.current_page == "执行日志" else "secondary"):
-        st.session_state.current_page = "执行日志"
-        add_log("切换到执行日志页面")
-        st.rerun()
-    
-    # 模型信息按钮
-    if st.button("模型信息", key="nav_model_info", use_container_width=True,
-                type="primary" if st.session_state.current_page == "模型信息" else "secondary"):
-        st.session_state.current_page = "模型信息"
-        add_log("切换到模型信息页面")
-        st.rerun()
-    
-    # 技术说明按钮
-    if st.button("技术说明", key="nav_tech", use_container_width=True,
-                type="primary" if st.session_state.current_page == "技术说明" else "secondary"):
-        st.session_state.current_page = "技术说明"
-        add_log("切换到技术说明页面")
-        st.rerun()
-    
-    # 使用指南按钮
-    if st.button("使用指南", key="nav_guide", use_container_width=True,
-                type="primary" if st.session_state.current_page == "使用指南" else "secondary"):
-        st.session_state.current_page = "使用指南"
-        add_log("切换到使用指南页面")
-        st.rerun()
 
 # 简化的预测器类
 class ModelPredictor:
@@ -365,339 +489,284 @@ class ModelPredictor:
 
 # 根据当前页面显示不同内容
 if st.session_state.current_page == "预测模型":
-    # 主页面内容
-    st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
-
+    # 主容器
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    
+    # 顶部导航栏
+    st.markdown(f"""
+    <div class="top-nav">
+        <div class="user-info">
+            <div class="user-avatar">👤</div>
+            <span>用户：wy1122</span>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-btn active">预测模型</button>
+            <button class="nav-btn">执行日志</button>
+            <button class="nav-btn">模型信息</button>
+            <button class="nav-btn">技术说明</button>
+            <button class="nav-btn">使用指南</button>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # 模型选择区域
-    st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="model-selection">
+        <h3>选择预测目标</h3>
+    </div>
+    """, unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        char_button = st.button("", key="char_button", use_container_width=True, help="Char Yield")
-        st.markdown("""
-        <div class='model-card'>
-            <div class='model-icon'>🔥</div>
-            <div class='model-name'>Char Yield</div>
-        </div>
-        """, unsafe_allow_html=True)
+    # 模型选择卡片和右侧面板
+    col_main, col_info = st.columns([4, 1])
     
-    with col2:
-        oil_button = st.button("", key="oil_button", use_container_width=True, help="Oil Yield")
-        st.markdown("""
-        <div class='model-card'>
-            <div class='model-icon'>🛢️</div>
-            <div class='model-name'>Oil Yield</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        gas_button = st.button("", key="gas_button", use_container_width=True, help="Gas Yield")
-        st.markdown("""
-        <div class='model-card'>
-            <div class='model-icon'>💨</div>
-            <div class='model-name'>Gas Yield</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    if char_button:
-        st.session_state.selected_model = "Char Yield"
-        st.session_state.prediction_result = None
-        add_log(f"切换到模型: {st.session_state.selected_model}")
-        st.rerun()
-
-    if oil_button:
-        st.session_state.selected_model = "Oil Yield"
-        st.session_state.prediction_result = None
-        add_log(f"切换到模型: {st.session_state.selected_model}")
-        st.rerun()
-
-    if gas_button:
-        st.session_state.selected_model = "Gas Yield"
-        st.session_state.prediction_result = None
-        add_log(f"切换到模型: {st.session_state.selected_model}")
-        st.rerun()
-
-    st.markdown(f"<div class='current-model'>当前模型：{st.session_state.selected_model}</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # 初始化预测器
-    predictor = ModelPredictor(target_model=st.session_state.selected_model)
-
-    # 默认值
-    default_values = {
-        "M(wt%)": 6.460, "Ash(wt%)": 6.460, "VM(wt%)": 6.460,
-        "O/C": 6.460, "H/C": 6.460, "N/C": 6.460,
-        "FT(°C)": 6.460, "HR(°C/min)": 6.460, "FR(mL/min)": 6.460
-    }
-
-    # 创建主要布局：左侧输入区域，右侧信息面板
-    main_col, info_col = st.columns([3, 1])
-
-    with main_col:
-        # 创建三列布局的卡片式输入界面
+    with col_main:
+        # 模型选择卡片
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("char_select", key="char_button", label_visibility="collapsed"):
+                st.session_state.selected_model = "Char Yield"
+                st.session_state.prediction_result = None
+                add_log(f"切换到模型: {st.session_state.selected_model}")
+                st.rerun()
+            
+            selected_class = "selected" if st.session_state.selected_model == "Char Yield" else ""
+            st.markdown(f"""
+            <div class="model-card {selected_class}" onclick="document.querySelector('[data-testid*=char_button]').click()">
+                <div class="model-icon">🔥</div>
+                <div class="model-name">Char Yield</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            if st.button("oil_select", key="oil_button", label_visibility="collapsed"):
+                st.session_state.selected_model = "Oil Yield"
+                st.session_state.prediction_result = None
+                add_log(f"切换到模型: {st.session_state.selected_model}")
+                st.rerun()
+            
+            selected_class = "selected" if st.session_state.selected_model == "Oil Yield" else ""
+            st.markdown(f"""
+            <div class="model-card {selected_class}" onclick="document.querySelector('[data-testid*=oil_button]').click()">
+                <div class="model-icon">🛢️</div>
+                <div class="model-name">Oil Yield</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            if st.button("gas_select", key="gas_button", label_visibility="collapsed"):
+                st.session_state.selected_model = "Gas Yield"
+                st.session_state.prediction_result = None
+                add_log(f"切换到模型: {st.session_state.selected_model}")
+                st.rerun()
+            
+            selected_class = "selected" if st.session_state.selected_model == "Gas Yield" else ""
+            st.markdown(f"""
+            <div class="model-card {selected_class}" onclick="document.querySelector('[data-testid*=gas_button]').click()">
+                <div class="model-icon">💨</div>
+                <div class="model-name">Gas Yield</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # 当前模型显示
+        st.markdown(f'<div class="current-model">当前模型：{st.session_state.selected_model}</div>', unsafe_allow_html=True)
+        
+        # 输入卡片区域
+        st.markdown('<div class="analysis-cards">', unsafe_allow_html=True)
+        
+        # 三个分析卡片
         col1, col2, col3 = st.columns(3)
         features = {}
-
+        default_values = {
+            "M(wt%)": 6.460, "Ash(wt%)": 6.460, "VM(wt%)": 6.460,
+            "O/C": 6.460, "H/C": 6.460, "N/C": 6.460,
+            "FT(°C)": 6.460, "HR(°C/min)": 6.460, "FR(mL/min)": 6.460
+        }
+        
         # Proximate Analysis 卡片
         with col1:
             st.markdown("""
-            <div class='analysis-card'>
-                <div class='card-title'>Proximate Analysis</div>
-            </div>
+            <div class="analysis-card">
+                <div class="card-title">Proximate Analysis</div>
             """, unsafe_allow_html=True)
             
             # M(wt%)
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>M(wt%)</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col1_1, col1_2, col1_3 = st.columns([1, 4, 1])
             with col1_1:
-                features["M(wt%)"] = st.number_input("", value=default_values["M(wt%)"], key="input_M", label_visibility="collapsed")
+                st.markdown('<div class="input-label">M(wt%)</div>', unsafe_allow_html=True)
             with col1_2:
-                if st.button("-", key="m_minus"):
-                    pass
+                features["M(wt%)"] = st.number_input("", value=default_values["M(wt%)"], key="input_M", label_visibility="collapsed")
             with col1_3:
-                if st.button("+", key="m_plus"):
-                    pass
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # Ash(wt%)
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>Ash(wt%)</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col1_1, col1_2, col1_3 = st.columns([1, 4, 1])
             with col1_1:
-                features["Ash(wt%)"] = st.number_input("", value=default_values["Ash(wt%)"], key="input_Ash", label_visibility="collapsed")
+                st.markdown('<div class="input-label">Ash(wt%)</div>', unsafe_allow_html=True)
             with col1_2:
-                if st.button("-", key="ash_minus"):
-                    pass
+                features["Ash(wt%)"] = st.number_input("", value=default_values["Ash(wt%)"], key="input_Ash", label_visibility="collapsed")
             with col1_3:
-                if st.button("+", key="ash_plus"):
-                    pass
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # VM(wt%)
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>VM(wt%)</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col1_1, col1_2, col1_3 = st.columns([1, 4, 1])
             with col1_1:
-                features["VM(wt%)"] = st.number_input("", value=default_values["VM(wt%)"], key="input_VM", label_visibility="collapsed")
+                st.markdown('<div class="input-label">VM(wt%)</div>', unsafe_allow_html=True)
             with col1_2:
-                if st.button("-", key="vm_minus"):
-                    pass
+                features["VM(wt%)"] = st.number_input("", value=default_values["VM(wt%)"], key="input_VM", label_visibility="collapsed")
             with col1_3:
-                if st.button("+", key="vm_plus"):
-                    pass
-
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
         # Ultimate Analysis 卡片
         with col2:
             st.markdown("""
-            <div class='analysis-card'>
-                <div class='card-title'>Ultimate Analysis</div>
-            </div>
+            <div class="analysis-card">
+                <div class="card-title">Ultimate Analysis</div>
             """, unsafe_allow_html=True)
             
             # O/C
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>O/C</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col2_1, col2_2, col2_3 = st.columns([1, 4, 1])
             with col2_1:
-                features["O/C"] = st.number_input("", value=default_values["O/C"], key="input_OC", label_visibility="collapsed")
+                st.markdown('<div class="input-label">O/C</div>', unsafe_allow_html=True)
             with col2_2:
-                if st.button("-", key="oc_minus"):
-                    pass
+                features["O/C"] = st.number_input("", value=default_values["O/C"], key="input_OC", label_visibility="collapsed")
             with col2_3:
-                if st.button("+", key="oc_plus"):
-                    pass
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # H/C
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>H/C</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col2_1, col2_2, col2_3 = st.columns([1, 4, 1])
             with col2_1:
-                features["H/C"] = st.number_input("", value=default_values["H/C"], key="input_HC", label_visibility="collapsed")
+                st.markdown('<div class="input-label">H/C</div>', unsafe_allow_html=True)
             with col2_2:
-                if st.button("-", key="hc_minus"):
-                    pass
+                features["H/C"] = st.number_input("", value=default_values["H/C"], key="input_HC", label_visibility="collapsed")
             with col2_3:
-                if st.button("+", key="hc_plus"):
-                    pass
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # N/C
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>N/C</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col2_1, col2_2, col2_3 = st.columns([1, 4, 1])
             with col2_1:
-                features["N/C"] = st.number_input("", value=default_values["N/C"], key="input_NC", label_visibility="collapsed")
+                st.markdown('<div class="input-label">N/C</div>', unsafe_allow_html=True)
             with col2_2:
-                if st.button("-", key="nc_minus"):
-                    pass
+                features["N/C"] = st.number_input("", value=default_values["N/C"], key="input_NC", label_visibility="collapsed")
             with col2_3:
-                if st.button("+", key="nc_plus"):
-                    pass
-
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+        
         # Pyrolysis Conditions 卡片
         with col3:
             st.markdown("""
-            <div class='analysis-card'>
-                <div class='card-title'>Pyrolysis Conditions</div>
-            </div>
+            <div class="analysis-card">
+                <div class="card-title">Pyrolysis Conditions</div>
             """, unsafe_allow_html=True)
             
             # FT(°C)
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>FT(°C)</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col3_1, col3_2, col3_3 = st.columns([1, 4, 1])
             with col3_1:
-                features["FT(°C)"] = st.number_input("", value=default_values["FT(°C)"], key="input_FT", label_visibility="collapsed")
+                st.markdown('<div class="input-label">FT(°C)</div>', unsafe_allow_html=True)
             with col3_2:
-                if st.button("-", key="ft_minus"):
-                    pass
+                features["FT(°C)"] = st.number_input("", value=default_values["FT(°C)"], key="input_FT", label_visibility="collapsed")
             with col3_3:
-                if st.button("+", key="ft_plus"):
-                    pass
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # HR(°C/min)
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>HR(°C/min)</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col3_1, col3_2, col3_3 = st.columns([1, 4, 1])
             with col3_1:
-                features["HR(°C/min)"] = st.number_input("", value=default_values["HR(°C/min)"], key="input_HR", label_visibility="collapsed")
+                st.markdown('<div class="input-label">HR(°C/min)</div>', unsafe_allow_html=True)
             with col3_2:
-                if st.button("-", key="hr_minus"):
-                    pass
+                features["HR(°C/min)"] = st.number_input("", value=default_values["HR(°C/min)"], key="input_HR", label_visibility="collapsed")
             with col3_3:
-                if st.button("+", key="hr_plus"):
-                    pass
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # FR(mL/min)
-            st.markdown("""
-            <div class='input-row'>
-                <div class='input-label'>FR(mL/min)</div>
-            </div>
-            """, unsafe_allow_html=True)
-            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
+            st.markdown('<div class="input-group">', unsafe_allow_html=True)
+            col3_1, col3_2, col3_3 = st.columns([1, 4, 1])
             with col3_1:
-                features["FR(mL/min)"] = st.number_input("", value=default_values["FR(mL/min)"], key="input_FR", label_visibility="collapsed")
+                st.markdown('<div class="input-label">FR(mL/min)</div>', unsafe_allow_html=True)
             with col3_2:
-                if st.button("-", key="fr_minus"):
-                    pass
+                features["FR(mL/min)"] = st.number_input("", value=default_values["FR(mL/min)"], key="input_FR", label_visibility="collapsed")
             with col3_3:
-                if st.button("+", key="fr_plus"):
-                    pass
-
-        # 操作按钮
-        st.markdown("""
-        <div class='action-buttons'>
-        </div>
-        """, unsafe_allow_html=True)
+                st.markdown('<div class="input-controls"><button class="control-btn">-</button><button class="control-btn">+</button></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
-        col_btn1, col_btn2 = st.columns(2)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # 底部操作按钮
+        st.markdown('<div class="bottom-buttons">', unsafe_allow_html=True)
+        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
+        
         with col_btn1:
-            if st.button("运行预测", type="primary", use_container_width=True):
+            if st.button("<", key="prev_btn", use_container_width=True):
+                st.info("上一步功能")
+        
+        with col_btn2:
+            if st.button("运行预测", key="predict_btn", type="primary", use_container_width=True):
+                predictor = ModelPredictor(target_model=st.session_state.selected_model)
                 add_log("开始预测流程...")
-                # 执行预测
                 result = predictor.predict(features)
                 st.session_state.prediction_result = result
                 add_log(f"预测完成: {st.session_state.selected_model} = {result} wt%")
                 st.rerun()
         
-        with col_btn2:
-            if st.button("重置数据", use_container_width=True):
+        with col_btn3:
+            if st.button("重置数据", key="reset_btn", use_container_width=True):
                 add_log("重置所有输入数据")
                 st.session_state.prediction_result = None
                 st.rerun()
-
-    # 右侧信息面板 - 添加折叠功能
-    with info_col:
-        # 获取当前模型的统计信息
-        current_stats = st.session_state.model_stats[st.session_state.selected_model]
         
-        # 预测结果显示
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 右侧信息面板
+    with col_info:
+        current_stats = st.session_state.model_stats[st.session_state.selected_model]
         result_text = f"{st.session_state.prediction_result} wt%" if st.session_state.prediction_result else "等待预测"
         
-        # 使用Streamlit容器而不是HTML
-        with st.container():
-            # 预测结果标题
-            st.markdown("### 预测结果")
+        # 预测结果面板
+        st.markdown(f"""
+        <div class="info-panel">
+            <div class="result-header">预测结果</div>
+            <div class="result-value">{st.session_state.selected_model}: {result_text}</div>
             
-            # 预测结果值
-            if st.session_state.prediction_result:
-                # 根据模型类型显示中文名称
-                model_names = {
-                    "Char Yield": "炭产量",
-                    "Oil Yield": "油产量", 
-                    "Gas Yield": "气产量"
-                }
-                model_chinese = model_names.get(st.session_state.selected_model, st.session_state.selected_model)
-                st.success(f"**{model_chinese}**: {st.session_state.prediction_result} wt%")
-            else:
-                st.info("等待预测...")
+            <div class="info-section">
+                <div class="info-title">预测信息</div>
+                <div class="info-item">• 目标变量：{st.session_state.selected_model}</div>
+                <div class="info-item">• 预测结果：{result_text}</div>
+                <div class="info-item">• 模型类型：GBDT Pipeline</div>
+                <div class="info-item">• 预处理：RobustScaler</div>
+            </div>
             
-            st.markdown("---")
+            <div class="info-section">
+                <div class="info-title">模型状态</div>
+                <div class="info-item">• 加载状态：<span class="status-normal">✅ 正常</span></div>
+                <div class="info-item">• 特征数量：{current_stats['features']}</div>
+                <div class="info-item">• 警告数量：{current_stats['warnings']}</div>
+            </div>
             
-            # 预测信息 - 可折叠
-            col_header, col_toggle = st.columns([4, 1])
-            with col_header:
-                st.markdown("### 预测信息")
-            with col_toggle:
-                if st.button("▼" if st.session_state.prediction_info_expanded else "▶", 
-                           key="toggle_prediction_info", 
-                           help="展开/折叠预测信息"):
-                    st.session_state.prediction_info_expanded = not st.session_state.prediction_info_expanded
-                    st.rerun()
-            
-            if st.session_state.prediction_info_expanded:
-                st.write(f"• **目标变量**: {st.session_state.selected_model}")
-                st.write(f"• **预测结果**: {result_text}")
-                st.write(f"• **模型类型**: GBDT Pipeline")
-                st.write(f"• **预处理**: RobustScaler")
-            
-            st.markdown("---")
-            
-            # 模型状态 - 可折叠
-            col_header2, col_toggle2 = st.columns([4, 1])
-            with col_header2:
-                st.markdown("### 模型状态")
-            with col_toggle2:
-                if st.button("▼" if st.session_state.model_status_expanded else "▶", 
-                           key="toggle_model_status", 
-                           help="展开/折叠模型状态"):
-                    st.session_state.model_status_expanded = not st.session_state.model_status_expanded
-                    st.rerun()
-            
-            if st.session_state.model_status_expanded:
-                st.write(f"• **加载状态**: ✅ 正常")
-                st.write(f"• **特征数量**: {current_stats['features']}")
-                st.write(f"• **警告数量**: {current_stats['warnings']}")
-            
-            st.markdown("---")
-            
-            # 更多详细信息按钮
-            if st.button("更多详细信息...", use_container_width=True):
-                st.info("显示更多模型详细信息和统计数据...")
+            <button class="expand-btn">></button>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state.current_page == "执行日志":
     st.markdown("<h1 class='main-title'>执行日志</h1>", unsafe_allow_html=True)
@@ -714,38 +783,25 @@ elif st.session_state.current_page == "模型信息":
 elif st.session_state.current_page == "技术说明":
     st.markdown("<h1 class='main-title'>技术说明</h1>", unsafe_allow_html=True)
     st.markdown("""
-    <div class='tech-info'>
-    <h4>🔬 模型技术说明</h4>
-    <p>本系统基于<b>梯度提升决策树(GBDT)</b>算法构建，采用Pipeline架构集成数据预处理和模型预测。</p>
+    ### 🔬 模型技术说明
+    本系统基于**梯度提升决策树(GBDT)**算法构建，采用Pipeline架构集成数据预处理和模型预测。
     
-    <h4>📋 特征说明</h4>
-    <ul>
-        <li><b>Proximate Analysis:</b> M(wt%) - 水分含量, Ash(wt%) - 灰分含量, VM(wt%) - 挥发分含量</li>
-        <li><b>Ultimate Analysis:</b> O/C - 氧碳比, H/C - 氢碳比, N/C - 氮碳比</li>
-        <li><b>Pyrolysis Conditions:</b> FT(°C) - 热解温度, HR(°C/min) - 升温速率, FR(mL/min) - 载气流量</li>
-    </ul>
-    </div>
-    """, unsafe_allow_html=True)
+    ### 📋 特征说明
+    - **Proximate Analysis:** M(wt%) - 水分含量, Ash(wt%) - 灰分含量, VM(wt%) - 挥发分含量
+    - **Ultimate Analysis:** O/C - 氧碳比, H/C - 氢碳比, N/C - 氮碳比
+    - **Pyrolysis Conditions:** FT(°C) - 热解温度, HR(°C/min) - 升温速率, FR(mL/min) - 载气流量
+    """)
 
 elif st.session_state.current_page == "使用指南":
     st.markdown("<h1 class='main-title'>使用指南</h1>", unsafe_allow_html=True)
     st.markdown("""
     ### 📋 使用步骤
-    1. 在侧边栏选择"预测模型"
-    2. 选择要预测的目标（Char/Oil/Gas Yield）
-    3. 输入生物质特征参数
-    4. 点击"运行预测"获取结果
+    1. 选择要预测的目标（Char/Oil/Gas Yield）
+    2. 输入生物质特征参数
+    3. 点击"运行预测"获取结果
     
     ### ⚠️ 注意事项
     - 确保输入参数在合理范围内
     - 模型预测结果仅供参考
     - 实际应用需结合专业知识验证
     """)
-
-# 页脚
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #666;'>
-<p>© 2024 生物质纳米材料与智能装备实验室 | 基于GBDT的生物质热解产物预测系统</p>
-</div>
-""", unsafe_allow_html=True)
