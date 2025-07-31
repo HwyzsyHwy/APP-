@@ -48,6 +48,8 @@ if 'prediction_info_expanded' not in st.session_state:
     st.session_state.prediction_info_expanded = True
 if 'model_status_expanded' not in st.session_state:
     st.session_state.model_status_expanded = True
+if 'sidebar_collapsed' not in st.session_state:
+    st.session_state.sidebar_collapsed = False
 
 def add_log(message):
     """添加日志消息到会话状态"""
@@ -387,29 +389,36 @@ section[data-testid="stSidebar"] > div {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* 侧边栏底部返回按钮 */
+/* 侧边栏底部折叠按钮 */
 .sidebar-bottom {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    padding: 15px;
+    text-align: center;
+    border-radius: 0 0 20px 20px;
+    z-index: 1000;
 }
 
-.back-button {
+.collapse-button {
     background-color: transparent;
     border: none;
     color: #6c757d;
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
-    padding: 10px;
+    padding: 10px 20px;
     border-radius: 15px;
     transition: all 0.3s ease;
+    width: 100%;
 }
 
-.back-button:hover {
+.collapse-button:hover {
     background-color: #e9ecef;
+    color: #333;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -466,13 +475,27 @@ with st.sidebar:
         add_log("切换到使用指南页面")
         st.rerun()
     
-    # 底部返回按钮
-    st.markdown("<br><br><br>", unsafe_allow_html=True)  # 添加间距
-    st.markdown("""
-    <div style='text-align: center; margin-top: 50px;'>
-        <button class='back-button'>&lt;</button>
-    </div>
-    """, unsafe_allow_html=True)
+    # 添加间距，为底部按钮留出空间
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+# 侧边栏底部折叠按钮 - 放在侧边栏外部但固定在底部
+if st.button("＜", key="collapse_sidebar", help="折叠/展开侧边栏"):
+    st.session_state.sidebar_collapsed = not st.session_state.sidebar_collapsed
+    add_log(f"侧边栏状态: {'折叠' if st.session_state.sidebar_collapsed else '展开'}")
+    st.rerun()
+
+# 在页面底部添加折叠按钮的HTML
+st.markdown("""
+<div class='sidebar-bottom'>
+    <div class='collapse-button' onclick='toggleSidebar()'>＜</div>
+</div>
+<script>
+function toggleSidebar() {
+    // 这里可以添加JavaScript来控制侧边栏的显示/隐藏
+    console.log('Toggle sidebar');
+}
+</script>
+""", unsafe_allow_html=True)
 
 # 简化的预测器类
 class ModelPredictor:
