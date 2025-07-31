@@ -3,11 +3,17 @@
 Biomass Pyrolysis Prediction System - 完全匹配目标界面设计
 """
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import random
-from datetime import datetime
+try:
+    import streamlit as st
+    import pandas as pd
+    import numpy as np
+    import random
+    from datetime import datetime
+except ImportError as e:
+    print(f"Missing required package: {e}")
+    print("Please install required packages with: pip install streamlit pandas numpy")
+    print("Or run: python setup_and_run.py")
+    exit(1)
 
 # 页面配置
 st.set_page_config(
