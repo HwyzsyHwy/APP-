@@ -181,108 +181,166 @@ footer {{visibility: hidden;}}
     background: rgba(255, 255, 255, 0.3);
 }}
 
-/* 左侧边栏 */
+/* 左侧边栏 - 完全按照要求重新设计 */
 .sidebar {{
     position: fixed;
-    left: 0;
-    top: 50px;
-    width: 180px;
-    height: calc(100vh - 50px);
-    background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
-    padding: 20px 15px;
-    border-right: 2px solid #e9ecef;
-    overflow-y: auto;
+    left: 20px;
+    top: 70px;
+    width: 200px;
+    height: calc(100vh - 120px);
+    background: transparent;
+    padding: 0;
     z-index: 999;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}}
+
+.sidebar-card {{
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
 }}
 
 /* 用户信息区域 */
 .user-section {{
     text-align: center;
-    padding: 20px 0;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 0 0 20px 0;
     margin-bottom: 20px;
-    background: white;
-    border-radius: 8px;
-    margin: 10px 0 20px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #f0f0f0;
 }}
 
-.user-avatar {{
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #26a69a;
-    margin: 0 auto 8px;
+.user-avatar-container {{
     display: flex;
-    align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 20px;
-    font-weight: bold;
+    margin-bottom: 15px;
 }}
 
 .user-avatar-img {{
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    margin: 0 auto 10px;
-    display: block;
-    object-fit: cover;
+    background: #26a69a;
     border: 3px solid #26a69a;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(38, 166, 154, 0.3);
 }}
 
 .user-name {{
     color: #333;
-    font-size: 13px;
+    font-size: 14px;
     margin: 0;
     font-weight: 500;
+}}
+
+/* 导航按钮区域 */
+.nav-buttons {{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 60px;
 }}
 
 /* 导航按钮 */
 .nav-button {{
     width: 100%;
-    padding: 12px 15px;
-    margin: 8px 0;
+    padding: 12px 20px;
     border: none;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 25px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.3s;
     text-align: center;
     font-weight: 500;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}}
-
-.nav-button:hover {{
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    margin: 0;
+    outline: none;
 }}
 
 .nav-button.active {{
     background: #26a69a;
     color: white;
-    box-shadow: 0 4px 12px rgba(38, 166, 154, 0.3);
+    box-shadow: 0 2px 8px rgba(38, 166, 154, 0.3);
 }}
 
 .nav-button.inactive {{
     background: #e0e0e0;
     color: #666;
-    cursor: default;
+    cursor: pointer;
 }}
 
 .nav-button.inactive:hover {{
-    transform: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: #d5d5d5;
+}}
+
+/* 折叠按钮 */
+.collapse-button {{
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 30px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+    transition: all 0.3s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}}
+
+.collapse-button:hover {{
+    background: #f5f5f5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}}
+
+/* 折叠状态 */
+.sidebar.collapsed {{
+    width: 60px;
+}}
+
+.sidebar.collapsed .sidebar-card {{
+    padding: 10px;
+}}
+
+.sidebar.collapsed .user-name,
+.sidebar.collapsed .nav-button span {{
+    display: none;
+}}
+
+.sidebar.collapsed .sidebar-container {{
+    margin: 20px 5px;
+    padding: 10px 5px;
+}}
+
+.sidebar.collapsed .user-section,
+.sidebar.collapsed .nav-buttons-container {{
+    display: none;
+}}
+
+.sidebar.collapsed .collapse-button {{
+    bottom: 30px;
 }}
 
 /* 主内容区域 */
 .main-content {{
-    margin-left: 180px;
+    margin-left: 260px;
     margin-top: 50px;
     padding: 20px;
     min-height: calc(100vh - 50px);
+    transition: margin-left 0.3s ease;
+}}
+
+.main-content.sidebar-collapsed {{
+    margin-left: 60px;
 }}
 
 /* 标题区域 */
@@ -669,29 +727,39 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 创建左侧边栏
+# 创建左侧边栏 - 完全按照要求重新设计
 st.markdown(f"""
-<div class="sidebar">
-    <div class="user-section">
-        <img src="{USER_ICON_URL}" class="user-avatar-img" alt="用户头像">
-        <div class="user-name">用户：wy1122</div>
-    </div>
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-card">
+        <div class="user-section">
+            <div class="user-avatar-container">
+                <img src="{USER_ICON_URL}" class="user-avatar-img" alt="用户头像">
+            </div>
+            <div class="user-name">用户：wy1122</div>
+        </div>
 
-    <button class="nav-button active">
-        预测模型
-    </button>
-    <button class="nav-button inactive">
-        执行日志
-    </button>
-    <button class="nav-button inactive">
-        模型信息
-    </button>
-    <button class="nav-button inactive">
-        技术说明
-    </button>
-    <button class="nav-button inactive">
-        使用指南
-    </button>
+        <div class="nav-buttons">
+            <button class="nav-button active" onclick="selectNavButton(this)">
+                预测模型
+            </button>
+            <button class="nav-button inactive" onclick="selectNavButton(this)">
+                执行日志
+            </button>
+            <button class="nav-button inactive" onclick="selectNavButton(this)">
+                模型信息
+            </button>
+            <button class="nav-button inactive" onclick="selectNavButton(this)">
+                技术说明
+            </button>
+            <button class="nav-button inactive" onclick="selectNavButton(this)">
+                使用指南
+            </button>
+        </div>
+
+        <div class="collapse-button" onclick="toggleSidebar()">
+            <span>&lt;</span>
+        </div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1078,6 +1146,34 @@ function resetData() {
 
     const hiddenBtn = document.querySelector('[data-testid="reset_btn_hidden"]');
     if (hiddenBtn) hiddenBtn.click();
+}
+
+// 导航按钮选择功能
+function selectNavButton(button) {
+    // 移除所有按钮的active类
+    const allButtons = document.querySelectorAll('.nav-button');
+    allButtons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('inactive');
+    });
+
+    // 为当前按钮添加active类
+    button.classList.remove('inactive');
+    button.classList.add('active');
+}
+
+// 折叠侧边栏功能
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.main-content');
+
+    if (sidebar.classList.contains('collapsed')) {
+        sidebar.classList.remove('collapsed');
+        mainContent.classList.remove('sidebar-collapsed');
+    } else {
+        sidebar.classList.add('collapsed');
+        mainContent.classList.add('sidebar-collapsed');
+    }
 }
 </script>
 """, unsafe_allow_html=True)
