@@ -80,7 +80,7 @@ st.markdown("""
 
 /* 侧边栏整体样式 - 手机界面风格 */
 .css-1d391kg {
-    background-color: #f0f0f0 !important;
+    background-color: #f8f9fa !important;
     border-radius: 20px !important;
     margin: 10px !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
@@ -89,7 +89,7 @@ st.markdown("""
 
 /* 侧边栏内容区域 */
 .css-1lcbmhc {
-    background-color: #f0f0f0 !important;
+    background-color: #f8f9fa !important;
     padding: 20px 15px !important;
     border-radius: 20px !important;
 }
