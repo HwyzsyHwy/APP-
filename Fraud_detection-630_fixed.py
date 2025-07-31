@@ -186,7 +186,7 @@ footer {{visibility: hidden;}}
     position: fixed;
     left: 20px;
     top: 70px;
-    width: 200px;
+    width: 180px;
     height: calc(100vh - 120px);
     background: transparent;
     padding: 0;
@@ -196,13 +196,14 @@ footer {{visibility: hidden;}}
 
 .sidebar-card {{
     background: white;
-    border-radius: 15px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 20px 15px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     height: 100%;
     display: flex;
     flex-direction: column;
     position: relative;
+    border: 1px solid #f0f0f0;
 }}
 
 /* 用户信息区域 */
@@ -220,13 +221,13 @@ footer {{visibility: hidden;}}
 }}
 
 .user-avatar-img {{
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: #26a69a;
-    border: 3px solid #26a69a;
+    border: 2px solid #26a69a;
     object-fit: cover;
-    box-shadow: 0 2px 8px rgba(38, 166, 154, 0.3);
+    display: block;
 }}
 
 .user-name {{
@@ -248,58 +249,59 @@ footer {{visibility: hidden;}}
 /* 导航按钮 */
 .nav-button {{
     width: 100%;
-    padding: 12px 20px;
+    padding: 10px 15px;
     border: none;
-    border-radius: 25px;
-    font-size: 14px;
+    border-radius: 20px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.3s;
     text-align: center;
     font-weight: 500;
     margin: 0;
     outline: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }}
 
 .nav-button.active {{
     background: #26a69a;
     color: white;
-    box-shadow: 0 2px 8px rgba(38, 166, 154, 0.3);
+    box-shadow: none;
 }}
 
 .nav-button.inactive {{
-    background: #e0e0e0;
+    background: #e8e8e8;
     color: #666;
     cursor: pointer;
 }}
 
 .nav-button.inactive:hover {{
-    background: #d5d5d5;
+    background: #ddd;
 }}
 
 /* 折叠按钮 */
 .collapse-button {{
     position: absolute;
-    bottom: 15px;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     background: white;
-    border: 1px solid #e0e0e0;
+    border: 1px solid #ddd;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     color: #666;
     transition: all 0.3s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }}
 
 .collapse-button:hover {{
-    background: #f5f5f5;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background: #f8f8f8;
+    color: #333;
 }}
 
 /* 折叠状态 */
@@ -332,7 +334,7 @@ footer {{visibility: hidden;}}
 
 /* 主内容区域 */
 .main-content {{
-    margin-left: 260px;
+    margin-left: 240px;
     margin-top: 50px;
     padding: 20px;
     min-height: calc(100vh - 50px);
