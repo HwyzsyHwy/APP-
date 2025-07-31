@@ -36,7 +36,7 @@ if 'selected_model' not in st.session_state:
 if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
 
-# 定义日志函数 - 在使用之前定义
+# 定义日志函数
 def add_log(message):
     """添加日志消息到会话状态"""
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -55,150 +55,131 @@ def display_logs():
         )
 
 # 自定义样式
-st.markdown(
-    """
-    <style>
-    html, body, [class*="css"] {
-        font-size: 16px !important;
-    }
-    
-    .main-title {
-        text-align: center;
-        font-size: 32px !important;
-        font-weight: bold;
-        margin-bottom: 20px;
-        color: white !important;
-    }
-    
-    .section-header {
-        color: white;
-        font-weight: bold;
-        font-size: 22px;
-        text-align: center;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-    }
-    
-    .input-label {
-        padding: 5px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        font-size: 18px;
-        color: white;
-    }
-    
-    .yield-result {
-        background-color: #1E1E1E;
-        color: white;
-        font-size: 36px;
-        font-weight: bold;
-        text-align: center;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 20px;
-    }
-    
-    [data-testid="stNumberInput"] input {
-        background-color: white !important;
-        color: black !important;
-    }
-    
-    .stButton button {
-        font-size: 18px !important;
-    }
-    
-    .warning-box {
-        background-color: rgba(255, 165, 0, 0.2);
-        border-left: 5px solid orange;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-    }
-    
-    .error-box {
-        background-color: rgba(255, 0, 0, 0.2);
-        border-left: 5px solid red;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-    }
-    
-    .success-box {
-        background-color: rgba(0, 128, 0, 0.2);
-        border-left: 5px solid green;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 5px;
-    }
-    
-    .log-container {
-        background-color: #1E1E1E;
-        color: #00FF00;
-        font-family: 'Courier New', monospace;
-        font-size: 12px;
-        padding: 10px;
-        border-radius: 5px;
-        max-height: 300px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-    }
-    
-    .sidebar-model-info {
-        background-color: #2E2E2E;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 10px;
-    }
-    
-    .sidebar-model-info h3 {
-        color: #4CAF50;
-        margin-bottom: 10px;
-    }
-    
-    .sidebar-model-info p {
-        color: white;
-        margin: 5px 0;
-        font-size: 14px;
-    }
-    
-    .tech-info {
-        background-color: #2E2E2E;
-        padding: 15px;
-        border-radius: 8px;
-        color: white;
-    }
-    
-    .tech-info h4 {
-        color: #4CAF50;
-        margin-top: 15px;
-        margin-bottom: 10px;
-    }
-    
-    .tech-info ul {
-        margin-left: 20px;
-    }
-    
-    .tech-info li {
-        margin-bottom: 5px;
-    }
-    
-    .model-selector {
-        background-color: #2E2E2E;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    
-    .model-selector h3 {
-        color: white;
-        text-align: center;
-        margin-bottom: 15px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<style>
+html, body, [class*="css"] {
+    font-size: 16px !important;
+}
+
+.main-title {
+    text-align: center;
+    font-size: 32px !important;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: white !important;
+}
+
+.section-header {
+    color: white;
+    font-weight: bold;
+    font-size: 22px;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.input-label {
+    padding: 5px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-size: 18px;
+    color: white;
+}
+
+.yield-result {
+    background-color: #1E1E1E;
+    color: white;
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+[data-testid="stNumberInput"] input {
+    background-color: white !important;
+    color: black !important;
+}
+
+.stButton button {
+    font-size: 18px !important;
+}
+
+.warning-box {
+    background-color: rgba(255, 165, 0, 0.2);
+    border-left: 5px solid orange;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.error-box {
+    background-color: rgba(255, 0, 0, 0.2);
+    border-left: 5px solid red;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.log-container {
+    background-color: #1E1E1E;
+    color: #00FF00;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    padding: 10px;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.sidebar-model-info {
+    background-color: #2E2E2E;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.sidebar-model-info h3 {
+    color: #4CAF50;
+    margin-bottom: 10px;
+}
+
+.sidebar-model-info p {
+    color: white;
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+.tech-info {
+    background-color: #2E2E2E;
+    padding: 15px;
+    border-radius: 8px;
+    color: white;
+}
+
+.tech-info h4 {
+    color: #4CAF50;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.model-selector {
+    background-color: #2E2E2E;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.model-selector h3 {
+    color: white;
+    text-align: center;
+    margin-bottom: 15px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # 记录启动日志
 add_log("应用启动 - 根据图片特征统计信息正确修复版本")
