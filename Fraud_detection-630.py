@@ -78,15 +78,20 @@ st.markdown("""
     max-width: 100% !important;
 }
 
-/* 侧边栏整体样式 */
+/* 侧边栏整体样式 - 手机界面风格 */
 .css-1d391kg {
-    background-color: #f8f9fa !important;
+    background-color: #f0f0f0 !important;
+    border-radius: 20px !important;
+    margin: 10px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border: 1px solid #e0e0e0 !important;
 }
 
 /* 侧边栏内容区域 */
 .css-1lcbmhc {
-    background-color: #f8f9fa !important;
-    padding-top: 2rem !important;
+    background-color: #f0f0f0 !important;
+    padding: 20px 15px !important;
+    border-radius: 20px !important;
 }
 
 .main-title {
@@ -265,67 +270,70 @@ st.markdown("""
     border: 1px solid #e0e0e0;
 }
 
-/* 侧边栏用户信息样式 */
+/* 侧边栏用户信息样式 - 手机界面风格 */
 .sidebar-user-info {
     text-align: center;
-    padding: 20px 10px;
-    margin-bottom: 30px;
+    padding: 25px 15px;
+    margin-bottom: 25px;
     background-color: white;
-    border-radius: 15px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border: 1px solid #e0e0e0;
 }
 
 .user-avatar {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     background-color: #1f4e79;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 10px auto;
+    margin: 0 auto 15px auto;
     color: white;
-    font-size: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    font-size: 28px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .user-name {
     color: #333;
-    font-size: 14px;
+    font-size: 16px;
     margin-top: 5px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
-/* Streamlit按钮样式覆盖 */
+/* Streamlit按钮样式覆盖 - 手机界面风格 */
 .stButton > button {
     width: 100% !important;
-    margin-bottom: 8px !important;
-    padding: 12px 16px !important;
-    border-radius: 25px !important;
-    border: 1px solid #e0e0e0 !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
+    margin-bottom: 12px !important;
+    padding: 16px 20px !important;
+    border-radius: 30px !important;
+    border: none !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
     transition: all 0.3s ease !important;
     background-color: #e9ecef !important;
     color: #6c757d !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
 }
 
 .stButton > button:hover {
     background-color: #dee2e6 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 }
 
-/* 主要按钮样式 */
+/* 主要按钮样式 - 深蓝色 */
 .stButton > button[kind="primary"] {
     background-color: #1f4e79 !important;
     color: white !important;
-    border: 1px solid #1f4e79 !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(31,78,121,0.3) !important;
 }
 
 .stButton > button[kind="primary"]:hover {
     background-color: #164063 !important;
+    box-shadow: 0 6px 16px rgba(31,78,121,0.4) !important;
 }
 
 /* 折叠按钮样式 */
@@ -354,21 +362,49 @@ st.markdown("""
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: #f8f9fa;
-    padding: 10px;
+    background-color: #f0f0f0;
+    padding: 15px;
     border-top: 1px solid #dee2e6;
     display: flex;
     justify-content: center;
+    border-radius: 20px 20px 0 0;
 }
 
 .bottom-nav-button {
     background-color: #6c757d;
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 侧边栏底部返回按钮 */
+.sidebar-bottom {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+}
+
+.back-button {
+    background-color: transparent;
+    border: none;
+    color: #6c757d;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #e9ecef;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -424,6 +460,14 @@ with st.sidebar:
         st.session_state.current_page = "使用指南"
         add_log("切换到使用指南页面")
         st.rerun()
+    
+    # 底部返回按钮
+    st.markdown("<br><br><br>", unsafe_allow_html=True)  # 添加间距
+    st.markdown("""
+    <div style='text-align: center; margin-top: 50px;'>
+        <button class='back-button'>&lt;</button>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 简化的预测器类
 class ModelPredictor:
