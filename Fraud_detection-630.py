@@ -104,31 +104,34 @@ header {visibility: hidden;}
     margin-top: 10px;
 }
 
-/* 模型信息样式 */
-.model-info {
-    background-color: #2E2E2E;
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 10px;
+/* 内容区域样式 */
+.content-area {
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 10px 0;
 }
 
-/* 技术说明样式 */
-.tech-info {
-    background-color: #2E2E2E;
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 10px;
+.content-area h3 {
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
 }
 
-/* 使用指南样式 */
-.guide-info {
-    background-color: #2E2E2E;
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    margin-top: 10px;
+.content-area h4 {
+    color: #34495e;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.content-area ul {
+    margin-left: 20px;
+}
+
+.content-area li {
+    margin-bottom: 5px;
 }
 
 /* 预测进度样式 */
@@ -479,133 +482,158 @@ with center_col:
         st.markdown('<div class="main-title">模型信息</div>', unsafe_allow_html=True)
         st.markdown("---")
         
-        # 显示模型信息
-        model_info_html = f"""
-        <div class="model-info">
-            <h3>🤖 当前模型: {st.session_state.selected_model}</h3>
-            <p><b>模型类型:</b> GBDT Pipeline (RobustScaler + GradientBoostingRegressor)</p>
-            <p><b>预测结果:</b> {st.session_state.prediction_result:.4f} wt%</p>
-            <p><b>特征数量:</b> 9个输入特征</p>
-            <p><b>模型状态:</b> 🟢 正常运行</p>
+        # 使用Streamlit原生组件显示模型信息
+        with st.container():
+            st.markdown('<div class="content-area">', unsafe_allow_html=True)
             
-            <h4>📊 特征列表:</h4>
-            <ul>
-                <li><b>Proximate Analysis:</b> M(wt%), Ash(wt%), VM(wt%)</li>
-                <li><b>Ultimate Analysis:</b> O/C, H/C, N/C</li>
-                <li><b>Pyrolysis Conditions:</b> FT(°C), HR(°C/min), FR(mL/min)</li>
-            </ul>
+            st.markdown(f"### 🤖 当前模型: {st.session_state.selected_model}")
             
-            <h4>🎯 支持的预测目标:</h4>
-            <ul>
-                <li>🔥 <b>Char Yield:</b> 焦炭产率预测</li>
-                <li>🛢️ <b>Oil Yield:</b> 生物油产率预测</li>
-                <li>💨 <b>Gas Yield:</b> 气体产率预测</li>
-            </ul>
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**基本信息:**")
+                st.write(f"• 模型类型: GBDT Pipeline")
+                st.write(f"• 预处理: RobustScaler + GradientBoostingRegressor")
+                st.write(f"• 预测结果: {st.session_state.prediction_result:.4f} wt%")
+                st.write(f"• 特征数量: 9个输入特征")
+                st.write(f"• 模型状态: 🟢 正常运行")
             
-            <h4>📈 当前输入特征值:</h4>
-            <ul>
-        """
-        
-        for feature, value in st.session_state.feature_values.items():
-            model_info_html += f"<li><b>{feature}:</b> {value:.3f}</li>"
-        
-        model_info_html += """
-            </ul>
-        </div>
-        """
-        st.markdown(model_info_html, unsafe_allow_html=True)
+            with col2:
+                st.markdown("**支持的预测目标:**")
+                st.write("• 🔥 **Char Yield:** 焦炭产率预测")
+                st.write("• 🛢️ **Oil Yield:** 生物油产率预测")
+                st.write("• 💨 **Gas Yield:** 气体产率预测")
+            
+            st.markdown("### 📊 特征列表")
+            
+            feature_col1, feature_col2, feature_col3 = st.columns(3)
+            with feature_col1:
+                st.markdown("**Proximate Analysis:**")
+                st.write("• M(wt%) - 水分含量")
+                st.write("• Ash(wt%) - 灰分含量")
+                st.write("• VM(wt%) - 挥发分含量")
+            
+            with feature_col2:
+                st.markdown("**Ultimate Analysis:**")
+                st.write("• O/C - 氧碳原子比")
+                st.write("• H/C - 氢碳原子比")
+                st.write("• N/C - 氮碳原子比")
+            
+            with feature_col3:
+                st.markdown("**Pyrolysis Conditions:**")
+                st.write("• FT(°C) - 热解温度")
+                st.write("• HR(°C/min) - 升温速率")
+                st.write("• FR(mL/min) - 载气流量")
+            
+            st.markdown("### 📈 当前输入特征值")
+            
+            # 显示当前特征值
+            feature_display_col1, feature_display_col2, feature_display_col3 = st.columns(3)
+            features_list = list(st.session_state.feature_values.items())
+            
+            with feature_display_col1:
+                for i in range(0, len(features_list), 3):
+                    feature, value = features_list[i]
+                    st.write(f"• **{feature}:** {value:.3f}")
+            
+            with feature_display_col2:
+                for i in range(1, len(features_list), 3):
+                    if i < len(features_list):
+                        feature, value = features_list[i]
+                        st.write(f"• **{feature}:** {value:.3f}")
+            
+            with feature_display_col3:
+                for i in range(2, len(features_list), 3):
+                    if i < len(features_list):
+                        feature, value = features_list[i]
+                        st.write(f"• **{feature}:** {value:.3f}")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
     
     elif st.session_state.current_page == "技术说明":
         st.markdown('<div class="main-title">技术说明</div>', unsafe_allow_html=True)
         st.markdown("---")
         
-        tech_info_html = """
-        <div class="tech-info">
-            <h3>🔬 算法原理</h3>
-            <p>本系统基于<b>梯度提升决策树(GBDT)</b>算法构建，采用Pipeline架构集成数据预处理和模型预测。</p>
+        with st.container():
+            st.markdown('<div class="content-area">', unsafe_allow_html=True)
             
-            <h4>🏗️ 系统架构</h4>
-            <ul>
-                <li><b>数据预处理:</b> RobustScaler标准化，对异常值具有较强的鲁棒性</li>
-                <li><b>机器学习模型:</b> GradientBoostingRegressor，通过集成多个弱学习器提高预测精度</li>
-                <li><b>Pipeline集成:</b> 自动化的数据流处理，确保预测的一致性和可靠性</li>
-            </ul>
+            st.markdown("### 🔬 算法原理")
+            st.write("本系统基于**梯度提升决策树(GBDT)**算法构建，采用Pipeline架构集成数据预处理和模型预测。")
             
-            <h4>📈 模型特点</h4>
-            <ul>
-                <li><b>高精度:</b> 基于大量实验数据训练，预测精度高</li>
-                <li><b>鲁棒性:</b> 对输入数据的噪声和异常值具有较强的容忍性</li>
-                <li><b>可解释性:</b> 决策树模型具有良好的可解释性</li>
-                <li><b>实时性:</b> 快速响应，支持实时预测</li>
-            </ul>
+            st.markdown("### 🏗️ 系统架构")
+            st.write("• **数据预处理:** RobustScaler标准化，对异常值具有较强的鲁棒性")
+            st.write("• **机器学习模型:** GradientBoostingRegressor，通过集成多个弱学习器提高预测精度")
+            st.write("• **Pipeline集成:** 自动化的数据流处理，确保预测的一致性和可靠性")
             
-            <h4>🎯 应用场景</h4>
-            <p>适用于生物质热解工艺优化、产物产率预测、工艺参数调优等场景。</p>
+            st.markdown("### 📈 模型特点")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("• **高精度:** 基于大量实验数据训练，预测精度高")
+                st.write("• **鲁棒性:** 对输入数据的噪声和异常值具有较强的容忍性")
+            with col2:
+                st.write("• **可解释性:** 决策树模型具有良好的可解释性")
+                st.write("• **实时性:** 快速响应，支持实时预测")
             
-            <h4>⚠️ 使用限制</h4>
-            <ul>
-                <li>输入参数应在训练数据范围内，超出范围可能影响预测精度</li>
-                <li>模型基于特定的实验条件训练，实际应用时需要考虑工艺差异</li>
-                <li>预测结果仅供参考，实际生产中需要结合实验验证</li>
-            </ul>
-        </div>
-        """
-        st.markdown(tech_info_html, unsafe_allow_html=True)
+            st.markdown("### 🎯 应用场景")
+            st.write("适用于生物质热解工艺优化、产物产率预测、工艺参数调优等场景。")
+            
+            st.markdown("### ⚠️ 使用限制")
+            st.warning("• 输入参数应在训练数据范围内，超出范围可能影响预测精度")
+            st.warning("• 模型基于特定的实验条件训练，实际应用时需要考虑工艺差异")
+            st.warning("• 预测结果仅供参考，实际生产中需要结合实验验证")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
     
     elif st.session_state.current_page == "使用指南":
         st.markdown('<div class="main-title">使用指南</div>', unsafe_allow_html=True)
         st.markdown("---")
         
-        guide_info_html = """
-        <div class="guide-info">
-            <h3>📋 操作步骤</h3>
-            <ol>
-                <li><b>选择预测目标:</b> 点击Char Yield、Oil Yield或Gas Yield按钮选择要预测的产物</li>
-                <li><b>输入特征参数:</b> 在三个特征组中输入相应的数值</li>
-                <li><b>执行预测:</b> 点击"运行预测"按钮获得预测结果</li>
-                <li><b>查看结果:</b> 在右侧面板查看详细的预测信息</li>
-            </ol>
+        with st.container():
+            st.markdown('<div class="content-area">', unsafe_allow_html=True)
             
-            <h3>📊 特征参数说明</h3>
-            <h4>🟢 Proximate Analysis (近似分析)</h4>
-            <ul>
-                <li><b>M(wt%):</b> 水分含量，范围 2.75-11.63%</li>
-                <li><b>Ash(wt%):</b> 灰分含量，范围 0.41-11.60%</li>
-                <li><b>VM(wt%):</b> 挥发分含量，范围 65.70-89.50%</li>
-            </ul>
+            st.markdown("### 📋 操作步骤")
+            st.write("1. **选择预测目标:** 点击Char Yield、Oil Yield或Gas Yield按钮选择要预测的产物")
+            st.write("2. **输入特征参数:** 在三个特征组中输入相应的数值")
+            st.write("3. **执行预测:** 点击"运行预测"按钮获得预测结果")
+            st.write("4. **查看结果:** 在右侧面板查看详细的预测信息")
             
-            <h4>🟣 Ultimate Analysis (元素分析)</h4>
-            <ul>
-                <li><b>O/C:</b> 氧碳原子比，范围 0.301-0.988</li>
-                <li><b>H/C:</b> 氢碳原子比，范围 1.212-1.895</li>
-                <li><b>N/C:</b> 氮碳原子比，范围 0.003-0.129</li>
-            </ul>
+            st.markdown("### 📊 特征参数说明")
             
-            <h4>🟠 Pyrolysis Conditions (热解条件)</h4>
-            <ul>
-                <li><b>FT(°C):</b> 热解温度，范围 300-900°C</li>
-                <li><b>HR(°C/min):</b> 升温速率，范围 5-100°C/min</li>
-                <li><b>FR(mL/min):</b> 载气流量，范围 0-600 mL/min</li>
-            </ul>
+            param_col1, param_col2, param_col3 = st.columns(3)
             
-            <h3>💡 使用技巧</h3>
-            <ul>
-                <li><b>数据质量:</b> 确保输入数据的准确性，避免明显的错误值</li>
-                <li><b>参数范围:</b> 尽量使输入参数在推荐范围内，系统会给出超范围警告</li>
-                <li><b>结果验证:</b> 预测结果应结合实际经验进行合理性判断</li>
-                <li><b>批量预测:</b> 可以通过修改参数进行多次预测，比较不同条件下的结果</li>
-            </ul>
+            with param_col1:
+                st.markdown("#### 🟢 Proximate Analysis")
+                st.write("• **M(wt%):** 水分含量，范围 2.75-11.63%")
+                st.write("• **Ash(wt%):** 灰分含量，范围 0.41-11.60%")
+                st.write("• **VM(wt%):** 挥发分含量，范围 65.70-89.50%")
             
-            <h3>🔧 功能按钮</h3>
-            <ul>
-                <li><b>运行预测:</b> 基于当前输入参数执行预测</li>
-                <li><b>重置数据:</b> 将所有输入参数恢复为默认值</li>
-                <li><b>执行日志:</b> 查看系统运行日志和操作记录</li>
-                <li><b>模型信息:</b> 查看当前模型的详细信息</li>
-            </ul>
-        </div>
-        """
-        st.markdown(guide_info_html, unsafe_allow_html=True)
+            with param_col2:
+                st.markdown("#### 🟣 Ultimate Analysis")
+                st.write("• **O/C:** 氧碳原子比，范围 0.301-0.988")
+                st.write("• **H/C:** 氢碳原子比，范围 1.212-1.895")
+                st.write("• **N/C:** 氮碳原子比，范围 0.003-0.129")
+            
+            with param_col3:
+                st.markdown("#### 🟠 Pyrolysis Conditions")
+                st.write("• **FT(°C):** 热解温度，范围 300-900°C")
+                st.write("• **HR(°C/min):** 升温速率，范围 5-100°C/min")
+                st.write("• **FR(mL/min):** 载气流量，范围 0-600 mL/min")
+            
+            st.markdown("### 💡 使用技巧")
+            tip_col1, tip_col2 = st.columns(2)
+            with tip_col1:
+                st.info("• **数据质量:** 确保输入数据的准确性，避免明显的错误值")
+                st.info("• **参数范围:** 尽量使输入参数在推荐范围内，系统会给出超范围警告")
+            with tip_col2:
+                st.info("• **结果验证:** 预测结果应结合实际经验进行合理性判断")
+                st.info("• **批量预测:** 可以通过修改参数进行多次预测，比较不同条件下的结果")
+            
+            st.markdown("### 🔧 功能按钮")
+            st.write("• **运行预测:** 基于当前输入参数执行预测")
+            st.write("• **重置数据:** 将所有输入参数恢复为默认值")
+            st.write("• **执行日志:** 查看系统运行日志和操作记录")
+            st.write("• **模型信息:** 查看当前模型的详细信息")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # 右侧面板
 with right_col:
