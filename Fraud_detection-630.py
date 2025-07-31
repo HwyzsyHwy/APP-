@@ -14,13 +14,14 @@ import joblib
 import traceback
 import matplotlib.pyplot as plt
 from datetime import datetime
+import base64
 
 # Clear cache, force re-rendering
 st.cache_data.clear()
 
 # Page configuration
 st.set_page_config(
-    page_title='Biomass Pyrolysis Yield Prediction',
+    page_title='选择预测目标',
     page_icon='🔥',
     layout='wide',
     initial_sidebar_state='expanded'
@@ -65,48 +66,470 @@ def display_logs():
         log_content = '<br>'.join(st.session_state.log_messages)
         st.markdown(f"<div class='log-container'>{log_content}</div>", unsafe_allow_html=True)
 
-# Custom styles
+# Custom styles - 完全重新设计以匹配目标图片
 st.markdown("""
 <style>
-/* Global font settings */
+/* 全局字体设置 */
 * {
-    font-family: 'Times New Roman', serif !important;
-    font-size: 20px !important;
-    font-weight: normal !important;
+    font-family: 'Microsoft YaHei', 'SimHei', sans-serif !important;
 }
 
-/* Global background settings */
+/* 主应用背景 - 绿色科技风格 */
 .stApp {
-    background-color: #f5f5f5 !important;
+    background: linear-gradient(135deg, #0a4d3a 0%, #1a7a5e 50%, #2d9f7f 100%) !important;
+    background-image:
+        radial-gradient(circle at 20% 80%, rgba(120, 255, 214, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(120, 255, 214, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 255, 214, 0.2) 0%, transparent 50%);
+    min-height: 100vh;
 }
 
-/* Main content area */
+/* 主内容区域 */
 .main .block-container {
-    padding-top: 2rem !important;
-    background-color: #f5f5f5 !important;
+    padding: 1rem 2rem !important;
     max-width: 100% !important;
+    background: transparent !important;
 }
 
-/* Sidebar overall style - use multiple selectors to ensure effectiveness */
-.css-1d391kg, .css-1lcbmhc, .css-17eq0hr, .css-1y4p8pa, section[data-testid="stSidebar"] {
-    background-color: #f8f9fa !important;
+/* 隐藏Streamlit默认元素 */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* 自定义顶部标题栏 */
+.top-header {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px 20px;
+    margin: -1rem -2rem 2rem -2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
 }
 
-/* Sidebar container */
+.streamlit-logo {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.search-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 20px;
+    padding: 8px 15px;
+    color: white;
+    width: 300px;
+}
+
+.top-icons {
+    display: flex;
+    gap: 15px;
+    color: white;
+    font-size: 20px;
+}
+
+/* 侧边栏样式 */
 section[data-testid="stSidebar"] {
-    background-color: #f8f9fa !important;
-    border-radius: 20px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-radius: 15px !important;
     margin: 10px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    border: 1px solid #e0e0e0 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(10px) !important;
+    width: 200px !important;
+    min-width: 200px !important;
 }
 
-/* Sidebar content area */
+/* 侧边栏内容 */
 section[data-testid="stSidebar"] > div {
-    background-color: #f8f9fa !important;
+    background: transparent !important;
     padding: 20px 15px !important;
-    border-radius: 20px !important;
 }
+
+/* 用户信息区域 */
+.user-info {
+    text-align: center;
+    padding: 20px 10px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #20B2AA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px auto;
+    color: white;
+    font-size: 24px;
+}
+
+.user-name {
+    color: #333;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* 侧边栏按钮样式 */
+.stButton > button {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    padding: 12px 15px !important;
+    border-radius: 25px !important;
+    border: none !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: #666 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stButton > button:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 激活状态的按钮 */
+.stButton > button[kind="primary"] {
+    background: #20B2AA !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(32, 178, 170, 0.4) !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: #1a9d96 !important;
+    box-shadow: 0 6px 20px rgba(32, 178, 170, 0.5) !important;
+}
+
+/* 主标题 */
+.main-title {
+    text-align: center;
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 模型选择卡片样式 - 更接近目标图片 */
+.model-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.model-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+.model-card.selected {
+    background: #20B2AA;
+    color: white;
+    box-shadow: 0 12px 30px rgba(32, 178, 170, 0.4);
+}
+
+/* 模型图标 */
+.model-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.model-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+}
+
+.model-card.selected .model-name {
+    color: white;
+}
+
+/* 当前模型显示 */
+.current-model-display {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    margin: 20px auto;
+    width: fit-content;
+    font-weight: bold;
+    backdrop-filter: blur(10px);
+}
+
+/* 参数输入区域容器 */
+.parameters-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    justify-content: center;
+}
+
+/* 参数卡片样式 */
+.parameter-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    width: 300px;
+}
+
+.parameter-card-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    padding: 10px;
+    border-radius: 25px;
+    margin-bottom: 20px;
+}
+
+.parameter-card-title.proximate {
+    background: #20B2AA;
+}
+
+.parameter-card-title.ultimate {
+    background: #DAA520;
+}
+
+.parameter-card-title.pyrolysis {
+    background: #CD853F;
+}
+
+/* 参数输入行 */
+.parameter-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.parameter-label {
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 80px;
+    text-align: center;
+}
+
+.parameter-label.proximate {
+    background: #20B2AA;
+}
+
+.parameter-label.ultimate {
+    background: #DAA520;
+}
+
+.parameter-label.pyrolysis {
+    background: #CD853F;
+}
+
+.parameter-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.parameter-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.param-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.param-btn.minus {
+    background: #ff6b6b;
+    color: white;
+}
+
+.param-btn.plus {
+    background: #51cf66;
+    color: white;
+}
+
+.param-btn:hover {
+    transform: scale(1.1);
+}
+
+/* 右侧结果面板 */
+.results-panel {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    width: 300px;
+    height: fit-content;
+}
+
+.results-title {
+    background: #20B2AA;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    border-radius: 25px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.result-value {
+    background: rgba(32, 178, 170, 0.1);
+    border: 2px solid #20B2AA;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #20B2AA;
+    margin-bottom: 20px;
+}
+
+.result-details {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.result-details .detail-item {
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-normal {
+    background: #51cf66;
+}
+
+/* 底部按钮样式 - 匹配目标图片 */
+.stButton > button[data-testid="baseButton-primary"] {
+    background: #20B2AA !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 15px 30px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    width: 100% !important;
+    box-shadow: 0 4px 15px rgba(32, 178, 170, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button[data-testid="baseButton-primary"]:hover {
+    background: #1a9d96 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(32, 178, 170, 0.4) !important;
+}
+
+.stButton > button[data-testid="baseButton-secondary"] {
+    background: #6c757d !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 15px 30px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    width: 100% !important;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.stButton > button[data-testid="baseButton-secondary"]:hover {
+    background: #5a6268 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4) !important;
+}
+
+/* 右侧箭头按钮 */
+.arrow-button {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.arrow-button:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 折叠按钮 */
+.collapse-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: none !important;
+    border-radius: 50% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 18px !important;
+    color: #666 !important;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.collapse-button:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+</style>
+""", unsafe_allow_html=True)
 
 .main-title {
     text-align: center;
@@ -409,26 +832,29 @@ section[data-testid="stSidebar"] > div {
 
 /* Sidebar bottom collapse button */
 .sidebar-collapse-btn {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80%;
-    background-color: transparent;
-    border: 1px solid #e0e0e0;
-    border-radius: 15px;
-    padding: 10px;
-    text-align: center;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 50% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
     font-family: 'Times New Roman', serif !important;
-    font-size: 20px !important;
-    color: #6c757d;
+    font-size: 18px !important;
+    color: #6c757d !important;
+    z-index: 1000;
 }
 
 .sidebar-collapse-btn:hover {
-    background-color: #e9ecef;
-    color: #333;
+    background-color: transparent !important;
+    color: #333 !important;
+    transform: scale(1.1);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -485,16 +911,30 @@ with st.sidebar:
         add_log("Switched to user guide page")
         st.rerun()
     
-    # Add spacing and collapse button at bottom
+    # Add spacing
     st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    # Collapse button at bottom of sidebar
-    if st.button("＜", key="sidebar_collapse", help="Collapse/Expand Sidebar"):
-        st.session_state.sidebar_collapsed = not st.session_state.sidebar_collapsed
-        add_log(f"Sidebar state: {'Collapsed' if st.session_state.sidebar_collapsed else 'Expanded'}")
-        st.rerun()
 
-# Remove the external collapse button as it's now inside sidebar
+# Add external collapse button with JavaScript functionality
+st.markdown("""
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 1000;">
+    <button class="sidebar-collapse-btn" onclick="toggleSidebar()">
+        &lt;
+    </button>
+</div>
+
+<script>
+function toggleSidebar() {
+    const sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"]');
+    if (sidebar) {
+        if (sidebar.style.display === 'none') {
+            sidebar.style.display = 'block';
+        } else {
+            sidebar.style.display = 'none';
+        }
+    }
+}
+</script>
+""", unsafe_allow_html=True)
 
 # Simplified predictor class
 class ModelPredictor:
@@ -619,15 +1059,7 @@ if st.session_state.current_page == "Prediction Model":
                 <div class='input-label'>M(wt%)</div>
             </div>
             """, unsafe_allow_html=True)
-            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
-            with col1_1:
-                features["M(wt%)"] = st.number_input("", value=default_values["M(wt%)"], key="input_M", label_visibility="collapsed")
-            with col1_2:
-                if st.button("-", key="m_minus"):
-                    pass
-            with col1_3:
-                if st.button("+", key="m_plus"):
-                    pass
+            features["M(wt%)"] = st.number_input("M(wt%)", value=default_values["M(wt%)"], key="input_M")
             
             # Ash(wt%)
             st.markdown("""
@@ -635,15 +1067,7 @@ if st.session_state.current_page == "Prediction Model":
                 <div class='input-label'>Ash(wt%)</div>
             </div>
             """, unsafe_allow_html=True)
-            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
-            with col1_1:
-                features["Ash(wt%)"] = st.number_input("", value=default_values["Ash(wt%)"], key="input_Ash", label_visibility="collapsed")
-            with col1_2:
-                if st.button("-", key="ash_minus"):
-                    pass
-            with col1_3:
-                if st.button("+", key="ash_plus"):
-                    pass
+            features["Ash(wt%)"] = st.number_input("Ash(wt%)", value=default_values["Ash(wt%)"], key="input_Ash")
             
             # VM(wt%)
             st.markdown("""
@@ -651,15 +1075,7 @@ if st.session_state.current_page == "Prediction Model":
                 <div class='input-label'>VM(wt%)</div>
             </div>
             """, unsafe_allow_html=True)
-            col1_1, col1_2, col1_3 = st.columns([6, 1, 1])
-            with col1_1:
-                features["VM(wt%)"] = st.number_input("", value=default_values["VM(wt%)"], key="input_VM", label_visibility="collapsed")
-            with col1_2:
-                if st.button("-", key="vm_minus"):
-                    pass
-            with col1_3:
-                if st.button("+", key="vm_plus"):
-                    pass
+            features["VM(wt%)"] = st.number_input("VM(wt%)", value=default_values["VM(wt%)"], key="input_VM")
 
         # Ultimate Analysis card
         with col2:
@@ -675,47 +1091,23 @@ if st.session_state.current_page == "Prediction Model":
                 <div class='input-label'>O/C</div>
             </div>
             """, unsafe_allow_html=True)
-            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
-            with col2_1:
-                features["O/C"] = st.number_input("", value=default_values["O/C"], key="input_OC", label_visibility="collapsed")
-            with col2_2:
-                if st.button("-", key="oc_minus"):
-                    pass
-            with col2_3:
-                if st.button("+", key="oc_plus"):
-                    pass
-            
+            features["O/C"] = st.number_input("O/C", value=default_values["O/C"], key="input_OC")
+
             # H/C
             st.markdown("""
             <div class='input-row'>
                 <div class='input-label'>H/C</div>
             </div>
             """, unsafe_allow_html=True)
-            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
-            with col2_1:
-                features["H/C"] = st.number_input("", value=default_values["H/C"], key="input_HC", label_visibility="collapsed")
-            with col2_2:
-                if st.button("-", key="hc_minus"):
-                    pass
-            with col2_3:
-                if st.button("+", key="hc_plus"):
-                    pass
-            
+            features["H/C"] = st.number_input("H/C", value=default_values["H/C"], key="input_HC")
+
             # N/C
             st.markdown("""
             <div class='input-row'>
                 <div class='input-label'>N/C</div>
             </div>
             """, unsafe_allow_html=True)
-            col2_1, col2_2, col2_3 = st.columns([6, 1, 1])
-            with col2_1:
-                features["N/C"] = st.number_input("", value=default_values["N/C"], key="input_NC", label_visibility="collapsed")
-            with col2_2:
-                if st.button("-", key="nc_minus"):
-                    pass
-            with col2_3:
-                if st.button("+", key="nc_plus"):
-                    pass
+            features["N/C"] = st.number_input("N/C", value=default_values["N/C"], key="input_NC")
 
         # Pyrolysis Conditions card
         with col3:
@@ -731,47 +1123,23 @@ if st.session_state.current_page == "Prediction Model":
                 <div class='input-label'>FT(°C)</div>
             </div>
             """, unsafe_allow_html=True)
-            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
-            with col3_1:
-                features["FT(°C)"] = st.number_input("", value=default_values["FT(°C)"], key="input_FT", label_visibility="collapsed")
-            with col3_2:
-                if st.button("-", key="ft_minus"):
-                    pass
-            with col3_3:
-                if st.button("+", key="ft_plus"):
-                    pass
-            
+            features["FT(°C)"] = st.number_input("FT(°C)", value=default_values["FT(°C)"], key="input_FT")
+
             # HR(°C/min)
             st.markdown("""
             <div class='input-row'>
                 <div class='input-label'>HR(°C/min)</div>
             </div>
             """, unsafe_allow_html=True)
-            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
-            with col3_1:
-                features["HR(°C/min)"] = st.number_input("", value=default_values["HR(°C/min)"], key="input_HR", label_visibility="collapsed")
-            with col3_2:
-                if st.button("-", key="hr_minus"):
-                    pass
-            with col3_3:
-                if st.button("+", key="hr_plus"):
-                    pass
-            
+            features["HR(°C/min)"] = st.number_input("HR(°C/min)", value=default_values["HR(°C/min)"], key="input_HR")
+
             # FR(mL/min)
             st.markdown("""
             <div class='input-row'>
                 <div class='input-label'>FR(mL/min)</div>
             </div>
             """, unsafe_allow_html=True)
-            col3_1, col3_2, col3_3 = st.columns([6, 1, 1])
-            with col3_1:
-                features["FR(mL/min)"] = st.number_input("", value=default_values["FR(mL/min)"], key="input_FR", label_visibility="collapsed")
-            with col3_2:
-                if st.button("-", key="fr_minus"):
-                    pass
-            with col3_3:
-                if st.button("+", key="fr_plus"):
-                    pass
+            features["FR(mL/min)"] = st.number_input("FR(mL/min)", value=default_values["FR(mL/min)"], key="input_FR")
 
         # Operation buttons
         st.markdown("""
