@@ -801,7 +801,7 @@ st.markdown(f"""
         <h3>Proximate Analysis</h3>
         <div class="parameter-item">
             <div class="param-label teal">M(wt%)</div>
-            <div class="param-value" id="param-M">{st.session_state.parameters["M(wt%)"]:.3f}</div>
+            <div class="param-value" id="param-M">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('M(wt%)', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('M(wt%)', 0.1)">+</button>
@@ -809,7 +809,7 @@ st.markdown(f"""
         </div>
         <div class="parameter-item">
             <div class="param-label teal">Ash(wt%)</div>
-            <div class="param-value" id="param-Ash">{st.session_state.parameters["Ash(wt%)"]:.3f}</div>
+            <div class="param-value" id="param-Ash">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('Ash(wt%)', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('Ash(wt%)', 0.1)">+</button>
@@ -817,7 +817,7 @@ st.markdown(f"""
         </div>
         <div class="parameter-item">
             <div class="param-label teal">VM(wt%)</div>
-            <div class="param-value" id="param-VM">{st.session_state.parameters["VM(wt%)"]:.3f}</div>
+            <div class="param-value" id="param-VM">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('VM(wt%)', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('VM(wt%)', 0.1)">+</button>
@@ -859,7 +859,7 @@ st.markdown(f"""
         <h3>Pyrolysis Conditions</h3>
         <div class="parameter-item">
             <div class="param-label red">FT(°C)</div>
-            <div class="param-value" id="param-FT">{st.session_state.parameters["FT(°C)"]:.3f}</div>
+            <div class="param-value" id="param-FT">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('FT(°C)', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('FT(°C)', 0.1)">+</button>
@@ -867,7 +867,7 @@ st.markdown(f"""
         </div>
         <div class="parameter-item">
             <div class="param-label red">HR(°C/min)</div>
-            <div class="param-value" id="param-HR">{st.session_state.parameters["HR(°C/min)"]:.3f}</div>
+            <div class="param-value" id="param-HR">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('HR(°C/min)', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('HR(°C/min)', 0.1)">+</button>
@@ -875,7 +875,7 @@ st.markdown(f"""
         </div>
         <div class="parameter-item">
             <div class="param-label red">FR(mL/min)</div>
-            <div class="param-value" id="param-FR">{st.session_state.parameters["FR(mL/min)"]:.3f}</div>
+            <div class="param-value" id="param-FR">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('FR(mL/min)', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('FR(mL/min)', 0.1)">+</button>
