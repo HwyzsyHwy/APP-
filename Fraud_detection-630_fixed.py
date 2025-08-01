@@ -723,7 +723,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 创建左侧边栏 - 完全按照要求重新设计
+# 创建左侧边栏 - 完全按照要求重新设计，与图片一致
 st.markdown(f"""
 <div class="sidebar" id="sidebar">
     <div class="sidebar-card">
@@ -735,21 +735,21 @@ st.markdown(f"""
         </div>
 
         <div class="nav-buttons">
-            <button class="nav-button active" onclick="selectNavButton(this)">
+            <div class="nav-button active">
                 预测模型
-            </button>
-            <button class="nav-button inactive" onclick="selectNavButton(this)">
+            </div>
+            <div class="nav-button inactive">
                 执行日志
-            </button>
-            <button class="nav-button inactive" onclick="selectNavButton(this)">
+            </div>
+            <div class="nav-button inactive">
                 模型信息
-            </button>
-            <button class="nav-button inactive" onclick="selectNavButton(this)">
+            </div>
+            <div class="nav-button inactive">
                 技术说明
-            </button>
-            <button class="nav-button inactive" onclick="selectNavButton(this)">
+            </div>
+            <div class="nav-button inactive">
                 使用指南
-            </button>
+            </div>
         </div>
 
         <div class="collapse-button" onclick="toggleSidebar()">
@@ -775,21 +775,21 @@ st.markdown('<div class="model-selection">', unsafe_allow_html=True)
 # 显示模型卡片（使用纯HTML，不混合Streamlit按钮）
 st.markdown(f"""
 <div class="model-grid">
-    <div class="model-card {'selected' if st.session_state.selected_model == 'Char Yield' else ''}" onclick="selectModel('Char Yield')">
+    <div class="model-card selected" id="char-yield-card">
         <img src="{FIRE_ICON_URL}" class="model-icon" alt="Char Yield">
         <div class="model-title">Char Yield</div>
     </div>
-    <div class="model-card {'selected' if st.session_state.selected_model == 'Oil Yield' else ''}" onclick="selectModel('Oil Yield')">
+    <div class="model-card" id="oil-yield-card">
         <img src="{OIL_ICON_URL}" class="model-icon" alt="Oil Yield">
         <div class="model-title">Oil Yield</div>
     </div>
-    <div class="model-card {'selected' if st.session_state.selected_model == 'Gas Yield' else ''}" onclick="selectModel('Gas Yield')">
+    <div class="model-card" id="gas-yield-card">
         <img src="{GAS_ICON_URL}" class="model-icon" alt="Gas Yield">
         <div class="model-title">Gas Yield</div>
     </div>
 </div>
 
-<div class="current-model">当前模型：{st.session_state.selected_model}</div>
+<div class="current-model">当前模型：Char Yield</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -830,7 +830,7 @@ st.markdown(f"""
         <h3>Ultimate Analysis</h3>
         <div class="parameter-item">
             <div class="param-label orange">O/C</div>
-            <div class="param-value" id="param-OC">{st.session_state.parameters["O/C"]:.3f}</div>
+            <div class="param-value" id="param-OC">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('O/C', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('O/C', 0.1)">+</button>
@@ -838,7 +838,7 @@ st.markdown(f"""
         </div>
         <div class="parameter-item">
             <div class="param-label orange">H/C</div>
-            <div class="param-value" id="param-HC">{st.session_state.parameters["H/C"]:.3f}</div>
+            <div class="param-value" id="param-HC">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('H/C', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('H/C', 0.1)">+</button>
@@ -846,7 +846,7 @@ st.markdown(f"""
         </div>
         <div class="parameter-item">
             <div class="param-label orange">N/C</div>
-            <div class="param-value" id="param-NC">{st.session_state.parameters["N/C"]:.3f}</div>
+            <div class="param-value" id="param-NC">6.460</div>
             <div class="param-buttons">
                 <button class="param-btn minus" onclick="adjustParam('N/C', -0.1)">-</button>
                 <button class="param-btn plus" onclick="adjustParam('N/C', 0.1)">+</button>
