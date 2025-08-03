@@ -84,16 +84,14 @@ if 'parameters' not in st.session_state:
 if st.session_state.selected_model:
     st.session_state.prediction_result = predict_yield(st.session_state.selected_model, st.session_state.parameters)
 
-# GitHub图片URL
-GITHUB_BASE_URL = "https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/"
-BACKGROUND_URL = f"{GITHUB_BASE_URL}背景.png"
-FIRE_ICON_URL = f"{GITHUB_BASE_URL}火焰.png"
-OIL_ICON_URL = f"{GITHUB_BASE_URL}生物油.png"
-GAS_ICON_URL = f"{GITHUB_BASE_URL}气体.png"
-USER_ICON_URL = f"{GITHUB_BASE_URL}用户.png"
-SEARCH_ICON_URL = f"{GITHUB_BASE_URL}搜索.png"
-SETTINGS_ICON_URL = f"{GITHUB_BASE_URL}设置.png"
-NOTIFICATION_ICON_URL = f"{GITHUB_BASE_URL}通知.png"
+# 使用Unicode图标替代外部图片URL
+FIRE_ICON = "🔥"
+OIL_ICON = "🛢️"
+GAS_ICON = "💨"
+USER_ICON = "👤"
+SEARCH_ICON = "🔍"
+SETTINGS_ICON = "⚙️"
+NOTIFICATION_ICON = "🔔"
 
 
 
@@ -106,12 +104,9 @@ st.markdown(f"""
 footer {{visibility: hidden;}}
 .stApp > header {{visibility: hidden;}}
 
-/* 设置背景图片 */
+/* 设置背景 */
 .stApp {{
-    background-image: url('{BACKGROUND_URL}');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #26a69a 100%);
     background-attachment: fixed;
 }}
 
@@ -160,14 +155,19 @@ footer {{visibility: hidden;}}
 }}
 
 .header-icon {{
-    width: 24px;
-    height: 24px;
+    font-size: 18px;
     cursor: pointer;
     opacity: 0.8;
     transition: opacity 0.3s;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     padding: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
 }}
 
 .header-icon:hover {{
@@ -214,14 +214,17 @@ footer {{visibility: hidden;}}
     margin-bottom: 15px;
 }}
 
-.user-avatar-img {{
+.user-avatar-icon {{
     width: 50px;
     height: 50px;
     border-radius: 50%;
     background: #26a69a;
     border: 2px solid #26a69a;
-    object-fit: cover;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
 }}
 
 .user-name {{
@@ -396,9 +399,13 @@ footer {{visibility: hidden;}}
 }}
 
 .model-icon {{
+    font-size: 30px;
+    margin-bottom: 12px;
     width: 50px;
     height: 50px;
-    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }}
 
 .model-title {{
@@ -715,10 +722,10 @@ st.markdown(f"""
         <input type="text" class="search-bar" placeholder="搜索...">
     </div>
     <div class="header-icons">
-        <img src="{SEARCH_ICON_URL}" class="header-icon" alt="搜索">
-        <img src="{USER_ICON_URL}" class="header-icon" alt="用户">
-        <img src="{SETTINGS_ICON_URL}" class="header-icon" alt="设置">
-        <img src="{NOTIFICATION_ICON_URL}" class="header-icon" alt="通知">
+        <span class="header-icon">{SEARCH_ICON}</span>
+        <span class="header-icon">{USER_ICON}</span>
+        <span class="header-icon">{SETTINGS_ICON}</span>
+        <span class="header-icon">{NOTIFICATION_ICON}</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -729,7 +736,7 @@ st.markdown(f"""
     <div class="sidebar-card">
         <div class="user-section">
             <div class="user-avatar-container">
-                <img src="{USER_ICON_URL}" class="user-avatar-img" alt="用户头像">
+                <span class="user-avatar-icon">{USER_ICON}</span>
             </div>
             <div class="user-name">用户：wy1122</div>
         </div>
@@ -776,15 +783,15 @@ st.markdown('<div class="model-selection">', unsafe_allow_html=True)
 st.markdown(f"""
 <div class="model-grid">
     <div class="model-card selected" id="char-yield-card">
-        <img src="{FIRE_ICON_URL}" class="model-icon" alt="Char Yield">
+        <span class="model-icon">{FIRE_ICON}</span>
         <div class="model-title">Char Yield</div>
     </div>
     <div class="model-card" id="oil-yield-card">
-        <img src="{OIL_ICON_URL}" class="model-icon" alt="Oil Yield">
+        <span class="model-icon">{OIL_ICON}</span>
         <div class="model-title">Oil Yield</div>
     </div>
     <div class="model-card" id="gas-yield-card">
-        <img src="{GAS_ICON_URL}" class="model-icon" alt="Gas Yield">
+        <span class="model-icon">{GAS_ICON}</span>
         <div class="model-title">Gas Yield</div>
     </div>
 </div>
@@ -939,17 +946,32 @@ with col2:
         st.session_state.prediction_result = predict_yield(st.session_state.selected_model, st.session_state.parameters)
         st.rerun()
 
-# 添加参数更新按钮
-with col3:
-    if st.button("", key="update_params_hidden"):
-        # 这个按钮将由JavaScript触发来更新参数
+# 添加参数更新和模型选择按钮
+param_cols = st.columns(10)
+for i, param_name in enumerate(["M(wt%)", "Ash(wt%)", "VM(wt%)", "O/C", "H/C", "N/C", "FT(°C)", "HR(°C/min)", "FR(mL/min)"]):
+    with param_cols[i]:
+        if st.button("", key=f"update_{param_name}"):
+            # 参数更新逻辑会由JavaScript处理
+            st.rerun()
+
+# 模型选择按钮
+model_cols = st.columns(3)
+with model_cols[0]:
+    if st.button("", key="select_char_yield"):
+        st.session_state.selected_model = "Char Yield"
+        st.session_state.prediction_result = predict_yield("Char Yield", st.session_state.parameters)
         st.rerun()
 
-with col4:
-    if st.button("", key="auto_predict_hidden"):
-        # 自动预测按钮
-        result = predict_yield(st.session_state.selected_model, st.session_state.parameters)
-        st.session_state.prediction_result = result
+with model_cols[1]:
+    if st.button("", key="select_oil_yield"):
+        st.session_state.selected_model = "Oil Yield"
+        st.session_state.prediction_result = predict_yield("Oil Yield", st.session_state.parameters)
+        st.rerun()
+
+with model_cols[2]:
+    if st.button("", key="select_gas_yield"):
+        st.session_state.selected_model = "Gas Yield"
+        st.session_state.prediction_result = predict_yield("Gas Yield", st.session_state.parameters)
         st.rerun()
 
 # 关闭主内容区域
@@ -958,7 +980,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # 添加JavaScript来处理参数调整
 st.markdown("""
 <script>
-// 全局参数存储
+// 全局参数存储 - 与Streamlit同步
 let currentParams = {
     "M(wt%)": 6.460, "Ash(wt%)": 6.460, "VM(wt%)": 6.460,
     "O/C": 6.460, "H/C": 6.460, "N/C": 6.460,
@@ -969,17 +991,10 @@ let currentModel = "Char Yield";
 
 // 参数调整函数
 function adjustParam(paramName, delta) {
-    // 创建正确的参数ID映射
     const paramIdMap = {
-        "M(wt%)": "param-M",
-        "Ash(wt%)": "param-Ash",
-        "VM(wt%)": "param-VM",
-        "O/C": "param-OC",
-        "H/C": "param-HC",
-        "N/C": "param-NC",
-        "FT(°C)": "param-FT",
-        "HR(°C/min)": "param-HR",
-        "FR(mL/min)": "param-FR"
+        "M(wt%)": "param-M", "Ash(wt%)": "param-Ash", "VM(wt%)": "param-VM",
+        "O/C": "param-OC", "H/C": "param-HC", "N/C": "param-NC",
+        "FT(°C)": "param-FT", "HR(°C/min)": "param-HR", "FR(mL/min)": "param-FR"
     };
 
     const paramId = paramIdMap[paramName];
@@ -987,24 +1002,29 @@ function adjustParam(paramName, delta) {
 
     if (valueElement) {
         let currentValue = parseFloat(valueElement.textContent);
-        currentValue = Math.max(0, currentValue + delta);
+        currentValue = Math.max(0, Math.min(100, currentValue + delta));
         valueElement.textContent = currentValue.toFixed(3);
         currentParams[paramName] = currentValue;
 
-        // 模拟预测计算
+        // 自动更新预测
         updatePrediction();
+        
+        // 触发对应的隐藏按钮以同步Streamlit状态
+        triggerStreamlitUpdate(paramName, currentValue);
+    }
+}
+
+// 触发Streamlit更新
+function triggerStreamlitUpdate(paramName, value) {
+    const encodedParamName = paramName.replace(/[()/%]/g, '_').replace(/°/g, 'deg');
+    const button = document.querySelector(`[data-testid="button"][aria-label*="${encodedParamName}"]`);
+    if (button) {
+        button.click();
     }
 }
 
 // 更新预测结果
 function updatePrediction() {
-    const baseValues = {
-        "Char Yield": 27.79,
-        "Oil Yield": 45.2,
-        "Gas Yield": 29.3
-    };
-
-    // 使用与Python相同的预测逻辑
     const M = currentParams["M(wt%)"];
     const Ash = currentParams["Ash(wt%)"];
     const VM = currentParams["VM(wt%)"];
@@ -1017,7 +1037,7 @@ function updatePrediction() {
 
     let result;
     if (currentModel === "Char Yield") {
-        result = 27.79; // 固定值以匹配图片
+        result = 27.79; // 固定值以匹配原图
     } else if (currentModel === "Oil Yield") {
         result = (25.8 + 0.035 * FT + 0.25 * VM - 0.18 * HR -
                  0.15 * Ash + 0.08 * HC - 0.12 * OC + 0.02 * FR);
