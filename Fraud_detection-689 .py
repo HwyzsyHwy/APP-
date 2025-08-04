@@ -132,100 +132,82 @@ st.markdown(
         text-align: center;
     }
 
-    /* 主内容区域半透明背景 */
+    /* 创建统一的整体白色半透明背景 */
     .main .block-container {
-        background-color: rgba(255, 255, 255, 0.5) !important;
-        backdrop-filter: blur(5px) !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
-        margin-top: 20px !important;
+        background-color: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 20px !important;
+        padding: 30px !important;
+        margin: 20px auto !important;
+        max-width: 1200px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        min-height: 80vh !important;
     }
 
-    /* 页面内容容器背景 */
-    .page-content {
-        background-color: rgba(255, 255, 255, 0.8) !important;
-        padding: 20px !important;
-        border-radius: 15px !important;
-        backdrop-filter: blur(5px) !important;
-        margin: 10px 0 !important;
+    /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
+    .main .block-container .stMarkdown,
+    .main .block-container .stText,
+    .main .block-container .stExpander,
+    .main .block-container .stSelectbox,
+    .main .block-container .stButton,
+    .main .block-container .stDataFrame,
+    .main .block-container .stMetric,
+    .main .block-container .streamlit-expanderHeader,
+    .main .block-container .streamlit-expanderContent,
+    .main .block-container p,
+    .main .block-container h1,
+    .main .block-container h2,
+    .main .block-container h3,
+    .main .block-container h4,
+    .main .block-container h5,
+    .main .block-container h6,
+    .main .block-container ul,
+    .main .block-container li,
+    .main .block-container div {
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    /* 确保文本颜色在白色背景上清晰可见 */
+    .main .block-container * {
         color: #333 !important;
     }
 
-    /* 页面内容内的文本元素移除单独背景 */
-    .page-content .stMarkdown,
-    .page-content .stText,
-    .page-content p,
-    .page-content h1,
-    .page-content h2,
-    .page-content h3,
-    .page-content h4,
-    .page-content ul,
-    .page-content li {
-        background-color: transparent !important;
-        padding: 5px 0 !important;
-        border-radius: 0 !important;
-        backdrop-filter: none !important;
-        margin: 5px 0 !important;
-    }
-
-    /* 保持其他地方的文本元素背景 */
-    .stMarkdown, .stText {
-        background-color: rgba(255, 255, 255, 0.7) !important;
-        padding: 10px !important;
-        border-radius: 8px !important;
-        backdrop-filter: blur(3px) !important;
-        margin: 5px 0 !important;
-    }
-
-    /* 展开器样式 */
-    .streamlit-expanderHeader {
-        background-color: rgba(255, 255, 255, 0.8) !important;
-        backdrop-filter: blur(3px) !important;
-        border-radius: 8px !important;
-    }
-
-    .streamlit-expanderContent {
-        background-color: rgba(255, 255, 255, 0.7) !important;
-        backdrop-filter: blur(3px) !important;
-        border-radius: 8px !important;
-    }
-
-    /* 标题 */
+    /* 标题样式 - 在统一背景上显示 */
     .main-title {
         text-align: center;
         font-size: 32px !important;
         font-weight: bold;
         margin-bottom: 20px;
-        color: white !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        background-color: rgba(255, 255, 255, 0.6) !important;
+        color: #333 !important;
+        text-shadow: none !important;
+        background-color: transparent !important;
         padding: 15px !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(5px) !important;
     }
-    
-    /* 区域样式 */
+
+    /* 区域标题样式 - 在统一背景上显示 */
     .section-header {
-        color: white;
+        color: #333 !important;
         font-weight: bold;
         font-size: 22px;
         text-align: center;
         padding: 10px;
-        border-radius: 8px;
         margin-bottom: 15px;
-        background-color: rgba(255, 255, 255, 0.7) !important;
-        backdrop-filter: blur(3px) !important;
+        background-color: transparent !important;
     }
-    
-    /* 输入标签样式 */
+
+    /* 输入标签样式 - 在统一背景上显示 */
     .input-label {
         padding: 5px;
-        border-radius: 5px;
         margin-bottom: 5px;
         font-size: 18px;
-        color: white;
-        background-color: rgba(255, 255, 255, 0.7) !important;
-        backdrop-filter: blur(3px) !important;
+        color: #333 !important;
+        background-color: transparent !important;
+        font-weight: 500 !important;
     }
     
     /* 结果显示样式 */
@@ -286,7 +268,7 @@ st.markdown(
         color: #333;
     }
     
-    /* 日志样式 */
+    /* 日志样式 - 保留背景框 */
     .log-container {
         height: 300px;
         overflow-y: auto;
@@ -298,6 +280,23 @@ st.markdown(
         font-size: 14px !important;
         backdrop-filter: blur(5px);
         text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    /* 页面内容样式 - 与日志容器相同的白色半透明背景 */
+    .page-content {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        color: #333 !important;
+        padding: 20px !important;
+        border-radius: 15px !important;
+        backdrop-filter: blur(5px) !important;
+        margin: 10px 0 !important;
+        min-height: 400px !important;
+    }
+
+    /* 确保页面内容内的所有元素都没有单独背景 */
+    .page-content * {
+        background-color: transparent !important;
+        backdrop-filter: none !important;
     }
     
     /* 模型选择器样式 */
@@ -311,7 +310,84 @@ st.markdown(
         color: white;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
     }
-    
+
+    /* 导航按钮基础样式 - 灰色背景 */
+    .stSidebar [data-testid="stButton"] > button {
+        background-color: rgba(128, 128, 128, 0.7) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 15px !important;
+        margin: 5px 0 !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+    }
+
+    /* 选中状态的导航按钮 - 青绿色高亮 */
+    .stSidebar [data-testid="stButton"] > button[kind="primary"] {
+        background-color: rgba(0, 150, 136, 0.9) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4) !important;
+    }
+
+    /* 导航按钮悬停效果 */
+    .stSidebar [data-testid="stButton"] > button:hover {
+        background-color: rgba(100, 100, 100, 0.8) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* 选中按钮的悬停效果 */
+    .stSidebar [data-testid="stButton"] > button[kind="primary"]:hover {
+        background-color: rgba(0, 121, 107, 1.0) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* 自定义导航按钮样式 */
+    .nav-button {
+        background-color: rgba(128, 128, 128, 0.7);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin: 5px 0;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        width: 100%;
+        text-align: center;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    /* 选中状态的导航按钮 */
+    .nav-button-active {
+        background-color: rgba(0, 255, 0, 0.8) !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 15px;
+        margin: 5px 0;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        width: 100%;
+        text-align: center;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0, 255, 0, 0.3);
+    }
+
+    /* 导航按钮悬停效果 */
+    .nav-button:hover {
+        background-color: rgba(100, 100, 100, 0.8);
+        transform: translateY(-1px);
+    }
+
+    .nav-button-active:hover {
+        background-color: rgba(0, 200, 0, 0.9) !important;
+        transform: translateY(-1px);
+    }
+
     /* 模型切换按钮组样式 */
     div[data-testid="stHorizontalBlock"] [data-testid="stButton"] {
         margin: 0 5px;
@@ -376,20 +452,33 @@ with st.sidebar:
     col1, = st.columns([1])
 
     with col1:
-        if st.button("🔮 预测模型", key="nav_predict", use_container_width=True):
+        # 创建导航按钮 - 使用更直接的方法处理状态
+        current_page = st.session_state.current_page
+
+        # 预测模型按钮
+        if st.button("预测模型", key="nav_predict", use_container_width=True, type="primary" if current_page == "预测模型" else "secondary"):
             st.session_state.current_page = "预测模型"
+            st.rerun()
 
-        if st.button("📊 执行日志", key="nav_log", use_container_width=True):
+        # 执行日志按钮
+        if st.button("执行日志", key="nav_log", use_container_width=True, type="primary" if current_page == "执行日志" else "secondary"):
             st.session_state.current_page = "执行日志"
+            st.rerun()
 
-        if st.button("ℹ️ 模型信息", key="nav_info", use_container_width=True):
+        # 模型信息按钮
+        if st.button("模型信息", key="nav_info", use_container_width=True, type="primary" if current_page == "模型信息" else "secondary"):
             st.session_state.current_page = "模型信息"
+            st.rerun()
 
-        if st.button("📖 技术说明", key="nav_tech", use_container_width=True):
+        # 技术说明按钮
+        if st.button("技术说明", key="nav_tech", use_container_width=True, type="primary" if current_page == "技术说明" else "secondary"):
             st.session_state.current_page = "技术说明"
+            st.rerun()
 
-        if st.button("📋 使用指南", key="nav_guide", use_container_width=True):
+        # 使用指南按钮
+        if st.button("使用指南", key="nav_guide", use_container_width=True, type="primary" if current_page == "使用指南" else "secondary"):
             st.session_state.current_page = "使用指南"
+            st.rerun()
 
 # 创建日志区域（仅在执行日志页面显示）
 if st.session_state.current_page == "执行日志":
@@ -432,56 +521,58 @@ if 'selected_model' not in st.session_state:
 if 'model_cache' not in st.session_state:
     st.session_state.model_cache = {}
     
-# 更新主标题以显示当前选定的模型
-st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
+# 只在预测模型页面显示标题和模型选择器
+if st.session_state.current_page == "预测模型":
+    # 更新主标题以显示当前选定的模型
+    st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
 
-# 添加模型选择区域 - 修改为三个按钮一排
-st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
-st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
-col1, col2, col3 = st.columns(3)
-with col1:
-    char_button = st.button("🔥 Char Yield", 
-                           key="char_button", 
-                           help="预测焦炭产率 (wt%)", 
-                           use_container_width=True,
-                           type="primary" if st.session_state.selected_model == "Char Yield" else "secondary")
-with col2:
-    oil_button = st.button("🛢️ Oil Yield", 
-                          key="oil_button", 
-                          help="预测生物油产率 (wt%)", 
-                          use_container_width=True,
-                          type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary")
-with col3:
-    gas_button = st.button("💨 Gas Yield", 
-                          key="gas_button", 
-                          help="预测气体产率 (wt%)", 
-                          use_container_width=True,
-                          type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary")
+    # 添加模型选择区域 - 修改为三个按钮一排
+    st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
+    st.markdown("<h3>选择预测目标</h3>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        char_button = st.button("🔥 Char Yield",
+                               key="char_button",
+                               help="预测焦炭产率 (wt%)",
+                               use_container_width=True,
+                               type="primary" if st.session_state.selected_model == "Char Yield" else "secondary")
+    with col2:
+        oil_button = st.button("🛢️ Oil Yield",
+                              key="oil_button",
+                              help="预测生物油产率 (wt%)",
+                              use_container_width=True,
+                              type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary")
+    with col3:
+        gas_button = st.button("💨 Gas Yield",
+                              key="gas_button",
+                              help="预测气体产率 (wt%)",
+                              use_container_width=True,
+                              type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary")
 
-# 处理模型选择 - 修改为切换模型时不重置输入值
-if char_button and st.session_state.selected_model != "Char Yield":
-    st.session_state.selected_model = "Char Yield"
-    st.session_state.prediction_result = None
-    st.session_state.warnings = []
-    log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()
+    # 处理模型选择 - 修改为切换模型时不重置输入值
+    if char_button and st.session_state.selected_model != "Char Yield":
+        st.session_state.selected_model = "Char Yield"
+        st.session_state.prediction_result = None
+        st.session_state.warnings = []
+        log(f"切换到模型: {st.session_state.selected_model}")
+        st.rerun()
 
-if oil_button and st.session_state.selected_model != "Oil Yield":
-    st.session_state.selected_model = "Oil Yield"
-    st.session_state.prediction_result = None
-    st.session_state.warnings = []
-    log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()
+    if oil_button and st.session_state.selected_model != "Oil Yield":
+        st.session_state.selected_model = "Oil Yield"
+        st.session_state.prediction_result = None
+        st.session_state.warnings = []
+        log(f"切换到模型: {st.session_state.selected_model}")
+        st.rerun()
 
-if gas_button and st.session_state.selected_model != "Gas Yield":
-    st.session_state.selected_model = "Gas Yield"
-    st.session_state.prediction_result = None
-    st.session_state.warnings = []
-    log(f"切换到模型: {st.session_state.selected_model}")
-    st.rerun()
+    if gas_button and st.session_state.selected_model != "Gas Yield":
+        st.session_state.selected_model = "Gas Yield"
+        st.session_state.prediction_result = None
+        st.session_state.warnings = []
+        log(f"切换到模型: {st.session_state.selected_model}")
+        st.rerun()
 
-st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 class ModelPredictor:
     """根据图片特征统计信息正确调整的预测器类"""
@@ -781,70 +872,83 @@ predictor = ModelPredictor(target_model=st.session_state.selected_model)
 
 # 根据当前页面显示不同内容
 if st.session_state.current_page == "模型信息":
-    # 显示模型信息页面
-    st.markdown('<div class="page-content">', unsafe_allow_html=True)
-    st.markdown("## 📊 模型信息")
+    # 只显示模型信息内容，不显示标题和其他内容
     model_info = predictor.get_model_info()
 
+    # 构建完整的HTML内容
+    info_content = '<div class="page-content">'
     for key, value in model_info.items():
-        st.markdown(f"**{key}**: {value}")
-    st.markdown('</div>', unsafe_allow_html=True)
+        info_content += f"<p><strong>{key}</strong>: {value}</p>"
+    info_content += '</div>'
+
+    st.markdown(info_content, unsafe_allow_html=True)
 
 elif st.session_state.current_page == "执行日志":
-    # 显示执行日志页面
-    st.markdown('<div class="page-content">', unsafe_allow_html=True)
-    st.markdown("## 📋 执行日志")
+    # 只显示执行日志内容，不显示标题和其他内容
     if st.session_state.log_messages:
-        for log_msg in st.session_state.log_messages[-20:]:  # 显示最近20条日志
-            st.text(log_msg)
+        # 将所有日志消息合并成一个完整的白色半透明背景显示
+        log_content = "<br>".join(st.session_state.log_messages[-50:])  # 显示最近50条日志
+        st.markdown(
+            f'<div class="log-container">{log_content}</div>',
+            unsafe_allow_html=True
+        )
     else:
-        st.info("暂无日志记录")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="log-container">暂无日志记录</div>', unsafe_allow_html=True)
 
 elif st.session_state.current_page == "技术说明":
-    # 显示技术说明页面
-    st.markdown('<div class="page-content">', unsafe_allow_html=True)
-    st.markdown("## 📖 技术说明")
-    st.markdown("""
-    ### 模型架构
-    本系统采用GBDT（Gradient Boosting Decision Tree）集成学习算法，结合RobustScaler数据预处理技术。
+    # 只显示技术说明内容，不显示标题和其他内容
+    tech_content = """
+    <div class="page-content">
+    <h3>模型架构</h3>
+    <p>本系统采用GBDT（Gradient Boosting Decision Tree）集成学习算法，结合RobustScaler数据预处理技术。</p>
 
-    ### 特征工程
-    - **工业分析**: 水分(M)、灰分(Ash)、挥发分(VM)
-    - **元素分析**: O/C、H/C、N/C原子比
-    - **热解条件**: 最终温度(FT)、升温速率(HR)、载气流量(FR)
+    <h3>特征工程</h3>
+    <ul>
+    <li><strong>工业分析</strong>: 水分(M)、灰分(Ash)、挥发分(VM)</li>
+    <li><strong>元素分析</strong>: O/C、H/C、N/C原子比</li>
+    <li><strong>热解条件</strong>: 最终温度(FT)、升温速率(HR)、载气流量(FR)</li>
+    </ul>
 
-    ### 模型性能
-    - 训练集R²: > 0.95
-    - 测试集R²: > 0.90
-    - 平均绝对误差: < 2%
-    """)
-    st.markdown('</div>', unsafe_allow_html=True)
+    <h3>模型性能</h3>
+    <ul>
+    <li>训练集R²: > 0.95</li>
+    <li>测试集R²: > 0.90</li>
+    <li>平均绝对误差: < 2%</li>
+    </ul>
+    </div>
+    """
+    st.markdown(tech_content, unsafe_allow_html=True)
 
 elif st.session_state.current_page == "使用指南":
-    # 显示使用指南页面
-    st.markdown('<div class="page-content">', unsafe_allow_html=True)
-    st.markdown("## 📋 使用指南")
-    st.markdown("""
-    ### 操作步骤
-    1. 在左侧导航栏选择"预测模型"
-    2. 输入生物质的工业分析数据
-    3. 输入元素分析数据
-    4. 设置热解工艺条件
-    5. 点击"预测"按钮获得结果
+    # 只显示使用指南内容，不显示标题和其他内容
+    guide_content = """
+    <div class="page-content">
+    <h3>操作步骤</h3>
+    <ol>
+    <li>在左侧导航栏选择"预测模型"</li>
+    <li>输入生物质的工业分析数据</li>
+    <li>输入元素分析数据</li>
+    <li>设置热解工艺条件</li>
+    <li>点击"预测"按钮获得结果</li>
+    </ol>
 
-    ### 数据要求
-    - 所有数值应为正数
-    - 工业分析数据单位为wt%
-    - 温度单位为°C
-    - 流量单位为mL/min
+    <h3>数据要求</h3>
+    <ul>
+    <li>所有数值应为正数</li>
+    <li>工业分析数据单位为wt%</li>
+    <li>温度单位为°C</li>
+    <li>流量单位为mL/min</li>
+    </ul>
 
-    ### 注意事项
-    - 确保输入数据在合理范围内
-    - 模型适用于常见生物质原料
-    - 预测结果仅供参考
-    """)
-    st.markdown('</div>', unsafe_allow_html=True)
+    <h3>注意事项</h3>
+    <ul>
+    <li>确保输入数据在合理范围内</li>
+    <li>模型适用于常见生物质原料</li>
+    <li>预测结果仅供参考</li>
+    </ul>
+    </div>
+    """
+    st.markdown(guide_content, unsafe_allow_html=True)
 
 elif st.session_state.current_page == "预测模型":
     # 显示预测模型页面（原有的主要功能）
@@ -944,176 +1048,176 @@ elif st.session_state.current_page == "预测模型":
                     label_visibility="collapsed"
                 )
 
-# Pyrolysis Conditions - 第三列
-with col3:
-    category = "Pyrolysis Conditions"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.feature_values.get(feature, default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            # 不同特征使用不同的步长
-            if feature == "FT(°C)":
-                step = 1.0
-                format_str = "%.1f"
-            elif feature == "FR(mL/min)":
-                step = 1.0
-                format_str = "%.1f"
-            else:  # HR(°C/min)
-                step = 0.1
-                format_str = "%.2f"
-            
-            features[feature] = st.number_input(
-                "", 
-                value=float(value), 
-                step=step,
-                key=f"{category}_{feature}",
-                format=format_str,
-                label_visibility="collapsed"
-            )
+    # Pyrolysis Conditions - 第三列
+    with col3:
+        category = "Pyrolysis Conditions"
+        color = category_colors[category]
+        st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
 
-# 调试信息：显示所有当前输入值
-with st.expander("📊 显示当前输入值", expanded=False):
-    debug_info = "<div style='columns: 3; column-gap: 20px;'>"
-    for feature, value in features.items():
-        debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
-    debug_info += "</div>"
-    st.markdown(debug_info, unsafe_allow_html=True)
-
-# 重置状态
-if st.session_state.clear_pressed:
-    st.session_state.feature_values = {}
-    st.session_state.clear_pressed = False
-
-# 预测结果显示区域
-result_container = st.container()
-
-# 预测按钮区域
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
-    if predict_clicked:
-        log("开始预测流程...")
-        
-        # 切换模型后需要重新初始化预测器
-        if predictor.target_name != st.session_state.selected_model:
-            log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
-            predictor = ModelPredictor(target_model=st.session_state.selected_model)
-        
-        # 保存当前输入到会话状态
-        st.session_state.feature_values = features.copy()
-        
-        log(f"开始{st.session_state.selected_model}预测，输入特征数: {len(features)}")
-        
-        # 检查输入范围
-        warnings = predictor.check_input_range(features)
-        st.session_state.warnings = warnings
-        
-        # 执行预测
-        try:
-            # 确保预测器已正确加载
-            if not predictor.model_loaded:
-                log("模型未加载，尝试重新加载")
-                if predictor._find_model_file() and predictor._load_pipeline():
-                    log("重新加载模型成功")
-                else:
-                    error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
-                    st.error(error_msg)
-                    st.session_state.prediction_error = error_msg
-                    st.rerun()
-            
-            # 执行预测
-            result = predictor.predict(features)
-            if result is not None:
-                st.session_state.prediction_result = float(result)
-                log(f"预测成功: {st.session_state.prediction_result:.4f}")
-                st.session_state.prediction_error = None
+        for feature in feature_categories[category]:
+            if st.session_state.clear_pressed:
+                value = default_values[feature]
             else:
-                log("警告: 预测结果为空")
-                st.session_state.prediction_error = "预测结果为空"
-                
-        except Exception as e:
-            error_msg = f"预测过程中发生错误: {str(e)}"
-            st.session_state.prediction_error = error_msg
-            log(f"预测错误: {str(e)}")
-            log(traceback.format_exc())
-            st.error(error_msg)
+                value = st.session_state.feature_values.get(feature, default_values[feature])
 
-with col2:
-    if st.button("🔄 重置输入", use_container_width=True):
-        log("重置所有输入值")
-        st.session_state.clear_pressed = True
-        st.session_state.prediction_result = None
-        st.session_state.warnings = []
-        st.session_state.prediction_error = None
-        st.rerun()
+            col_a, col_b = st.columns([1, 0.5])
+            with col_a:
+                st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
+            with col_b:
+                # 不同特征使用不同的步长
+                if feature == "FT(°C)":
+                    step = 1.0
+                    format_str = "%.1f"
+                elif feature == "FR(mL/min)":
+                    step = 1.0
+                    format_str = "%.1f"
+                else:  # HR(°C/min)
+                    step = 0.1
+                    format_str = "%.2f"
 
-# 显示预测结果
-if st.session_state.prediction_result is not None:
-    st.markdown("---")
-    
-    # 显示主预测结果
-    result_container.markdown(
-        f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>", 
-        unsafe_allow_html=True
-    )
-    
-    # 显示模型状态
-    if not predictor.model_loaded:
+                features[feature] = st.number_input(
+                    "",
+                    value=float(value),
+                    step=step,
+                    key=f"{category}_{feature}",
+                    format=format_str,
+                    label_visibility="collapsed"
+                )
+
+    # 调试信息：显示所有当前输入值
+    with st.expander("📊 显示当前输入值", expanded=False):
+        debug_info = "<div style='columns: 3; column-gap: 20px;'>"
+        for feature, value in features.items():
+            debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
+        debug_info += "</div>"
+        st.markdown(debug_info, unsafe_allow_html=True)
+
+    # 重置状态
+    if st.session_state.clear_pressed:
+        st.session_state.feature_values = {}
+        st.session_state.clear_pressed = False
+
+    # 预测结果显示区域
+    result_container = st.container()
+
+    # 预测按钮区域
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
+        if predict_clicked:
+            log("开始预测流程...")
+
+            # 切换模型后需要重新初始化预测器
+            if predictor.target_name != st.session_state.selected_model:
+                log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
+                predictor = ModelPredictor(target_model=st.session_state.selected_model)
+
+            # 保存当前输入到会话状态
+            st.session_state.feature_values = features.copy()
+
+            log(f"开始{st.session_state.selected_model}预测，输入特征数: {len(features)}")
+
+            # 检查输入范围
+            warnings = predictor.check_input_range(features)
+            st.session_state.warnings = warnings
+
+            # 执行预测
+            try:
+                # 确保预测器已正确加载
+                if not predictor.model_loaded:
+                    log("模型未加载，尝试重新加载")
+                    if predictor._find_model_file() and predictor._load_pipeline():
+                        log("重新加载模型成功")
+                    else:
+                        error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
+                        st.error(error_msg)
+                        st.session_state.prediction_error = error_msg
+                        st.rerun()
+
+                # 执行预测
+                result = predictor.predict(features)
+                if result is not None:
+                    st.session_state.prediction_result = float(result)
+                    log(f"预测成功: {st.session_state.prediction_result:.4f}")
+                    st.session_state.prediction_error = None
+                else:
+                    log("警告: 预测结果为空")
+                    st.session_state.prediction_error = "预测结果为空"
+
+            except Exception as e:
+                error_msg = f"预测过程中发生错误: {str(e)}"
+                st.session_state.prediction_error = error_msg
+                log(f"预测错误: {str(e)}")
+                log(traceback.format_exc())
+                st.error(error_msg)
+
+    with col2:
+        if st.button("🔄 重置输入", use_container_width=True):
+            log("重置所有输入值")
+            st.session_state.clear_pressed = True
+            st.session_state.prediction_result = None
+            st.session_state.warnings = []
+            st.session_state.prediction_error = None
+            st.rerun()
+
+    # 显示预测结果
+    if st.session_state.prediction_result is not None:
+        st.markdown("---")
+
+        # 显示主预测结果
         result_container.markdown(
-            "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查模型文件是否存在。</div>", 
+            f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>",
             unsafe_allow_html=True
         )
-    
-    # 显示警告
-    if st.session_state.warnings:
-        warnings_html = "<div class='warning-box'><b>⚠️ 输入警告</b><ul>"
-        for warning in st.session_state.warnings:
-            warnings_html += f"<li>{warning}</li>"
-        warnings_html += "</ul><p><i>建议调整输入值以获得更准确的预测结果。</i></p></div>"
-        result_container.markdown(warnings_html, unsafe_allow_html=True)
-    
-    # 显示预测详情
-    with st.expander("📈 预测详情", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown(f"""
-            **预测信息:**
-            - 目标变量: {st.session_state.selected_model}
-            - 预测结果: {st.session_state.prediction_result:.4f} wt%
-            - 模型类型: GBDT Pipeline
-            - 预处理: RobustScaler
-            """)
-        with col2:
-            st.markdown(f"""
-            **模型状态:**
-            - 加载状态: {'✅ 正常' if predictor.model_loaded else '❌ 失败'}
-            - 特征数量: {len(predictor.feature_names)}
-            - 警告数量: {len(st.session_state.warnings)}
-            """)
 
-elif st.session_state.prediction_error is not None:
-    st.markdown("---")
-    error_html = f"""
-    <div class='error-box'>
-        <h3>❌ 预测失败</h3>
-        <p><b>错误信息:</b> {st.session_state.prediction_error}</p>
-        <p><b>可能的解决方案:</b></p>
-        <ul>
-            <li>确保模型文件 (.joblib) 存在于应用目录中</li>
-            <li>检查模型文件名是否包含对应的关键词 (char/oil/gas)</li>
-            <li>验证输入数据格式是否正确</li>
-            <li>确认特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR</li>
-        </ul>
-    </div>
-    """
-    st.markdown(error_html, unsafe_allow_html=True)
+        # 显示模型状态
+        if not predictor.model_loaded:
+            result_container.markdown(
+                "<div class='error-box'><b>⚠️ 错误：</b> 模型未成功加载，无法执行预测。请检查模型文件是否存在。</div>",
+                unsafe_allow_html=True
+            )
+
+        # 显示警告
+        if st.session_state.warnings:
+            warnings_html = "<div class='warning-box'><b>⚠️ 输入警告</b><ul>"
+            for warning in st.session_state.warnings:
+                warnings_html += f"<li>{warning}</li>"
+            warnings_html += "</ul><p><i>建议调整输入值以获得更准确的预测结果。</i></p></div>"
+            result_container.markdown(warnings_html, unsafe_allow_html=True)
+
+        # 显示预测详情
+        with st.expander("📈 预测详情", expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+                **预测信息:**
+                - 目标变量: {st.session_state.selected_model}
+                - 预测结果: {st.session_state.prediction_result:.4f} wt%
+                - 模型类型: GBDT Pipeline
+                - 预处理: RobustScaler
+                """)
+            with col2:
+                st.markdown(f"""
+                **模型状态:**
+                - 加载状态: {'✅ 正常' if predictor.model_loaded else '❌ 失败'}
+                - 特征数量: {len(predictor.feature_names)}
+                - 警告数量: {len(st.session_state.warnings)}
+                """)
+
+    elif st.session_state.prediction_error is not None:
+        st.markdown("---")
+        error_html = f"""
+        <div class='error-box'>
+            <h3>❌ 预测失败</h3>
+            <p><b>错误信息:</b> {st.session_state.prediction_error}</p>
+            <p><b>可能的解决方案:</b></p>
+            <ul>
+                <li>确保模型文件 (.joblib) 存在于应用目录中</li>
+                <li>检查模型文件名是否包含对应的关键词 (char/oil/gas)</li>
+                <li>验证输入数据格式是否正确</li>
+                <li>确认特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR</li>
+            </ul>
+        </div>
+        """
+        st.markdown(error_html, unsafe_allow_html=True)
