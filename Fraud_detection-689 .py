@@ -539,132 +539,109 @@ if st.session_state.current_page == "预测模型":
     # 添加模型选择卡片的自定义样式
     st.markdown("""
     <style>
+    /* 模型选择卡片容器 */
+    .model-card-container {
+        display: flex;
+        gap: 15px;
+        margin: 20px 0;
+        justify-content: space-between;
+    }
+
     /* 模型选择卡片样式 */
-    button[key="char_button"],
-    button[key="oil_button"],
-    button[key="gas_button"] {
-        height: 120px !important;
-        border-radius: 15px !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
-        white-space: pre-line !important;
-        transition: all 0.3s ease !important;
-        margin: 5px !important;
-        position: relative !important;
+    .model-card {
+        flex: 1;
+        height: 120px;
+        border-radius: 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        position: relative;
+        padding: 20px;
+        box-sizing: border-box;
     }
 
     /* 未选中状态的卡片 - 白色轻微透明背景 */
-    button[key="char_button"][kind="secondary"],
-    button[key="oil_button"][kind="secondary"],
-    button[key="gas_button"][kind="secondary"] {
-        background: rgba(255,255,255,0.8) !important;
-        color: #333 !important;
-        border: 2px solid rgba(255,255,255,0.3) !important;
+    .model-card.unselected {
+        background: rgba(255,255,255,0.8);
+        color: #333;
+        border: 2px solid rgba(255,255,255,0.3);
     }
 
     /* 选中状态的卡片 - 绿色背景（参考侧边栏） */
-    button[key="char_button"][kind="primary"],
-    button[key="oil_button"][kind="primary"],
-    button[key="gas_button"][kind="primary"] {
-        background-color: rgba(0, 150, 136, 0.9) !important;
-        color: white !important;
-        border: 2px solid rgba(0, 150, 136, 0.5) !important;
-        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4) !important;
-        font-weight: 600 !important;
+    .model-card.selected {
+        background-color: rgba(0, 150, 136, 0.9);
+        color: white;
+        border: 2px solid rgba(0, 150, 136, 0.5);
+        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4);
     }
 
     /* 悬停效果 */
-    button[key="char_button"]:hover,
-    button[key="oil_button"]:hover,
-    button[key="gas_button"]:hover {
-        transform: translateY(-1px) !important;
+    .model-card:hover {
+        transform: translateY(-1px);
     }
 
-    /* 选中按钮的悬停效果 */
-    button[key="char_button"][kind="primary"]:hover,
-    button[key="oil_button"][kind="primary"]:hover,
-    button[key="gas_button"][kind="primary"]:hover {
-        background-color: rgba(0, 121, 107, 1.0) !important;
-        transform: translateY(-1px) !important;
+    /* 选中卡片的悬停效果 */
+    .model-card.selected:hover {
+        background-color: rgba(0, 121, 107, 1.0);
     }
 
-    /* 添加图标背景 */
-    button[key="char_button"]::before {
-        content: "";
-        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/火焰.png');
-        background-size: 40px 40px;
-        background-repeat: no-repeat;
-        background-position: center top;
+    /* 图标样式 */
+    .model-card-icon {
         width: 40px;
         height: 40px;
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
+        margin-bottom: 10px;
     }
 
-    button[key="oil_button"]::before {
-        content: "";
-        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/生物油.png');
-        background-size: 40px 40px;
-        background-repeat: no-repeat;
-        background-position: center top;
-        width: 40px;
-        height: 40px;
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
+    /* 文字样式 */
+    .model-card-text {
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
     }
 
-    button[key="gas_button"]::before {
-        content: "";
-        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/气体.png');
-        background-size: 40px 40px;
-        background-repeat: no-repeat;
-        background-position: center top;
-        width: 40px;
-        height: 40px;
-        position: absolute;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
     </style>
     """, unsafe_allow_html=True)
 
-    # 创建三个可点击的卡片
+    # 模型选择卡片
+    char_selected = st.session_state.selected_model == "Char Yield"
+    oil_selected = st.session_state.selected_model == "Oil Yield"
+    gas_selected = st.session_state.selected_model == "Gas Yield"
+
+    # 创建HTML卡片
+    cards_html = f"""
+    <div class="model-card-container">
+        <div class="model-card {'selected' if char_selected else 'unselected'}" id="char-card">
+            <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/火焰.png" class="model-card-icon" alt="Char Yield">
+            <div class="model-card-text">Char Yield</div>
+        </div>
+        <div class="model-card {'selected' if oil_selected else 'unselected'}" id="oil-card">
+            <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/生物油.png" class="model-card-icon" alt="Oil Yield">
+            <div class="model-card-text">Oil Yield</div>
+        </div>
+        <div class="model-card {'selected' if gas_selected else 'unselected'}" id="gas-card">
+            <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/气体.png" class="model-card-icon" alt="Gas Yield">
+            <div class="model-card-text">Gas Yield</div>
+        </div>
+    </div>
+    """
+
+    st.markdown(cards_html, unsafe_allow_html=True)
+
+    # 使用隐藏的按钮来处理点击事件
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        char_selected = st.session_state.selected_model == "Char Yield"
-        # 使用新的火焰图标
-        char_button = st.button(
-            "\n\n\n\nChar Yield",
-            key="char_button",
-            use_container_width=True,
-            type="primary" if char_selected else "secondary"
-        )
+        char_button = st.button("", key="char_button", help="Select Char Yield model")
 
     with col2:
-        oil_selected = st.session_state.selected_model == "Oil Yield"
-        # 使用新的生物油图标
-        oil_button = st.button(
-            "\n\n\n\nOil Yield",
-            key="oil_button",
-            use_container_width=True,
-            type="primary" if oil_selected else "secondary"
-        )
+        oil_button = st.button("", key="oil_button", help="Select Oil Yield model")
 
     with col3:
-        gas_selected = st.session_state.selected_model == "Gas Yield"
-        # 使用新的气体图标
-        gas_button = st.button(
-            "\n\n\n\nGas Yield",
-            key="gas_button",
-            use_container_width=True,
-            type="primary" if gas_selected else "secondary"
-        )
+        gas_button = st.button("", key="gas_button", help="Select Gas Yield model")
 
     # 处理模型选择 - 修改为切换模型时不重置输入值
     if char_button and st.session_state.selected_model != "Char Yield":
@@ -687,6 +664,8 @@ if st.session_state.current_page == "预测模型":
         st.session_state.warnings = []
         log(f"切换到模型: {st.session_state.selected_model}")
         st.rerun()
+
+
 
     st.markdown(f"<p style='text-align:center; color: white; margin-top: 20px; font-size: 18px;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
 
