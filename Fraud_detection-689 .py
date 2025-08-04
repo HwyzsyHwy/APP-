@@ -636,9 +636,9 @@ if st.session_state.current_page == "预测模型":
 
     /* 选中状态的模型卡片 - 绿色背景 */
     .model-card-selected {
-        background: linear-gradient(135deg, #00d2d3, #01a3a4) !important;
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
         color: white !important;
-        border: 3px solid #00d2d3 !important;
+        border: 3px solid #28a745 !important;
     }
 
     </style>
@@ -696,8 +696,8 @@ if st.session_state.current_page == "预测模型":
             if ((selectedModel === 'Char Yield' && btn.textContent.includes('Char Yield')) ||
                 (selectedModel === 'Oil Yield' && btn.textContent.includes('Oil Yield')) ||
                 (selectedModel === 'Gas Yield' && btn.textContent.includes('Gas Yield'))) {{
-                btn.style.background = 'linear-gradient(135deg, #00d2d3, #01a3a4)';
-                btn.style.border = '3px solid #00d2d3';
+                btn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                btn.style.border = '3px solid #28a745';
                 btn.style.color = 'white';
             }}
         }});
