@@ -613,43 +613,63 @@ if st.session_state.current_page == "预测模型":
         position: relative !important;
     }
 
-    /* 模型卡片按钮样式 - 只影响主区域的模型选择按钮 */
-    div[data-testid="stHorizontalBlock"] .stButton > button {
-        background: rgba(255,255,255,0.85) !important;
+    /* 模型卡片按钮样式 - secondary按钮（未选中） */
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+        background: rgba(255,255,255,0.1) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
         border-radius: 15px !important;
         padding: 20px !important;
         height: auto !important;
         min-height: 120px !important;
-        color: #333 !important;
+        color: white !important;
         font-weight: bold !important;
         font-size: 16px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
         transition: all 0.3s ease !important;
     }
 
-    div[data-testid="stHorizontalBlock"] .stButton > button:hover {
-        background: rgba(255,255,255,0.95) !important;
+    /* 模型卡片按钮样式 - primary按钮（选中） */
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"],
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        background: linear-gradient(135deg, #20b2aa, #17a2b8) !important;
+        border: 3px solid #20b2aa !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        height: auto !important;
+        min-height: 120px !important;
+        color: white !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        box-shadow: 0 12px 40px rgba(32, 178, 170, 0.3) !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.15) !important;
+        transition: all 0.3s ease !important;
     }
 
-    /* 选中状态的模型卡片 - 绿色背景 */
-    .model-card-selected {
-        background: linear-gradient(135deg, #28a745, #20c997) !important;
-        color: white !important;
-        border: 3px solid #28a745 !important;
+    /* 悬停效果 */
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:hover,
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
+        background: rgba(255,255,255,0.2) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 40px rgba(255,255,255,0.1) !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"]:hover,
+    div[data-testid="stHorizontalBlock"] button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #17a2b8, #20b2aa) !important;
+        transform: translateY(-4px) !important;
+        box-shadow: 0 16px 50px rgba(32, 178, 170, 0.4) !important;
     }
 
     </style>
     """, unsafe_allow_html=True)
 
-    # 模型选择卡片（合并成完整的可点击卡片）
+    # 模型选择卡片
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        # Char Yield合并卡片
-        if st.button("🔥\n\nChar Yield", key="char_card", use_container_width=True):
+        if st.button("🔥\n\nChar Yield", key="char_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "Char Yield" else "secondary"):
             if st.session_state.selected_model != "Char Yield":
                 st.session_state.selected_model = "Char Yield"
                 st.session_state.prediction_result = None
@@ -658,8 +678,8 @@ if st.session_state.current_page == "预测模型":
                 st.rerun()
 
     with col2:
-        # Oil Yield合并卡片
-        if st.button("�️\n\nOil Yield", key="oil_card", use_container_width=True):
+        if st.button("⚡️\n\nOil Yield", key="oil_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary"):
             if st.session_state.selected_model != "Oil Yield":
                 st.session_state.selected_model = "Oil Yield"
                 st.session_state.prediction_result = None
@@ -668,8 +688,8 @@ if st.session_state.current_page == "预测模型":
                 st.rerun()
 
     with col3:
-        # Gas Yield合并卡片
-        if st.button("💨\n\nGas Yield", key="gas_card", use_container_width=True):
+        if st.button("💨\n\nGas Yield", key="gas_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary"):
             if st.session_state.selected_model != "Gas Yield":
                 st.session_state.selected_model = "Gas Yield"
                 st.session_state.prediction_result = None
@@ -677,28 +697,48 @@ if st.session_state.current_page == "预测模型":
                 log(f"切换到模型: {st.session_state.selected_model}")
                 st.rerun()
 
-    # 动态设置选中状态的样式
+    # 添加CSS和JavaScript来强制改变按钮颜色
     selected_model = st.session_state.selected_model
     st.markdown(f"""
-    <script>
-    setTimeout(function() {{
-        // 重置所有模型卡片按钮样式
-        var modelButtons = document.querySelectorAll('div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button');
-        modelButtons.forEach(function(btn) {{
-            btn.style.background = 'rgba(255,255,255,0.85)';
-            btn.style.border = '2px solid rgba(255,255,255,0.3)';
-            btn.style.color = '#333';
-        }});
+    <style>
+    /* 强制覆盖所有按钮样式 */
+    button[kind="secondary"],
+    .stButton > button[kind="secondary"],
+    [data-testid="stButton"] > button[kind="secondary"] {{
+        background: rgba(255,255,255,0.1) !important;
+        border: 2px solid rgba(255,255,255,0.3) !important;
+        color: white !important;
+        transition: all 0.3s ease !important;
+    }}
 
-        // 设置选中按钮的绿色样式
-        var selectedModel = '{selected_model}';
-        modelButtons.forEach(function(btn) {{
-            if ((selectedModel === 'Char Yield' && btn.textContent.includes('Char Yield')) ||
-                (selectedModel === 'Oil Yield' && btn.textContent.includes('Oil Yield')) ||
-                (selectedModel === 'Gas Yield' && btn.textContent.includes('Gas Yield'))) {{
-                btn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
-                btn.style.border = '3px solid #28a745';
-                btn.style.color = 'white';
+    button[kind="primary"],
+    .stButton > button[kind="primary"],
+    [data-testid="stButton"] > button[kind="primary"] {{
+        background: linear-gradient(135deg, #20b2aa, #17a2b8) !important;
+        border: 3px solid #20b2aa !important;
+        color: white !important;
+        box-shadow: 0 8px 25px rgba(32, 178, 170, 0.4) !important;
+        transform: translateY(-2px) !important;
+        font-weight: 600 !important;
+    }}
+    </style>
+
+    <script>
+    // 使用JavaScript强制应用样式
+    setTimeout(function() {{
+        // 查找所有按钮
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(button => {{
+            if (button.getAttribute('kind') === 'primary') {{
+                button.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                button.style.border = '3px solid #28a745';
+                button.style.boxShadow = '0 8px 25px rgba(40, 167, 69, 0.4)';
+                button.style.transform = 'translateY(-2px)';
+                button.style.fontWeight = '600';
+            }} else if (button.getAttribute('kind') === 'secondary') {{
+                button.style.background = 'rgba(255,255,255,0.1)';
+                button.style.border = '2px solid rgba(255,255,255,0.3)';
+                button.style.color = 'white';
             }}
         }});
     }}, 100);
@@ -711,6 +751,8 @@ if st.session_state.current_page == "预测模型":
         <h4 style="color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
+
+
 
 
 
@@ -1127,11 +1169,113 @@ elif st.session_state.current_page == "预测模型":
         "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
     }
 
-    # 颜色配置
+    # 添加新的卡片样式CSS
+    st.markdown("""
+    <style>
+    /* 分析卡片容器样式 */
+    .analysis-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 0;
+        margin: 10px 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    /* 卡片标题样式 */
+    .card-header {
+        color: white;
+        font-weight: bold;
+        font-size: 16px;
+        text-align: center;
+        padding: 12px;
+        margin: 0;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        border-radius: 15px 15px 0 0;
+    }
+
+    /* 卡片内容区域 */
+    .card-content {
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    /* 参数行样式 */
+    .param-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        height: 40px;
+    }
+
+    /* 参数标签样式 */
+    .param-label {
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        min-width: 80px;
+        text-align: center;
+        margin-right: 10px;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    /* 数值显示框 */
+    .value-box {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-weight: bold;
+        color: #333;
+        min-width: 70px;
+        text-align: center;
+        font-size: 14px;
+        margin-right: 8px;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* 控制按钮样式 */
+    .ctrl-btn {
+        width: 28px;
+        height: 28px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 0 1px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .ctrl-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .ctrl-btn:active {
+        transform: translateY(0);
+    }
+
+    /* 隐藏原始的number_input控件 */
+    .stNumberInput {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # 颜色配置 - 根据图片调整颜色
     category_colors = {
-        "Ultimate Analysis": "#501d8a",
-        "Proximate Analysis": "#1c8041",
-        "Pyrolysis Conditions": "#e55709"
+        "Proximate Analysis": "#20b2aa",  # 青绿色
+        "Ultimate Analysis": "#ff8c00",   # 橙色
+        "Pyrolysis Conditions": "#dc3545" # 红色
     }
 
     # 创建三列布局
@@ -1144,87 +1288,150 @@ elif st.session_state.current_page == "预测模型":
     with col1:
         category = "Proximate Analysis"
         color = category_colors[category]
-        st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
 
+        # 创建卡片标题
+        st.markdown(f"""
+        <div style='background-color: white; color: black; padding: 10px; text-align: center; font-weight: bold; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            {category}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 为每个特征创建输入控件
         for feature in feature_categories[category]:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            col_a, col_b = st.columns([1, 0.5])
-            with col_a:
-                st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-            with col_b:
-                features[feature] = st.number_input(
-                    "",
-                    value=float(value),
-                    step=0.01,
-                    key=f"{category}_{feature}",
-                    format="%.3f",
-                    label_visibility="collapsed"
-                )
+            # 创建每一行
+            row_col1, row_col2, row_col3, row_col4 = st.columns([3, 2, 1, 1])
+
+            with row_col1:
+                st.markdown(f"""
+                <div style='background-color: {color}; color: white; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
+                    {feature}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with row_col2:
+                st.markdown(f"""
+                <div style='background-color: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
+                    {value:.3f}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with row_col3:
+                if st.button("-", key=f"dec_{category}_{feature}"):
+                    st.session_state.feature_values[feature] = max(0, value - 0.001)
+                    st.rerun()
+
+            with row_col4:
+                if st.button("+", key=f"inc_{category}_{feature}"):
+                    st.session_state.feature_values[feature] = value + 0.001
+                    st.rerun()
+
+            # 存储特征值
+            features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
     # Ultimate Analysis - 第二列
     with col2:
         category = "Ultimate Analysis"
         color = category_colors[category]
-        st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
 
+        # 创建卡片标题
+        st.markdown(f"""
+        <div style='background-color: white; color: black; padding: 10px; text-align: center; font-weight: bold; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            {category}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 为每个特征创建输入控件
         for feature in feature_categories[category]:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            col_a, col_b = st.columns([1, 0.5])
-            with col_a:
-                st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-            with col_b:
-                features[feature] = st.number_input(
-                    "",
-                    value=float(value),
-                    step=0.001,
-                    key=f"{category}_{feature}",
-                    format="%.3f",
-                    label_visibility="collapsed"
-                )
+            # 创建每一行
+            row_col1, row_col2, row_col3, row_col4 = st.columns([3, 2, 1, 1])
+
+            with row_col1:
+                st.markdown(f"""
+                <div style='background-color: {color}; color: white; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
+                    {feature}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with row_col2:
+                st.markdown(f"""
+                <div style='background-color: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
+                    {value:.3f}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with row_col3:
+                if st.button("-", key=f"dec_{category}_{feature}"):
+                    st.session_state.feature_values[feature] = max(0, value - 0.001)
+                    st.rerun()
+
+            with row_col4:
+                if st.button("+", key=f"inc_{category}_{feature}"):
+                    st.session_state.feature_values[feature] = value + 0.001
+                    st.rerun()
+
+            # 存储特征值
+            features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
     # Pyrolysis Conditions - 第三列
     with col3:
         category = "Pyrolysis Conditions"
         color = category_colors[category]
-        st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
 
+        # 创建卡片标题
+        st.markdown(f"""
+        <div style='background-color: white; color: black; padding: 10px; text-align: center; font-weight: bold; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            {category}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 为每个特征创建输入控件
         for feature in feature_categories[category]:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            col_a, col_b = st.columns([1, 0.5])
-            with col_a:
-                st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-            with col_b:
-                # 不同特征使用不同的步长
-                if feature == "FT(°C)":
-                    step = 1.0
-                    format_str = "%.1f"
-                elif feature == "FR(mL/min)":
-                    step = 1.0
-                    format_str = "%.1f"
-                else:  # HR(°C/min)
-                    step = 0.1
-                    format_str = "%.2f"
+            # 创建每一行
+            row_col1, row_col2, row_col3, row_col4 = st.columns([3, 2, 1, 1])
 
-                features[feature] = st.number_input(
-                    "",
-                    value=float(value),
-                    step=step,
-                    key=f"{category}_{feature}",
-                    format=format_str,
-                    label_visibility="collapsed"
-                )
+            with row_col1:
+                st.markdown(f"""
+                <div style='background-color: {color}; color: white; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
+                    {feature}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with row_col2:
+                st.markdown(f"""
+                <div style='background-color: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
+                    {value:.3f}
+                </div>
+                """, unsafe_allow_html=True)
+
+            with row_col3:
+                if st.button("-", key=f"dec_{category}_{feature}"):
+                    st.session_state.feature_values[feature] = max(0, value - 0.001)
+                    st.rerun()
+
+            with row_col4:
+                if st.button("+", key=f"inc_{category}_{feature}"):
+                    st.session_state.feature_values[feature] = value + 0.001
+                    st.rerun()
+
+            # 存储特征值
+            features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
+
+
 
     # 调试信息：显示所有当前输入值
     with st.expander("📊 显示当前输入值", expanded=False):
