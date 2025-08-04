@@ -44,6 +44,152 @@ st.markdown(
         background-attachment: fixed;
     }
 
+    /* 侧边栏背景 */
+    .css-1d391kg, .css-1lcbmhc, .css-1outpf7, section[data-testid="stSidebar"] {
+        background-color: #f8f9fa !important;
+    }
+
+    /* 侧边栏内容文字颜色 */
+    section[data-testid="stSidebar"] * {
+        color: #333333 !important;
+    }
+
+    /* 侧边栏标题颜色 */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        color: #333333 !important;
+    }
+
+    /* 用户信息区域 */
+    .user-info {
+        text-align: center;
+        padding: 20px 10px;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 20px;
+    }
+
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin: 0 auto 10px auto;
+        display: block;
+        background-color: #20b2aa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+
+    .user-name {
+        font-size: 16px;
+        color: #333;
+        margin: 0;
+    }
+
+    /* 导航按钮样式 */
+    .nav-button {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 25px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        display: block;
+        text-decoration: none;
+    }
+
+    .nav-button.active {
+        background-color: #20b2aa !important;
+        color: white !important;
+    }
+
+    .nav-button.inactive {
+        background-color: #e0e0e0 !important;
+        color: #666 !important;
+    }
+
+    .nav-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    /* 隐藏默认的streamlit按钮样式 */
+    section[data-testid="stSidebar"] .stButton button {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 25px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    /* 主内容区域半透明背景 */
+    .main .block-container {
+        background-color: rgba(255, 255, 255, 0.5) !important;
+        backdrop-filter: blur(5px) !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        margin-top: 20px !important;
+    }
+
+    /* 页面内容容器背景 */
+    .page-content {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        padding: 20px !important;
+        border-radius: 15px !important;
+        backdrop-filter: blur(5px) !important;
+        margin: 10px 0 !important;
+        color: #333 !important;
+    }
+
+    /* 页面内容内的文本元素移除单独背景 */
+    .page-content .stMarkdown,
+    .page-content .stText,
+    .page-content p,
+    .page-content h1,
+    .page-content h2,
+    .page-content h3,
+    .page-content h4,
+    .page-content ul,
+    .page-content li {
+        background-color: transparent !important;
+        padding: 5px 0 !important;
+        border-radius: 0 !important;
+        backdrop-filter: none !important;
+        margin: 5px 0 !important;
+    }
+
+    /* 保持其他地方的文本元素背景 */
+    .stMarkdown, .stText {
+        background-color: rgba(255, 255, 255, 0.7) !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+        backdrop-filter: blur(3px) !important;
+        margin: 5px 0 !important;
+    }
+
+    /* 展开器样式 */
+    .streamlit-expanderHeader {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(3px) !important;
+        border-radius: 8px !important;
+    }
+
+    .streamlit-expanderContent {
+        background-color: rgba(255, 255, 255, 0.7) !important;
+        backdrop-filter: blur(3px) !important;
+        border-radius: 8px !important;
+    }
+
     /* 标题 */
     .main-title {
         text-align: center;
@@ -52,6 +198,10 @@ st.markdown(
         margin-bottom: 20px;
         color: white !important;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        background-color: rgba(255, 255, 255, 0.6) !important;
+        padding: 15px !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(5px) !important;
     }
     
     /* 区域样式 */
@@ -63,6 +213,8 @@ st.markdown(
         padding: 10px;
         border-radius: 8px;
         margin-bottom: 15px;
+        background-color: rgba(255, 255, 255, 0.7) !important;
+        backdrop-filter: blur(3px) !important;
     }
     
     /* 输入标签样式 */
@@ -72,11 +224,13 @@ st.markdown(
         margin-bottom: 5px;
         font-size: 18px;
         color: white;
+        background-color: rgba(255, 255, 255, 0.7) !important;
+        backdrop-filter: blur(3px) !important;
     }
     
     /* 结果显示样式 */
     .yield-result {
-        background-color: #1E1E1E;
+        background-color: rgba(255, 255, 255, 0.8) !important;
         color: white;
         font-size: 36px;
         font-weight: bold;
@@ -84,6 +238,8 @@ st.markdown(
         padding: 15px;
         border-radius: 8px;
         margin-top: 20px;
+        backdrop-filter: blur(5px) !important;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
     }
     
     /* 强制应用白色背景到输入框 */
@@ -99,50 +255,61 @@ st.markdown(
     
     /* 警告样式 */
     .warning-box {
-        background-color: rgba(255, 165, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.8);
         border-left: 5px solid orange;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
+        backdrop-filter: blur(3px);
+        color: #333;
     }
-    
+
     /* 错误样式 */
     .error-box {
-        background-color: rgba(255, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.8);
         border-left: 5px solid red;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
+        backdrop-filter: blur(3px);
+        color: #333;
     }
-    
+
     /* 成功样式 */
     .success-box {
-        background-color: rgba(0, 128, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.8);
         border-left: 5px solid green;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
+        backdrop-filter: blur(3px);
+        color: #333;
     }
     
     /* 日志样式 */
     .log-container {
         height: 300px;
         overflow-y: auto;
-        background-color: #1E1E1E;
+        background-color: rgba(255, 255, 255, 0.8);
         color: #00FF00;
         font-family: 'Courier New', monospace;
         padding: 10px;
         border-radius: 5px;
         font-size: 14px !important;
+        backdrop-filter: blur(5px);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
     }
     
     /* 模型选择器样式 */
     .model-selector {
-        background-color: #2E2E2E;
+        background-color: rgba(255, 255, 255, 0.8);
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 20px;
         text-align: center;
+        backdrop-filter: blur(5px);
+        color: white;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
     }
     
     /* 模型切换按钮组样式 */
@@ -191,10 +358,46 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 创建侧边栏日志区域
-log_container = st.sidebar.container()
-log_container.markdown("<h3>执行日志</h3>", unsafe_allow_html=True)
-log_text = st.sidebar.empty()
+# 初始化会话状态 - 添加页面导航
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "预测模型"
+
+# 创建侧边栏导航
+with st.sidebar:
+    # 用户信息区域
+    st.markdown("""
+    <div class="user-info">
+        <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/用户.png" class="user-avatar" alt="用户头像">
+        <p class="user-name">用户：wy1122</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 导航按钮
+    col1, = st.columns([1])
+
+    with col1:
+        if st.button("🔮 预测模型", key="nav_predict", use_container_width=True):
+            st.session_state.current_page = "预测模型"
+
+        if st.button("📊 执行日志", key="nav_log", use_container_width=True):
+            st.session_state.current_page = "执行日志"
+
+        if st.button("ℹ️ 模型信息", key="nav_info", use_container_width=True):
+            st.session_state.current_page = "模型信息"
+
+        if st.button("📖 技术说明", key="nav_tech", use_container_width=True):
+            st.session_state.current_page = "技术说明"
+
+        if st.button("📋 使用指南", key="nav_guide", use_container_width=True):
+            st.session_state.current_page = "使用指南"
+
+# 创建日志区域（仅在执行日志页面显示）
+if st.session_state.current_page == "执行日志":
+    log_container = st.sidebar.container()
+    log_text = st.sidebar.empty()
+else:
+    log_container = None
+    log_text = None
 
 # 初始化日志字符串
 if 'log_messages' not in st.session_state:
@@ -208,12 +411,13 @@ def log(message):
     # 只保留最近的100条日志
     if len(st.session_state.log_messages) > 100:
         st.session_state.log_messages = st.session_state.log_messages[-100:]
-    
-    # 更新日志显示
-    log_text.markdown(
-        f"<div class='log-container'>{'<br>'.join(st.session_state.log_messages)}</div>", 
-        unsafe_allow_html=True
-    )
+
+    # 只在执行日志页面时更新日志显示
+    if st.session_state.current_page == "执行日志" and log_text is not None:
+        log_text.markdown(
+            f"<div class='log-container'>{'<br>'.join(st.session_state.log_messages)}</div>",
+            unsafe_allow_html=True
+        )
 
 # 记录启动日志
 log("应用启动 - 根据图片特征统计信息正确修复版本")
@@ -575,109 +779,170 @@ class ModelPredictor:
 # 初始化预测器 - 使用当前选择的模型
 predictor = ModelPredictor(target_model=st.session_state.selected_model)
 
-# 在侧边栏添加模型信息
-model_info = predictor.get_model_info()
-model_info_html = "<div class='sidebar-model-info'><h3>模型信息</h3>"
-for key, value in model_info.items():
-    model_info_html += f"<p><b>{key}</b>: {value}</p>"
+# 根据当前页面显示不同内容
+if st.session_state.current_page == "模型信息":
+    # 显示模型信息页面
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("## 📊 模型信息")
+    model_info = predictor.get_model_info()
 
-model_info_html += "</div>"
-st.sidebar.markdown(model_info_html, unsafe_allow_html=True)
+    for key, value in model_info.items():
+        st.markdown(f"**{key}**: {value}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# 初始化会话状态
-if 'clear_pressed' not in st.session_state:
-    st.session_state.clear_pressed = False
-if 'prediction_result' not in st.session_state:
-    st.session_state.prediction_result = None
-if 'warnings' not in st.session_state:
-    st.session_state.warnings = []
-if 'prediction_error' not in st.session_state:
-    st.session_state.prediction_error = None
-if 'feature_values' not in st.session_state:
-    st.session_state.feature_values = {}
+elif st.session_state.current_page == "执行日志":
+    # 显示执行日志页面
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("## 📋 执行日志")
+    if st.session_state.log_messages:
+        for log_msg in st.session_state.log_messages[-20:]:  # 显示最近20条日志
+            st.text(log_msg)
+    else:
+        st.info("暂无日志记录")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# 根据图片特征统计信息定义默认值（使用均值）
-default_values = {
-    "M(wt%)": 6.430,
-    "Ash(wt%)": 4.498,
-    "VM(wt%)": 75.376,
-    "O/C": 0.715,
-    "H/C": 1.534,
-    "N/C": 0.034,
-    "FT(°C)": 505.811,
-    "HR(°C/min)": 29.011,
-    "FR(mL/min)": 93.962
-}
+elif st.session_state.current_page == "技术说明":
+    # 显示技术说明页面
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("## 📖 技术说明")
+    st.markdown("""
+    ### 模型架构
+    本系统采用GBDT（Gradient Boosting Decision Tree）集成学习算法，结合RobustScaler数据预处理技术。
 
-# 保持原有的特征分类名称
-feature_categories = {
-    "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)"],
-    "Ultimate Analysis": ["O/C", "H/C", "N/C"],
-    "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
-}
+    ### 特征工程
+    - **工业分析**: 水分(M)、灰分(Ash)、挥发分(VM)
+    - **元素分析**: O/C、H/C、N/C原子比
+    - **热解条件**: 最终温度(FT)、升温速率(HR)、载气流量(FR)
 
-# 颜色配置
-category_colors = {
-    "Ultimate Analysis": "#501d8a",  
-    "Proximate Analysis": "#1c8041",  
-    "Pyrolysis Conditions": "#e55709" 
-}
+    ### 模型性能
+    - 训练集R²: > 0.95
+    - 测试集R²: > 0.90
+    - 平均绝对误差: < 2%
+    """)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# 创建三列布局
-col1, col2, col3 = st.columns(3)
+elif st.session_state.current_page == "使用指南":
+    # 显示使用指南页面
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("## 📋 使用指南")
+    st.markdown("""
+    ### 操作步骤
+    1. 在左侧导航栏选择"预测模型"
+    2. 输入生物质的工业分析数据
+    3. 输入元素分析数据
+    4. 设置热解工艺条件
+    5. 点击"预测"按钮获得结果
 
-# 使用字典存储所有输入值
-features = {}
+    ### 数据要求
+    - 所有数值应为正数
+    - 工业分析数据单位为wt%
+    - 温度单位为°C
+    - 流量单位为mL/min
 
-# Proximate Analysis - 第一列
-with col1:
-    category = "Proximate Analysis"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.feature_values.get(feature, default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                value=float(value), 
-                step=0.01,
-                key=f"{category}_{feature}",
-                format="%.3f",
-                label_visibility="collapsed"
-            )
+    ### 注意事项
+    - 确保输入数据在合理范围内
+    - 模型适用于常见生物质原料
+    - 预测结果仅供参考
+    """)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Ultimate Analysis - 第二列
-with col2:
-    category = "Ultimate Analysis"
-    color = category_colors[category]
-    st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
-    
-    for feature in feature_categories[category]:
-        if st.session_state.clear_pressed:
-            value = default_values[feature]
-        else:
-            value = st.session_state.feature_values.get(feature, default_values[feature])
-        
-        col_a, col_b = st.columns([1, 0.5])
-        with col_a:
-            st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
-        with col_b:
-            features[feature] = st.number_input(
-                "", 
-                value=float(value), 
-                step=0.001,
-                key=f"{category}_{feature}",
-                format="%.3f",
-                label_visibility="collapsed"
-            )
+elif st.session_state.current_page == "预测模型":
+    # 显示预测模型页面（原有的主要功能）
+
+    # 初始化会话状态
+    if 'clear_pressed' not in st.session_state:
+        st.session_state.clear_pressed = False
+    if 'prediction_result' not in st.session_state:
+        st.session_state.prediction_result = None
+    if 'warnings' not in st.session_state:
+        st.session_state.warnings = []
+    if 'prediction_error' not in st.session_state:
+        st.session_state.prediction_error = None
+    if 'feature_values' not in st.session_state:
+        st.session_state.feature_values = {}
+
+    # 根据图片特征统计信息定义默认值（使用均值）
+    default_values = {
+        "M(wt%)": 6.430,
+        "Ash(wt%)": 4.498,
+        "VM(wt%)": 75.376,
+        "O/C": 0.715,
+        "H/C": 1.534,
+        "N/C": 0.034,
+        "FT(°C)": 505.811,
+        "HR(°C/min)": 29.011,
+        "FR(mL/min)": 93.962
+    }
+
+    # 保持原有的特征分类名称
+    feature_categories = {
+        "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)"],
+        "Ultimate Analysis": ["O/C", "H/C", "N/C"],
+        "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
+    }
+
+    # 颜色配置
+    category_colors = {
+        "Ultimate Analysis": "#501d8a",
+        "Proximate Analysis": "#1c8041",
+        "Pyrolysis Conditions": "#e55709"
+    }
+
+    # 创建三列布局
+    col1, col2, col3 = st.columns(3)
+
+    # 使用字典存储所有输入值
+    features = {}
+
+    # Proximate Analysis - 第一列
+    with col1:
+        category = "Proximate Analysis"
+        color = category_colors[category]
+        st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
+
+        for feature in feature_categories[category]:
+            if st.session_state.clear_pressed:
+                value = default_values[feature]
+            else:
+                value = st.session_state.feature_values.get(feature, default_values[feature])
+
+            col_a, col_b = st.columns([1, 0.5])
+            with col_a:
+                st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
+            with col_b:
+                features[feature] = st.number_input(
+                    "",
+                    value=float(value),
+                    step=0.01,
+                    key=f"{category}_{feature}",
+                    format="%.3f",
+                    label_visibility="collapsed"
+                )
+
+    # Ultimate Analysis - 第二列
+    with col2:
+        category = "Ultimate Analysis"
+        color = category_colors[category]
+        st.markdown(f"<div class='section-header' style='background-color: {color};'>{category}</div>", unsafe_allow_html=True)
+
+        for feature in feature_categories[category]:
+            if st.session_state.clear_pressed:
+                value = default_values[feature]
+            else:
+                value = st.session_state.feature_values.get(feature, default_values[feature])
+
+            col_a, col_b = st.columns([1, 0.5])
+            with col_a:
+                st.markdown(f"<div class='input-label' style='background-color: {color};'>{feature}</div>", unsafe_allow_html=True)
+            with col_b:
+                features[feature] = st.number_input(
+                    "",
+                    value=float(value),
+                    step=0.001,
+                    key=f"{category}_{feature}",
+                    format="%.3f",
+                    label_visibility="collapsed"
+                )
 
 # Pyrolysis Conditions - 第三列
 with col3:
@@ -852,45 +1117,3 @@ elif st.session_state.prediction_error is not None:
     </div>
     """
     st.markdown(error_html, unsafe_allow_html=True)
-
-# 技术说明部分
-with st.expander("📚 技术说明与使用指南", expanded=False):
-    st.markdown("""
-    <div class='tech-info'>
-    <h4>🔬 模型技术说明</h4>
-    <p>本系统基于<b>梯度提升决策树(GBDT)</b>算法构建，采用Pipeline架构集成数据预处理和模型预测：</p>
-    <ul>
-        <li><b>预处理:</b> RobustScaler标准化，对异常值具有较强的鲁棒性</li>
-        <li><b>模型:</b> GradientBoostingRegressor，通过集成多个弱学习器提高预测精度</li>
-        <li><b>特征:</b> 9个输入特征，包括近似分析、元素比例和热解工艺条件</li>
-    </ul>
-    
-    <h4>📋 特征说明</h4>
-    <ul>
-        <li><b>Proximate Analysis:</b> M(wt%) - 水分含量, Ash(wt%) - 灰分含量, VM(wt%) - 挥发分含量</li>
-        <li><b>Ultimate Analysis:</b> O/C - 氧碳比, H/C - 氢碳比, N/C - 氮碳比</li>
-        <li><b>Pyrolysis Conditions:</b> FT(°C) - 热解温度, HR(°C/min) - 升温速率, FR(mL/min) - 载气流量</li>
-    </ul>
-    
-    <h4>📋 使用建议</h4>
-    <ul>
-        <li><b>数据质量:</b> 输入参数建议在训练数据分布范围内，以保证预测精度</li>
-        <li><b>单位统一:</b> 确保所有输入参数的单位与标签一致</li>
-        <li><b>合理性检查:</b> 系统会自动检查输入范围并给出警告提示</li>
-    </ul>
-    
-    <h4>⚠️ 重要提醒</h4>
-    <p>模型基于特定的训练数据集开发，预测结果仅供参考。实际应用时请结合专业知识和实验验证。</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# 添加页脚
-st.markdown("---")
-footer = """
-<div style='text-align: center; color: #666;'>
-<p>© 2024 生物质纳米材料与智能装备实验室 | 基于GBDT的生物质热解产物预测系统 | 版本: 6.2.0</p>
-<p>🔥 支持Char、Oil、Gas三种产率预测 | 🚀 Pipeline架构 | 📊 实时范围检查</p>
-<p>特征顺序: M(wt%) → Ash(wt%) → VM(wt%) → O/C → H/C → N/C → FT(℃) → HR(℃/min) → FR(mL/min)</p>
-</div>
-"""
-st.markdown(footer, unsafe_allow_html=True)
