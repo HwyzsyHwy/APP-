@@ -536,57 +536,81 @@ if st.session_state.current_page == "预测模型":
     # 添加模型选择区域 - 修改为可点击卡片样式
     st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
 
+    # 添加模型选择卡片的自定义样式
+    st.markdown("""
+    <style>
+    /* 模型选择卡片样式 */
+    button[key="char_button"],
+    button[key="oil_button"],
+    button[key="gas_button"] {
+        height: 120px !important;
+        border-radius: 15px !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
+        white-space: pre-line !important;
+        transition: all 0.3s ease !important;
+        margin: 5px !important;
+    }
+
+    /* 未选中状态的卡片 */
+    button[key="char_button"][kind="secondary"],
+    button[key="oil_button"][kind="secondary"],
+    button[key="gas_button"][kind="secondary"] {
+        background: rgba(255,255,255,0.9) !important;
+        color: #333 !important;
+        border: 2px solid #ddd !important;
+    }
+
+    /* 选中状态的卡片 */
+    button[key="char_button"][kind="primary"],
+    button[key="oil_button"][kind="primary"],
+    button[key="gas_button"][kind="primary"] {
+        background: linear-gradient(135deg, #00968A, #4CAF50) !important;
+        color: white !important;
+        border: 3px solid #fff !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    }
+
+    /* 悬停效果 */
+    button[key="char_button"]:hover,
+    button[key="oil_button"]:hover,
+    button[key="gas_button"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     # 创建三个可点击的卡片
     col1, col2, col3 = st.columns(3)
 
     with col1:
         char_selected = st.session_state.selected_model == "Char Yield"
-        card_style = "background: linear-gradient(135deg, #00968A, #4CAF50); border: 3px solid #fff;" if char_selected else "background: rgba(255,255,255,0.9); border: 2px solid #ddd;"
-        text_color = "color: white;" if char_selected else "color: #333;"
-
-        # 使用容器和按钮创建可点击的卡片
-        with st.container():
-            st.markdown(f"""
-            <div style="{card_style} border-radius: 15px; padding: 20px; text-align: center; margin: 5px; transition: all 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/火焰.png" style="width: 50px; height: 50px; margin-bottom: 10px;">
-                <h4 style="{text_color} margin: 0; font-weight: bold; font-size: 16px;">Char Yield</h4>
-            </div>
-            """, unsafe_allow_html=True)
-
-            char_button = st.button("🔥 选择 Char Yield", key="char_button", use_container_width=True,
-                                  type="primary" if char_selected else "secondary")
+        # 参考侧边栏导航按钮的实现方式，将卡片内容作为按钮标签
+        char_button = st.button(
+            "🔥\n\nChar Yield",
+            key="char_button",
+            use_container_width=True,
+            type="primary" if char_selected else "secondary"
+        )
 
     with col2:
         oil_selected = st.session_state.selected_model == "Oil Yield"
-        card_style = "background: linear-gradient(135deg, #00968A, #4CAF50); border: 3px solid #fff;" if oil_selected else "background: rgba(255,255,255,0.9); border: 2px solid #ddd;"
-        text_color = "color: white;" if oil_selected else "color: #333;"
-
-        with st.container():
-            st.markdown(f"""
-            <div style="{card_style} border-radius: 15px; padding: 20px; text-align: center; margin: 5px; transition: all 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/生物油.png" style="width: 50px; height: 50px; margin-bottom: 10px;">
-                <h4 style="{text_color} margin: 0; font-weight: bold; font-size: 16px;">Oil Yield</h4>
-            </div>
-            """, unsafe_allow_html=True)
-
-            oil_button = st.button("🛢️ 选择 Oil Yield", key="oil_button", use_container_width=True,
-                                 type="primary" if oil_selected else "secondary")
+        oil_button = st.button(
+            "🛢️\n\nOil Yield",
+            key="oil_button",
+            use_container_width=True,
+            type="primary" if oil_selected else "secondary"
+        )
 
     with col3:
         gas_selected = st.session_state.selected_model == "Gas Yield"
-        card_style = "background: linear-gradient(135deg, #00968A, #4CAF50); border: 3px solid #fff;" if gas_selected else "background: rgba(255,255,255,0.9); border: 2px solid #ddd;"
-        text_color = "color: white;" if gas_selected else "color: #333;"
-
-        with st.container():
-            st.markdown(f"""
-            <div style="{card_style} border-radius: 15px; padding: 20px; text-align: center; margin: 5px; transition: all 0.3s; height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/气体.png" style="width: 50px; height: 50px; margin-bottom: 10px;">
-                <h4 style="{text_color} margin: 0; font-weight: bold; font-size: 16px;">Gas Yield</h4>
-            </div>
-            """, unsafe_allow_html=True)
-
-            gas_button = st.button("💨 选择 Gas Yield", key="gas_button", use_container_width=True,
-                                 type="primary" if gas_selected else "secondary")
+        gas_button = st.button(
+            "💨\n\nGas Yield",
+            key="gas_button",
+            use_container_width=True,
+            type="primary" if gas_selected else "secondary"
+        )
 
     # 处理模型选择 - 修改为切换模型时不重置输入值
     if char_button and st.session_state.selected_model != "Char Yield":
