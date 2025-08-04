@@ -311,37 +311,41 @@ st.markdown(
         text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
     }
 
-    /* 导航按钮基础样式 - 灰色背景 */
+    /* 侧边栏导航按钮基础样式 - 灰色背景，矩形样式 */
     .stSidebar [data-testid="stButton"] > button {
         background-color: rgba(128, 128, 128, 0.7) !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
-        padding: 10px 15px !important;
-        margin: 5px 0 !important;
+        padding: 12px 20px !important;
+        margin: 8px 0 !important;
         font-weight: 500 !important;
         transition: all 0.3s ease !important;
         width: 100% !important;
+        font-size: 16px !important;
     }
 
-    /* 选中状态的导航按钮 - 青绿色高亮 */
+    /* 选中状态的侧边栏导航按钮 - 绿色高亮 */
     .stSidebar [data-testid="stButton"] > button[kind="primary"] {
-        background-color: rgba(0, 150, 136, 0.9) !important;
+        background-color: #20b2aa !important;
         color: white !important;
         font-weight: 600 !important;
-        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 8px rgba(32, 178, 170, 0.3) !important;
     }
 
-    /* 导航按钮悬停效果 */
+    /* 侧边栏导航按钮悬停效果 */
     .stSidebar [data-testid="stButton"] > button:hover {
         background-color: rgba(100, 100, 100, 0.8) !important;
-        transform: translateY(-1px) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
     }
 
-    /* 选中按钮的悬停效果 */
+    /* 选中的侧边栏按钮悬停效果 */
     .stSidebar [data-testid="stButton"] > button[kind="primary"]:hover {
-        background-color: rgba(0, 121, 107, 1.0) !important;
-        transform: translateY(-1px) !important;
+        background-color: #1a9a92 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(32, 178, 170, 0.4) !important;
     }
 
     /* 自定义导航按钮样式 */
@@ -362,7 +366,7 @@ st.markdown(
 
     /* 选中状态的导航按钮 */
     .nav-button-active {
-        background-color: rgba(0, 255, 0, 0.8) !important;
+        background-color: rgba(0, 150, 136, 0.9) !important;
         color: white !important;
         border: none;
         border-radius: 8px;
@@ -374,7 +378,7 @@ st.markdown(
         text-align: center;
         cursor: pointer;
         font-size: 14px;
-        box-shadow: 0 2px 4px rgba(0, 255, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4);
     }
 
     /* 导航按钮悬停效果 */
@@ -384,7 +388,7 @@ st.markdown(
     }
 
     .nav-button-active:hover {
-        background-color: rgba(0, 200, 0, 0.9) !important;
+        background-color: rgba(0, 121, 107, 1.0) !important;
         transform: translateY(-1px);
     }
 
@@ -571,12 +575,12 @@ if st.session_state.current_page == "预测模型":
         border: 2px solid rgba(255,255,255,0.3);
     }
 
-    /* 选中状态的卡片 - 绿色背景（参考侧边栏） */
+    /* 选中状态的卡片 - 白色背景 */
     .model-card.selected {
-        background-color: rgba(0, 150, 136, 0.9);
-        color: white;
-        border: 2px solid rgba(0, 150, 136, 0.5);
-        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4);
+        background: rgba(255,255,255,0.95);
+        color: #333;
+        border: 2px solid rgba(255,255,255,0.5);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
     /* 悬停效果 */
@@ -609,136 +613,108 @@ if st.session_state.current_page == "预测模型":
         position: relative !important;
     }
 
-    /* 隐藏原始按钮 */
-    button[key="char_button"],
-    button[key="oil_button"],
-    button[key="gas_button"] {
-        display: none !important;
+    /* 模型卡片按钮样式 - 只影响主区域的模型选择按钮 */
+    div[data-testid="stHorizontalBlock"] .stButton > button {
+        background: rgba(255,255,255,0.85) !important;
+        border: 2px solid rgba(255,255,255,0.3) !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        height: auto !important;
+        min-height: 120px !important;
+        color: #333 !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    div[data-testid="stHorizontalBlock"] .stButton > button:hover {
+        background: rgba(255,255,255,0.95) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15) !important;
+    }
+
+    /* 选中状态的模型卡片 - 绿色背景 */
+    .model-card-selected {
+        background: linear-gradient(135deg, #00d2d3, #01a3a4) !important;
+        color: white !important;
+        border: 3px solid #00d2d3 !important;
     }
 
     </style>
-
-    <script>
-    function setupCardClicks() {
-        // 等待页面加载完成
-        setTimeout(function() {
-            // 为每个卡片添加点击事件
-            const charCard = document.getElementById('char-card');
-            const oilCard = document.getElementById('oil-card');
-            const gasCard = document.getElementById('gas-card');
-
-            if (charCard) {
-                charCard.addEventListener('click', function() {
-                    const charButton = document.querySelector('button[key="char_button"]');
-                    if (charButton) charButton.click();
-                });
-            }
-
-            if (oilCard) {
-                oilCard.addEventListener('click', function() {
-                    const oilButton = document.querySelector('button[key="oil_button"]');
-                    if (oilButton) oilButton.click();
-                });
-            }
-
-            if (gasCard) {
-                gasCard.addEventListener('click', function() {
-                    const gasButton = document.querySelector('button[key="gas_button"]');
-                    if (gasButton) gasButton.click();
-                });
-            }
-        }, 500);
-    }
-
-    // 页面加载时设置点击事件
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupCardClicks);
-    } else {
-        setupCardClicks();
-    }
-
-    // 监听Streamlit重新渲染
-    window.addEventListener('load', setupCardClicks);
-
-    // 使用MutationObserver监听DOM变化
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList') {
-                setupCardClicks();
-            }
-        });
-    });
-
-    // 开始观察
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-    </script>
     """, unsafe_allow_html=True)
 
-    # 模型选择卡片
-    char_selected = st.session_state.selected_model == "Char Yield"
-    oil_selected = st.session_state.selected_model == "Oil Yield"
-    gas_selected = st.session_state.selected_model == "Gas Yield"
-
-    # 创建HTML卡片
-    cards_html = f"""
-    <div class="model-card-container">
-        <div class="model-card {'selected' if char_selected else 'unselected'}" id="char-card">
-            <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/火焰.png" class="model-card-icon" alt="Char Yield">
-            <div class="model-card-text">Char Yield</div>
-        </div>
-        <div class="model-card {'selected' if oil_selected else 'unselected'}" id="oil-card">
-            <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/生物油.png" class="model-card-icon" alt="Oil Yield">
-            <div class="model-card-text">Oil Yield</div>
-        </div>
-        <div class="model-card {'selected' if gas_selected else 'unselected'}" id="gas-card">
-            <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/气体.png" class="model-card-icon" alt="Gas Yield">
-            <div class="model-card-text">Gas Yield</div>
-        </div>
-    </div>
-    """
-
-    st.markdown(cards_html, unsafe_allow_html=True)
-
-    # 使用隐藏的按钮来处理点击事件
+    # 模型选择卡片（合并成完整的可点击卡片）
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        char_button = st.button("", key="char_button", help="Select Char Yield model")
+        # Char Yield合并卡片
+        if st.button("🔥\n\nChar Yield", key="char_card", use_container_width=True):
+            if st.session_state.selected_model != "Char Yield":
+                st.session_state.selected_model = "Char Yield"
+                st.session_state.prediction_result = None
+                st.session_state.warnings = []
+                log(f"切换到模型: {st.session_state.selected_model}")
+                st.rerun()
 
     with col2:
-        oil_button = st.button("", key="oil_button", help="Select Oil Yield model")
+        # Oil Yield合并卡片
+        if st.button("�️\n\nOil Yield", key="oil_card", use_container_width=True):
+            if st.session_state.selected_model != "Oil Yield":
+                st.session_state.selected_model = "Oil Yield"
+                st.session_state.prediction_result = None
+                st.session_state.warnings = []
+                log(f"切换到模型: {st.session_state.selected_model}")
+                st.rerun()
 
     with col3:
-        gas_button = st.button("", key="gas_button", help="Select Gas Yield model")
+        # Gas Yield合并卡片
+        if st.button("💨\n\nGas Yield", key="gas_card", use_container_width=True):
+            if st.session_state.selected_model != "Gas Yield":
+                st.session_state.selected_model = "Gas Yield"
+                st.session_state.prediction_result = None
+                st.session_state.warnings = []
+                log(f"切换到模型: {st.session_state.selected_model}")
+                st.rerun()
 
-    # 处理模型选择 - 修改为切换模型时不重置输入值
-    if char_button and st.session_state.selected_model != "Char Yield":
-        st.session_state.selected_model = "Char Yield"
-        st.session_state.prediction_result = None
-        st.session_state.warnings = []
-        log(f"切换到模型: {st.session_state.selected_model}")
-        st.rerun()
+    # 动态设置选中状态的样式
+    selected_model = st.session_state.selected_model
+    st.markdown(f"""
+    <script>
+    setTimeout(function() {{
+        // 重置所有模型卡片按钮样式
+        var modelButtons = document.querySelectorAll('div[data-testid="stHorizontalBlock"] [data-testid="stButton"] button');
+        modelButtons.forEach(function(btn) {{
+            btn.style.background = 'rgba(255,255,255,0.85)';
+            btn.style.border = '2px solid rgba(255,255,255,0.3)';
+            btn.style.color = '#333';
+        }});
 
-    if oil_button and st.session_state.selected_model != "Oil Yield":
-        st.session_state.selected_model = "Oil Yield"
-        st.session_state.prediction_result = None
-        st.session_state.warnings = []
-        log(f"切换到模型: {st.session_state.selected_model}")
-        st.rerun()
+        // 设置选中按钮的绿色样式
+        var selectedModel = '{selected_model}';
+        modelButtons.forEach(function(btn) {{
+            if ((selectedModel === 'Char Yield' && btn.textContent.includes('Char Yield')) ||
+                (selectedModel === 'Oil Yield' && btn.textContent.includes('Oil Yield')) ||
+                (selectedModel === 'Gas Yield' && btn.textContent.includes('Gas Yield'))) {{
+                btn.style.background = 'linear-gradient(135deg, #00d2d3, #01a3a4)';
+                btn.style.border = '3px solid #00d2d3';
+                btn.style.color = 'white';
+            }}
+        }});
+    }}, 100);
+    </script>
+    """, unsafe_allow_html=True)
 
-    if gas_button and st.session_state.selected_model != "Gas Yield":
-        st.session_state.selected_model = "Gas Yield"
-        st.session_state.prediction_result = None
-        st.session_state.warnings = []
-        log(f"切换到模型: {st.session_state.selected_model}")
-        st.rerun()
+    # 显示当前选择的模型
+    st.markdown(f"""
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; backdrop-filter: blur(5px);">
+        <h4 style="color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">当前模型：{selected_model}</h4>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 
-    st.markdown(f"<p style='text-align:center; color: white; margin-top: 20px; font-size: 18px;'>当前模型: <b>{st.session_state.selected_model}</b></p>", unsafe_allow_html=True)
+
 
 class ModelPredictor:
     """根据图片特征统计信息正确调整的预测器类"""
