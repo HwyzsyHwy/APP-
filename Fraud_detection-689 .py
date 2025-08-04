@@ -550,33 +550,85 @@ if st.session_state.current_page == "预测模型":
         white-space: pre-line !important;
         transition: all 0.3s ease !important;
         margin: 5px !important;
+        position: relative !important;
     }
 
-    /* 未选中状态的卡片 */
+    /* 未选中状态的卡片 - 白色轻微透明背景 */
     button[key="char_button"][kind="secondary"],
     button[key="oil_button"][kind="secondary"],
     button[key="gas_button"][kind="secondary"] {
-        background: rgba(255,255,255,0.9) !important;
+        background: rgba(255,255,255,0.8) !important;
         color: #333 !important;
-        border: 2px solid #ddd !important;
+        border: 2px solid rgba(255,255,255,0.3) !important;
     }
 
-    /* 选中状态的卡片 */
+    /* 选中状态的卡片 - 绿色背景（参考侧边栏） */
     button[key="char_button"][kind="primary"],
     button[key="oil_button"][kind="primary"],
     button[key="gas_button"][kind="primary"] {
-        background: linear-gradient(135deg, #00968A, #4CAF50) !important;
+        background-color: rgba(0, 150, 136, 0.9) !important;
         color: white !important;
-        border: 3px solid #fff !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+        border: 2px solid rgba(0, 150, 136, 0.5) !important;
+        box-shadow: 0 2px 4px rgba(0, 150, 136, 0.4) !important;
+        font-weight: 600 !important;
     }
 
     /* 悬停效果 */
     button[key="char_button"]:hover,
     button[key="oil_button"]:hover,
     button[key="gas_button"]:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 12px rgba(0,0,0,0.3) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* 选中按钮的悬停效果 */
+    button[key="char_button"][kind="primary"]:hover,
+    button[key="oil_button"][kind="primary"]:hover,
+    button[key="gas_button"][kind="primary"]:hover {
+        background-color: rgba(0, 121, 107, 1.0) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* 添加图标背景 */
+    button[key="char_button"]::before {
+        content: "";
+        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/火焰.png');
+        background-size: 40px 40px;
+        background-repeat: no-repeat;
+        background-position: center top;
+        width: 40px;
+        height: 40px;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    button[key="oil_button"]::before {
+        content: "";
+        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/生物油.png');
+        background-size: 40px 40px;
+        background-repeat: no-repeat;
+        background-position: center top;
+        width: 40px;
+        height: 40px;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    button[key="gas_button"]::before {
+        content: "";
+        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/气体.png');
+        background-size: 40px 40px;
+        background-repeat: no-repeat;
+        background-position: center top;
+        width: 40px;
+        height: 40px;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -586,9 +638,9 @@ if st.session_state.current_page == "预测模型":
 
     with col1:
         char_selected = st.session_state.selected_model == "Char Yield"
-        # 参考侧边栏导航按钮的实现方式，将卡片内容作为按钮标签
+        # 使用新的火焰图标
         char_button = st.button(
-            "🔥\n\nChar Yield",
+            "\n\n\n\nChar Yield",
             key="char_button",
             use_container_width=True,
             type="primary" if char_selected else "secondary"
@@ -596,8 +648,9 @@ if st.session_state.current_page == "预测模型":
 
     with col2:
         oil_selected = st.session_state.selected_model == "Oil Yield"
+        # 使用新的生物油图标
         oil_button = st.button(
-            "🛢️\n\nOil Yield",
+            "\n\n\n\nOil Yield",
             key="oil_button",
             use_container_width=True,
             type="primary" if oil_selected else "secondary"
@@ -605,8 +658,9 @@ if st.session_state.current_page == "预测模型":
 
     with col3:
         gas_selected = st.session_state.selected_model == "Gas Yield"
+        # 使用新的气体图标
         gas_button = st.button(
-            "💨\n\nGas Yield",
+            "\n\n\n\nGas Yield",
             key="gas_button",
             use_container_width=True,
             type="primary" if gas_selected else "secondary"
