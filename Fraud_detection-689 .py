@@ -533,10 +533,10 @@ if st.session_state.current_page == "预测模型":
     </div>
     """, unsafe_allow_html=True)
 
-    # 添加模型选择区域 - 修改为卡片样式
+    # 添加模型选择区域 - 修改为可点击卡片样式
     st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
 
-    # 创建三个卡片
+    # 创建三个可点击的卡片
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -544,13 +544,22 @@ if st.session_state.current_page == "预测模型":
         card_style = "background: linear-gradient(135deg, #00968A, #4CAF50); border: 3px solid #fff;" if char_selected else "background: rgba(255,255,255,0.9); border: 2px solid #ddd;"
         text_color = "color: white;" if char_selected else "color: #333;"
 
+        # 创建卡片容器
         st.markdown(f"""
-        <div style="{card_style} border-radius: 15px; padding: 30px; text-align: center; margin: 10px; cursor: pointer; transition: all 0.3s;">
+        <div style="{card_style} border-radius: 15px; padding: 30px; text-align: center; margin: 10px; cursor: pointer; transition: all 0.3s; position: relative;">
             <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/火焰.png" style="width: 60px; height: 60px; margin-bottom: 15px;">
             <h4 style="{text_color} margin: 0; font-weight: bold;">Char Yield</h4>
         </div>
         """, unsafe_allow_html=True)
-        char_button = st.button("选择 Char Yield", key="char_button", use_container_width=True, type="primary" if char_selected else "secondary")
+
+        # 透明按钮覆盖在卡片上
+        char_button = st.button(
+            label="🔥 Char Yield",
+            key="char_button",
+            use_container_width=True,
+            help="点击选择 Char Yield 模型",
+            type="primary" if char_selected else "secondary"
+        )
 
     with col2:
         oil_selected = st.session_state.selected_model == "Oil Yield"
@@ -558,12 +567,19 @@ if st.session_state.current_page == "预测模型":
         text_color = "color: white;" if oil_selected else "color: #333;"
 
         st.markdown(f"""
-        <div style="{card_style} border-radius: 15px; padding: 30px; text-align: center; margin: 10px; cursor: pointer; transition: all 0.3s;">
+        <div style="{card_style} border-radius: 15px; padding: 30px; text-align: center; margin: 10px; cursor: pointer; transition: all 0.3s; position: relative;">
             <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/生物油.png" style="width: 60px; height: 60px; margin-bottom: 15px;">
             <h4 style="{text_color} margin: 0; font-weight: bold;">Oil Yield</h4>
         </div>
         """, unsafe_allow_html=True)
-        oil_button = st.button("选择 Oil Yield", key="oil_button", use_container_width=True, type="primary" if oil_selected else "secondary")
+
+        oil_button = st.button(
+            label="🛢️ Oil Yield",
+            key="oil_button",
+            use_container_width=True,
+            help="点击选择 Oil Yield 模型",
+            type="primary" if oil_selected else "secondary"
+        )
 
     with col3:
         gas_selected = st.session_state.selected_model == "Gas Yield"
@@ -571,12 +587,19 @@ if st.session_state.current_page == "预测模型":
         text_color = "color: white;" if gas_selected else "color: #333;"
 
         st.markdown(f"""
-        <div style="{card_style} border-radius: 15px; padding: 30px; text-align: center; margin: 10px; cursor: pointer; transition: all 0.3s;">
+        <div style="{card_style} border-radius: 15px; padding: 30px; text-align: center; margin: 10px; cursor: pointer; transition: all 0.3s; position: relative;">
             <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/气体.png" style="width: 60px; height: 60px; margin-bottom: 15px;">
             <h4 style="{text_color} margin: 0; font-weight: bold;">Gas Yield</h4>
         </div>
         """, unsafe_allow_html=True)
-        gas_button = st.button("选择 Gas Yield", key="gas_button", use_container_width=True, type="primary" if gas_selected else "secondary")
+
+        gas_button = st.button(
+            label="💨 Gas Yield",
+            key="gas_button",
+            use_container_width=True,
+            help="点击选择 Gas Yield 模型",
+            type="primary" if gas_selected else "secondary"
+        )
 
     # 处理模型选择 - 修改为切换模型时不重置输入值
     if char_button and st.session_state.selected_model != "Char Yield":
