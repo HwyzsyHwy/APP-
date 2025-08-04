@@ -603,7 +603,78 @@ if st.session_state.current_page == "预测模型":
         text-align: center;
     }
 
+    /* 让整个卡片可点击 */
+    .model-card {
+        cursor: pointer !important;
+        position: relative !important;
+    }
+
+    /* 隐藏原始按钮 */
+    button[key="char_button"],
+    button[key="oil_button"],
+    button[key="gas_button"] {
+        display: none !important;
+    }
+
     </style>
+
+    <script>
+    function setupCardClicks() {
+        // 等待页面加载完成
+        setTimeout(function() {
+            // 为每个卡片添加点击事件
+            const charCard = document.getElementById('char-card');
+            const oilCard = document.getElementById('oil-card');
+            const gasCard = document.getElementById('gas-card');
+
+            if (charCard) {
+                charCard.addEventListener('click', function() {
+                    const charButton = document.querySelector('button[key="char_button"]');
+                    if (charButton) charButton.click();
+                });
+            }
+
+            if (oilCard) {
+                oilCard.addEventListener('click', function() {
+                    const oilButton = document.querySelector('button[key="oil_button"]');
+                    if (oilButton) oilButton.click();
+                });
+            }
+
+            if (gasCard) {
+                gasCard.addEventListener('click', function() {
+                    const gasButton = document.querySelector('button[key="gas_button"]');
+                    if (gasButton) gasButton.click();
+                });
+            }
+        }, 500);
+    }
+
+    // 页面加载时设置点击事件
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupCardClicks);
+    } else {
+        setupCardClicks();
+    }
+
+    // 监听Streamlit重新渲染
+    window.addEventListener('load', setupCardClicks);
+
+    // 使用MutationObserver监听DOM变化
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                setupCardClicks();
+            }
+        });
+    });
+
+    // 开始观察
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    </script>
     """, unsafe_allow_html=True)
 
     # 模型选择卡片
