@@ -523,8 +523,15 @@ if 'model_cache' not in st.session_state:
     
 # 只在预测模型页面显示标题和模型选择器
 if st.session_state.current_page == "预测模型":
-    # 更新主标题以显示当前选定的模型
-    st.markdown("<h1 class='main-title'>基于GBDT集成模型的生物质热解产物预测系统</h1>", unsafe_allow_html=True)
+    # 简洁的Streamlit样式标题
+    st.markdown("""
+    <div style="margin-bottom: 30px;">
+        <h1 style="color: white; font-size: 2.5rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            Streamlit
+        </h1>
+        <div style="height: 3px; background: white; margin-top: 5px; border-radius: 2px;"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 添加模型选择区域 - 修改为三个按钮一排
     st.markdown("<div class='model-selector'>", unsafe_allow_html=True)
