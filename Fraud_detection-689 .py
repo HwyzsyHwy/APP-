@@ -721,27 +721,375 @@ if st.session_state.current_page == "预测模型":
         transform: translateY(-2px) !important;
         font-weight: 600 !important;
     }}
+
+    /* 数字输入框按钮的强制样式 - 使用更强的选择器 */
+    button[aria-label="Increment"],
+    button[aria-label="Decrement"],
+    button[title="Increment"],
+    button[title="Decrement"],
+    [data-testid="stNumberInput"] button,
+    .stNumberInput button,
+    div[data-baseweb="input"] button,
+    input[type="number"] + button,
+    input[type="number"] ~ button,
+    button:has(svg),
+    button[kind="secondary"] {{
+        color: white !important;
+        border: none !important;
+        font-weight: bold !important;
+        border-radius: 4px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        transition: all 0.2s ease !important;
+    }}
+
+    /* 第一列按钮 - 青绿色 (Proximate Analysis) */
+    [data-testid="column"]:nth-child(1) button[aria-label="Increment"],
+    [data-testid="column"]:nth-child(1) button[aria-label="Decrement"],
+    [data-testid="column"]:nth-child(1) button[title="Increment"],
+    [data-testid="column"]:nth-child(1) button[title="Decrement"],
+    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
+    [data-testid="column"]:nth-child(1) button:has(svg) {{
+        background-color: #20b2aa !important;
+    }}
+
+    /* 第二列按钮 - 金黄色 (Ultimate Analysis) */
+    [data-testid="column"]:nth-child(2) button[aria-label="Increment"],
+    [data-testid="column"]:nth-child(2) button[aria-label="Decrement"],
+    [data-testid="column"]:nth-child(2) button[title="Increment"],
+    [data-testid="column"]:nth-child(2) button[title="Decrement"],
+    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] button,
+    [data-testid="column"]:nth-child(2) button:has(svg) {{
+        background-color: #daa520 !important;
+    }}
+
+    /* 第三列按钮 - 橙红色 (Pyrolysis Conditions) */
+    [data-testid="column"]:nth-child(3) button[aria-label="Increment"],
+    [data-testid="column"]:nth-child(3) button[aria-label="Decrement"],
+    [data-testid="column"]:nth-child(3) button[title="Increment"],
+    [data-testid="column"]:nth-child(3) button[title="Decrement"],
+    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] button,
+    [data-testid="column"]:nth-child(3) button:has(svg) {{
+        background-color: #cd5c5c !important;
+    }}
+
+    /* 备用方案：通过输入框的顺序 */
+    [data-testid="stNumberInput"]:nth-of-type(1) button,
+    [data-testid="stNumberInput"]:nth-of-type(2) button,
+    [data-testid="stNumberInput"]:nth-of-type(3) button {{
+        background-color: #20b2aa !important; /* 青绿色 */
+    }}
+
+    [data-testid="stNumberInput"]:nth-of-type(4) button,
+    [data-testid="stNumberInput"]:nth-of-type(5) button,
+    [data-testid="stNumberInput"]:nth-of-type(6) button {{
+        background-color: #daa520 !important; /* 金黄色 */
+    }}
+
+    [data-testid="stNumberInput"]:nth-of-type(7) button,
+    [data-testid="stNumberInput"]:nth-of-type(8) button,
+    [data-testid="stNumberInput"]:nth-of-type(9) button {{
+        background-color: #cd5c5c !important; /* 橙红色 */
+    }}
+
+    /* 最强力的备用方案 - 直接针对所有可能的按钮 */
+    button:not([kind="primary"]):not([kind="primaryFormSubmit"]) {{
+        background-color: #20b2aa !important;
+    }}
+
+    /* 超强力选择器 - 覆盖所有可能的Streamlit内部样式 */
+    div[data-testid="column"]:nth-child(1) * button,
+    div[data-testid="column"]:nth-child(1) button,
+    div[data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] * button,
+    div[data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
+    div[data-testid="column"]:nth-child(1) div[data-baseweb="input"] button,
+    div[data-testid="column"]:nth-child(1) button[aria-label*="crement"],
+    div[data-testid="column"]:nth-child(1) button[title*="crement"] {{
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+    }}
+
+    div[data-testid="column"]:nth-child(2) * button,
+    div[data-testid="column"]:nth-child(2) button,
+    div[data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] * button,
+    div[data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] button,
+    div[data-testid="column"]:nth-child(2) div[data-baseweb="input"] button,
+    div[data-testid="column"]:nth-child(2) button[aria-label*="crement"],
+    div[data-testid="column"]:nth-child(2) button[title*="crement"] {{
+        background-color: #daa520 !important;
+        background: #daa520 !important;
+    }}
+
+    div[data-testid="column"]:nth-child(3) * button,
+    div[data-testid="column"]:nth-child(3) button,
+    div[data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] * button,
+    div[data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] button,
+    div[data-testid="column"]:nth-child(3) div[data-baseweb="input"] button,
+    div[data-testid="column"]:nth-child(3) button[aria-label*="crement"],
+    div[data-testid="column"]:nth-child(3) button[title*="crement"] {{
+        background-color: #cd5c5c !important;
+        background: #cd5c5c !important;
+    }}
+
+    /* 终极解决方案 - 使用CSS变量和更高优先级 */
+    :root {{
+        --col1-color: #20b2aa;
+        --col2-color: #daa520;
+        --col3-color: #cd5c5c;
+    }}
+
+    /* 使用属性选择器和通配符 */
+    [data-testid="column"]:nth-child(1) [role="spinbutton"] ~ button,
+    [data-testid="column"]:nth-child(1) [role="spinbutton"] + * button,
+    [data-testid="column"]:nth-child(1) input[type="number"] ~ button,
+    [data-testid="column"]:nth-child(1) input[type="number"] + * button {{
+        background-color: var(--col1-color) !important;
+        background: var(--col1-color) !important;
+    }}
+
+    [data-testid="column"]:nth-child(2) [role="spinbutton"] ~ button,
+    [data-testid="column"]:nth-child(2) [role="spinbutton"] + * button,
+    [data-testid="column"]:nth-child(2) input[type="number"] ~ button,
+    [data-testid="column"]:nth-child(2) input[type="number"] + * button {{
+        background-color: var(--col2-color) !important;
+        background: var(--col2-color) !important;
+    }}
+
+    [data-testid="column"]:nth-child(3) [role="spinbutton"] ~ button,
+    [data-testid="column"]:nth-child(3) [role="spinbutton"] + * button,
+    [data-testid="column"]:nth-child(3) input[type="number"] ~ button,
+    [data-testid="column"]:nth-child(3) input[type="number"] + * button {{
+        background-color: var(--col3-color) !important;
+        background: var(--col3-color) !important;
+    }}
+
+    /* 终极解决方案 - 使用CSS动画强制覆盖 */
+    @keyframes forceCol1Color {{
+        0%, 100% {{ background-color: #20b2aa !important; background: #20b2aa !important; }}
+    }}
+
+    @keyframes forceCol2Color {{
+        0%, 100% {{ background-color: #daa520 !important; background: #daa520 !important; }}
+    }}
+
+    @keyframes forceCol3Color {{
+        0%, 100% {{ background-color: #cd5c5c !important; background: #cd5c5c !important; }}
+    }}
+
+    /* 应用动画到各列按钮 */
+    [data-testid="column"]:nth-child(1) button {{
+        animation: forceCol1Color 0.1s infinite !important;
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+    }}
+
+    [data-testid="column"]:nth-child(2) button {{
+        animation: forceCol2Color 0.1s infinite !important;
+        background-color: #daa520 !important;
+        background: #daa520 !important;
+    }}
+
+    [data-testid="column"]:nth-child(3) button {{
+        animation: forceCol3Color 0.1s infinite !important;
+        background-color: #cd5c5c !important;
+        background: #cd5c5c !important;
+    }}
+
+    /* 暂停动画但保持颜色 */
+    [data-testid="column"]:nth-child(1) button:hover {{
+        animation-play-state: paused !important;
+    }}
+
+    [data-testid="column"]:nth-child(2) button:hover {{
+        animation-play-state: paused !important;
+    }}
+
+    [data-testid="column"]:nth-child(3) button:hover {{
+        animation-play-state: paused !important;
+    }}
     </style>
 
     <script>
-    // 使用JavaScript强制应用样式
-    setTimeout(function() {{
-        // 查找所有按钮
-        const buttons = document.querySelectorAll('button');
-        buttons.forEach(button => {{
-            if (button.getAttribute('kind') === 'primary') {{
-                button.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
-                button.style.border = '3px solid #28a745';
-                button.style.boxShadow = '0 8px 25px rgba(40, 167, 69, 0.4)';
-                button.style.transform = 'translateY(-2px)';
-                button.style.fontWeight = '600';
-            }} else if (button.getAttribute('kind') === 'secondary') {{
-                button.style.background = 'rgba(255,255,255,0.1)';
-                button.style.border = '2px solid rgba(255,255,255,0.3)';
-                button.style.color = 'white';
+    // 超强力按钮颜色设置脚本
+    function setButtonColors() {{
+        console.log('=== 开始超强力按钮颜色设置 ===');
+
+        // 定义颜色映射
+        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
+        const colorNames = ['青绿色', '金黄色', '橙红色'];
+
+        // 方法1: 通过列容器查找按钮
+        for (let colIndex = 1; colIndex <= 3; colIndex++) {{
+            const columnSelector = `div[data-testid="column"]:nth-child(${{colIndex}})`;
+            const column = document.querySelector(columnSelector);
+
+            if (column) {{
+                const buttons = column.querySelectorAll('button');
+                console.log(`第${{colIndex}}列找到${{buttons.length}}个按钮`);
+
+                buttons.forEach((btn, btnIndex) => {{
+                    const color = colors[colIndex - 1];
+
+                    // 超强力样式设置
+                    btn.style.setProperty('background-color', color, 'important');
+                    btn.style.setProperty('background', color, 'important');
+                    btn.style.setProperty('color', 'white', 'important');
+                    btn.style.setProperty('border', 'none', 'important');
+                    btn.style.setProperty('border-radius', '4px', 'important');
+
+                    // 添加CSS类
+                    btn.classList.add(`btn-col${{colIndex}}`);
+
+                    console.log(`第${{colIndex}}列按钮${{btnIndex + 1}}设置为${{colorNames[colIndex - 1]}}(${{color}})`);
+                }});
+            }}
+        }}
+
+        // 方法2: 通过number input查找按钮
+        const numberInputs = document.querySelectorAll('[data-testid="stNumberInput"]');
+        console.log(`找到${{numberInputs.length}}个数字输入框`);
+
+        numberInputs.forEach((input, index) => {{
+            const columnIndex = Math.floor(index / 3); // 每列3个输入框
+            if (columnIndex < 3) {{
+                const color = colors[columnIndex];
+                const buttons = input.querySelectorAll('button');
+
+                buttons.forEach(btn => {{
+                    btn.style.setProperty('background-color', color, 'important');
+                    btn.style.setProperty('background', color, 'important');
+                    btn.style.setProperty('color', 'white', 'important');
+                    btn.style.setProperty('border', 'none', 'important');
+
+                    console.log(`输入框${{index + 1}}的按钮设置为${{colorNames[columnIndex]}}(${{color}})`);
+                }});
             }}
         }});
-    }}, 100);
+
+        // 方法3: 直接查找所有+-按钮并按位置分配颜色
+        const allButtons = document.querySelectorAll('button');
+        const plusMinusButtons = Array.from(allButtons).filter(btn => {{
+            const text = btn.textContent.trim();
+            return text === '+' || text === '−' || text === '-' || text === '＋' || text === '－';
+        }});
+
+        console.log(`找到${{plusMinusButtons.length}}个+-按钮`);
+
+        plusMinusButtons.forEach((btn, index) => {{
+            // 每6个按钮一组（每列3个输入框，每个输入框2个按钮）
+            const columnIndex = Math.floor(index / 6);
+
+            if (columnIndex < 3) {{
+                const color = colors[columnIndex];
+
+                // 超强力设置
+                btn.style.setProperty('background-color', color, 'important');
+                btn.style.setProperty('background', color, 'important');
+                btn.style.setProperty('color', 'white', 'important');
+                btn.style.setProperty('border', 'none', 'important');
+                btn.style.setProperty('border-radius', '4px', 'important');
+
+                // 设置CSS变量
+                btn.style.setProperty('--button-bg-color', color);
+
+                console.log(`+-按钮${{index + 1}}("${{btn.textContent}}")设置为${{colorNames[columnIndex]}}(${{color}})`);
+            }}
+        }});
+
+        console.log('=== 超强力按钮颜色设置完成 ===');
+    }}
+
+    // 立即执行多次，确保覆盖
+    setTimeout(setButtonColors, 50);
+    setTimeout(setButtonColors, 100);
+    setTimeout(setButtonColors, 200);
+    setTimeout(setButtonColors, 500);
+    setTimeout(setButtonColors, 1000);
+    setTimeout(setButtonColors, 2000);
+    setTimeout(setButtonColors, 3000);
+
+    // 持续监听和重新应用
+    const observer = new MutationObserver(function(mutations) {{
+        let shouldReapply = false;
+        mutations.forEach(function(mutation) {{
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {{
+                // 检查是否有新的按钮或输入框
+                const hasNewButtons = Array.from(mutation.addedNodes).some(node => {{
+                    if (node.nodeType === 1) {{ // Element node
+                        return node.tagName === 'BUTTON' ||
+                               node.querySelector && node.querySelector('button') ||
+                               node.getAttribute && node.getAttribute('data-testid') === 'stNumberInput';
+                    }}
+                    return false;
+                }});
+
+                if (hasNewButtons) {{
+                    shouldReapply = true;
+                }}
+            }}
+        }});
+
+        if (shouldReapply) {{
+            console.log('检测到DOM变化，重新应用按钮颜色');
+            setTimeout(setButtonColors, 50);
+            setTimeout(setButtonColors, 200);
+        }}
+    }});
+
+    // 开始观察
+    observer.observe(document.body, {{
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    }});
+
+    // 定期强制重新应用（每5秒）
+    setInterval(function() {{
+        console.log('定期重新应用按钮颜色');
+        setButtonColors();
+    }}, 5000);
+
+    // 添加诊断函数
+    function diagnoseButtons() {{
+        console.log('=== 按钮诊断开始 ===');
+
+        // 1. 检查所有按钮
+        const allButtons = document.querySelectorAll('button');
+        console.log('总按钮数量:', allButtons.length);
+
+        // 2. 检查+-按钮
+        const plusMinusButtons = Array.from(allButtons).filter(btn =>
+            btn.textContent === '+' || btn.textContent === '−' || btn.textContent === '-'
+        );
+        console.log('+-按钮数量:', plusMinusButtons.length);
+
+        // 3. 检查每个+-按钮的当前样式
+        plusMinusButtons.forEach((btn, index) => {{
+            const computedStyle = window.getComputedStyle(btn);
+            console.log(`按钮${{index + 1}} "${{btn.textContent}}": 背景色=${{computedStyle.backgroundColor}}, 内联样式=${{btn.style.backgroundColor}}`);
+        }});
+
+        // 4. 强制设置红色测试
+        console.log('=== 测试强制设置红色 ===');
+        plusMinusButtons.forEach((btn, index) => {{
+            btn.style.setProperty('background-color', '#ff0000', 'important');
+            console.log(`按钮${{index + 1}}设置红色后: ${{btn.style.backgroundColor}}`);
+        }});
+
+        // 5. 1秒后检查是否被覆盖
+        setTimeout(() => {{
+            console.log('=== 1秒后检查是否被覆盖 ===');
+            plusMinusButtons.forEach((btn, index) => {{
+                const computedStyle = window.getComputedStyle(btn);
+                console.log(`按钮${{index + 1}} 1秒后: 计算样式=${{computedStyle.backgroundColor}}, 内联样式=${{btn.style.backgroundColor}}`);
+            }});
+        }}, 1000);
+    }}
+
+    // 延迟执行诊断
+    setTimeout(diagnoseButtons, 2000);
+
     </script>
     """, unsafe_allow_html=True)
 
@@ -1220,6 +1568,29 @@ elif st.session_state.current_page == "预测模型":
         box-shadow: 0 0 5px rgba(32, 178, 170, 0.3) !important;
     }
 
+    /* number_input的加减按钮样式 - 通用样式 */
+    .stNumberInput button {
+        border: none !important;
+        color: white !important;
+        font-weight: bold !important;
+        border-radius: 4px !important;
+    }
+
+    /* 第一列按钮颜色类 - 青绿色 */
+    .btn-col1 {
+        background-color: #20b2aa !important;
+    }
+
+    /* 第二列按钮颜色类 - 金黄色 */
+    .btn-col2 {
+        background-color: #daa520 !important;
+    }
+
+    /* 第三列按钮颜色类 - 橙红色 */
+    .btn-col3 {
+        background-color: #cd5c5c !important;
+    }
+
     /* 确保主要按钮可见且样式正常 */
     .main-buttons .stButton {
         display: block !important;
@@ -1272,9 +1643,9 @@ elif st.session_state.current_page == "预测模型":
 
     # 颜色配置 - 根据用户要求的颜色配置
     category_colors = {
-        "Proximate Analysis": "#20b2aa",  # 青绿色 (保持不变)
-        "Ultimate Analysis": "#cd853f",   # 金棕色/橙棕色
-        "Pyrolysis Conditions": "#d2691e" # 橙红色
+        "Proximate Analysis": "#20b2aa",  # 青绿色 (第一列)
+        "Ultimate Analysis": "#daa520",   # 金黄色 (第二列)
+        "Pyrolysis Conditions": "#cd5c5c" # 橙红色 (第三列)
     }
 
     # 创建三列布局
