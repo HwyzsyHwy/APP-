@@ -863,111 +863,190 @@ if st.session_state.current_page == "预测模型":
         background: var(--col3-color) !important;
     }}
 
-    /* 终极解决方案 - 使用CSS动画强制覆盖 */
-    @keyframes forceCol1Color {{
-        0%, 100% {{ background-color: #20b2aa !important; background: #20b2aa !important; }}
-    }}
+    /* 终极解决方案 - 使用更强力的CSS选择器 */
 
-    @keyframes forceCol2Color {{
-        0%, 100% {{ background-color: #daa520 !important; background: #daa520 !important; }}
-    }}
-
-    @keyframes forceCol3Color {{
-        0%, 100% {{ background-color: #cd5c5c !important; background: #cd5c5c !important; }}
-    }}
-
-    /* 应用动画到各列按钮 */
-    [data-testid="column"]:nth-child(1) button {{
-        animation: forceCol1Color 0.1s infinite !important;
+    /* 通过容器div来定位按钮 */
+    div[data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button {{
         background-color: #20b2aa !important;
         background: #20b2aa !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
     }}
 
-    [data-testid="column"]:nth-child(2) button {{
-        animation: forceCol2Color 0.1s infinite !important;
+    div[data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] button {{
         background-color: #daa520 !important;
         background: #daa520 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
     }}
 
-    [data-testid="column"]:nth-child(3) button {{
-        animation: forceCol3Color 0.1s infinite !important;
+    div[data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] button {{
         background-color: #cd5c5c !important;
         background: #cd5c5c !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
     }}
 
-    /* 暂停动画但保持颜色 */
-    [data-testid="column"]:nth-child(1) button:hover {{
-        animation-play-state: paused !important;
+    /* 备用方案：直接通过按钮位置 */
+    [data-testid="stNumberInput"]:nth-of-type(1) button,
+    [data-testid="stNumberInput"]:nth-of-type(2) button,
+    [data-testid="stNumberInput"]:nth-of-type(3) button {{
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+        color: white !important;
     }}
 
-    [data-testid="column"]:nth-child(2) button:hover {{
-        animation-play-state: paused !important;
+    [data-testid="stNumberInput"]:nth-of-type(4) button,
+    [data-testid="stNumberInput"]:nth-of-type(5) button,
+    [data-testid="stNumberInput"]:nth-of-type(6) button {{
+        background-color: #daa520 !important;
+        background: #daa520 !important;
+        color: white !important;
     }}
 
-    [data-testid="column"]:nth-child(3) button:hover {{
-        animation-play-state: paused !important;
+    [data-testid="stNumberInput"]:nth-of-type(7) button,
+    [data-testid="stNumberInput"]:nth-of-type(8) button,
+    [data-testid="stNumberInput"]:nth-of-type(9) button {{
+        background-color: #cd5c5c !important;
+        background: #cd5c5c !important;
+        color: white !important;
+    }}
+
+    /* 最强力的覆盖 - 使用CSS动画 */
+    @keyframes forceGreen {{
+        0%, 100% {{ background-color: #20b2aa !important; }}
+    }}
+
+    @keyframes forceGold {{
+        0%, 100% {{ background-color: #daa520 !important; }}
+    }}
+
+    @keyframes forceRed {{
+        0%, 100% {{ background-color: #cd5c5c !important; }}
+    }}
+
+    /* 应用动画到特定列 */
+    div[data-testid="column"]:nth-child(1) button {{
+        animation: forceGreen 0.1s infinite !important;
+        color: white !important;
+    }}
+
+    div[data-testid="column"]:nth-child(2) button {{
+        animation: forceGold 0.1s infinite !important;
+        color: white !important;
+    }}
+
+    div[data-testid="column"]:nth-child(3) button {{
+        animation: forceRed 0.1s infinite !important;
+        color: white !important;
+    }}
+
+    /* 通过自定义属性强制设置 */
+    button[data-forced-color="green"] {{
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+        color: white !important;
+    }}
+
+    button[data-forced-color="gold"] {{
+        background-color: #daa520 !important;
+        background: #daa520 !important;
+        color: white !important;
+    }}
+
+    button[data-forced-color="red"] {{
+        background-color: #cd5c5c !important;
+        background: #cd5c5c !important;
+        color: white !important;
     }}
     </style>
 
     <script>
-    // 超强力按钮颜色设置脚本
-    function setButtonColors() {{
-        console.log('=== 开始超强力按钮颜色设置 ===');
+    // DOM结构调试和按钮颜色设置脚本
+    function debugAndSetButtonColors() {{
+        console.log('=== 开始DOM结构调试 ===');
 
-        // 定义颜色映射
-        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
-        const colorNames = ['青绿色', '金黄色', '橙红色'];
+        // 1. 详细分析DOM结构
+        const allButtons = document.querySelectorAll('button');
+        console.log(`页面总按钮数: ${{allButtons.length}}`);
 
-        // 方法1: 通过列容器查找按钮
-        for (let colIndex = 1; colIndex <= 3; colIndex++) {{
-            const columnSelector = `div[data-testid="column"]:nth-child(${{colIndex}})`;
-            const column = document.querySelector(columnSelector);
+        // 打印每个按钮的详细信息
+        allButtons.forEach((btn, index) => {{
+            const text = btn.textContent.trim();
+            const ariaLabel = btn.getAttribute('aria-label') || '';
+            const title = btn.getAttribute('title') || '';
+            const className = btn.className || '';
+            const parentClass = btn.parentElement ? btn.parentElement.className : '';
+            const computedStyle = window.getComputedStyle(btn);
 
-            if (column) {{
-                const buttons = column.querySelectorAll('button');
-                console.log(`第${{colIndex}}列找到${{buttons.length}}个按钮`);
+            console.log(`按钮${{index + 1}}:`, {{
+                text: text,
+                ariaLabel: ariaLabel,
+                title: title,
+                className: className,
+                parentClass: parentClass,
+                backgroundColor: computedStyle.backgroundColor,
+                element: btn
+            }});
+        }});
 
-                buttons.forEach((btn, btnIndex) => {{
-                    const color = colors[colIndex - 1];
-
-                    // 超强力样式设置
-                    btn.style.setProperty('background-color', color, 'important');
-                    btn.style.setProperty('background', color, 'important');
-                    btn.style.setProperty('color', 'white', 'important');
-                    btn.style.setProperty('border', 'none', 'important');
-                    btn.style.setProperty('border-radius', '4px', 'important');
-
-                    // 添加CSS类
-                    btn.classList.add(`btn-col${{colIndex}}`);
-
-                    console.log(`第${{colIndex}}列按钮${{btnIndex + 1}}设置为${{colorNames[colIndex - 1]}}(${{color}})`);
-                }});
-            }}
-        }}
-
-        // 方法2: 通过number input查找按钮
+        // 2. 查找数字输入框
         const numberInputs = document.querySelectorAll('[data-testid="stNumberInput"]');
         console.log(`找到${{numberInputs.length}}个数字输入框`);
 
         numberInputs.forEach((input, index) => {{
-            const columnIndex = Math.floor(index / 3); // 每列3个输入框
+            const buttons = input.querySelectorAll('button');
+            console.log(`数字输入框${{index + 1}}包含${{buttons.length}}个按钮`);
+
+            buttons.forEach((btn, btnIndex) => {{
+                console.log(`  按钮${{btnIndex + 1}}: "${{btn.textContent}}" - ${{btn.getAttribute('aria-label')}}`);
+            }});
+        }});
+
+        // 3. 查找列容器
+        const columns = document.querySelectorAll('[data-testid="column"]');
+        console.log(`找到${{columns.length}}个列容器`);
+
+        columns.forEach((column, colIndex) => {{
+            const buttons = column.querySelectorAll('button');
+            console.log(`列${{colIndex + 1}}包含${{buttons.length}}个按钮`);
+        }});
+
+        // 4. 强制设置按钮颜色 - 使用最直接的方法
+        console.log('=== 开始强制设置按钮颜色 ===');
+
+        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
+
+        // 方法1: 通过数字输入框设置
+        numberInputs.forEach((input, inputIndex) => {{
+            const columnIndex = Math.floor(inputIndex / 3);
             if (columnIndex < 3) {{
                 const color = colors[columnIndex];
                 const buttons = input.querySelectorAll('button');
 
                 buttons.forEach(btn => {{
-                    btn.style.setProperty('background-color', color, 'important');
-                    btn.style.setProperty('background', color, 'important');
-                    btn.style.setProperty('color', 'white', 'important');
-                    btn.style.setProperty('border', 'none', 'important');
+                    // 超强力设置
+                    btn.style.cssText = `
+                        background-color: ${{color}} !important;
+                        background: ${{color}} !important;
+                        color: white !important;
+                        border: none !important;
+                        border-radius: 4px !important;
+                    `;
 
-                    console.log(`输入框${{index + 1}}的按钮设置为${{colorNames[columnIndex]}}(${{color}})`);
+                    // 添加标识
+                    btn.setAttribute('data-forced-color', color);
+                    btn.setAttribute('data-column', columnIndex + 1);
+
+                    console.log(`强制设置输入框${{inputIndex + 1}}的按钮为${{color}}`);
                 }});
             }}
         }});
 
-        // 方法3: 直接查找所有+-按钮并按位置分配颜色
-        const allButtons = document.querySelectorAll('button');
+        // 方法2: 直接遍历所有+-按钮
         const plusMinusButtons = Array.from(allButtons).filter(btn => {{
             const text = btn.textContent.trim();
             return text === '+' || text === '−' || text === '-' || text === '＋' || text === '－';
@@ -976,37 +1055,38 @@ if st.session_state.current_page == "预测模型":
         console.log(`找到${{plusMinusButtons.length}}个+-按钮`);
 
         plusMinusButtons.forEach((btn, index) => {{
-            // 每6个按钮一组（每列3个输入框，每个输入框2个按钮）
-            const columnIndex = Math.floor(index / 6);
-
+            const columnIndex = Math.floor(index / 6); // 每列6个按钮
             if (columnIndex < 3) {{
                 const color = colors[columnIndex];
 
-                // 超强力设置
-                btn.style.setProperty('background-color', color, 'important');
-                btn.style.setProperty('background', color, 'important');
-                btn.style.setProperty('color', 'white', 'important');
-                btn.style.setProperty('border', 'none', 'important');
-                btn.style.setProperty('border-radius', '4px', 'important');
+                // 最强力的设置方法
+                btn.style.cssText = `
+                    background-color: ${{color}} !important;
+                    background: ${{color}} !important;
+                    background-image: none !important;
+                    color: white !important;
+                    border: none !important;
+                    border-radius: 4px !important;
+                `;
 
-                // 设置CSS变量
-                btn.style.setProperty('--button-bg-color', color);
+                btn.setAttribute('data-forced-color', color);
+                btn.setAttribute('data-column', columnIndex + 1);
 
-                console.log(`+-按钮${{index + 1}}("${{btn.textContent}}")设置为${{colorNames[columnIndex]}}(${{color}})`);
+                console.log(`强制设置+-按钮${{index + 1}}("${{btn.textContent}}")为${{color}}`);
             }}
         }});
 
-        console.log('=== 超强力按钮颜色设置完成 ===');
+        console.log('=== DOM调试和颜色设置完成 ===');
     }}
 
-    // 立即执行多次，确保覆盖
-    setTimeout(setButtonColors, 50);
-    setTimeout(setButtonColors, 100);
-    setTimeout(setButtonColors, 200);
-    setTimeout(setButtonColors, 500);
-    setTimeout(setButtonColors, 1000);
-    setTimeout(setButtonColors, 2000);
-    setTimeout(setButtonColors, 3000);
+    // 立即执行多次调试和设置函数
+    setTimeout(debugAndSetButtonColors, 50);
+    setTimeout(debugAndSetButtonColors, 100);
+    setTimeout(debugAndSetButtonColors, 200);
+    setTimeout(debugAndSetButtonColors, 500);
+    setTimeout(debugAndSetButtonColors, 1000);
+    setTimeout(debugAndSetButtonColors, 2000);
+    setTimeout(debugAndSetButtonColors, 3000);
 
     // 持续监听和重新应用
     const observer = new MutationObserver(function(mutations) {{
@@ -1031,8 +1111,8 @@ if st.session_state.current_page == "预测模型":
 
         if (shouldReapply) {{
             console.log('检测到DOM变化，重新应用按钮颜色');
-            setTimeout(setButtonColors, 50);
-            setTimeout(setButtonColors, 200);
+            setTimeout(debugAndSetButtonColors, 50);
+            setTimeout(debugAndSetButtonColors, 200);
         }}
     }});
 
@@ -1047,7 +1127,7 @@ if st.session_state.current_page == "预测模型":
     // 定期强制重新应用（每5秒）
     setInterval(function() {{
         console.log('定期重新应用按钮颜色');
-        setButtonColors();
+        debugAndSetButtonColors();
     }}, 5000);
 
     // 添加诊断函数
@@ -1089,6 +1169,98 @@ if st.session_state.current_page == "预测模型":
 
     // 延迟执行诊断
     setTimeout(diagnoseButtons, 2000);
+
+
+    // 最终解决方案：暴力覆盖所有按钮样式
+    function bruteForceButtonColors() {{
+        console.log('=== 暴力设置按钮颜色开始 ===');
+
+        // 获取所有按钮
+        const allButtons = document.querySelectorAll('button');
+        console.log(`找到 ${{allButtons.length}} 个按钮`);
+
+        // 定义颜色
+        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
+
+        // 找到所有+/-按钮
+        const incrementDecrementButtons = [];
+        allButtons.forEach(btn => {{
+            const text = btn.textContent.trim();
+            if (text === '+' || text === '−' || text === '-' || text === '＋' || text === '－') {{
+                incrementDecrementButtons.push(btn);
+            }}
+        }});
+
+        console.log(`找到 ${{incrementDecrementButtons.length}} 个+/-按钮`);
+
+        // 为每个+/-按钮设置颜色
+        incrementDecrementButtons.forEach((btn, index) => {{
+            // 根据按钮的索引确定颜色（每列3个输入框，每个输入框2个按钮）
+            const columnIndex = Math.floor(index / 6); // 每列6个按钮（3个输入框 × 2个按钮）
+            const color = colors[columnIndex] || '#666666';
+
+            // 最强力的样式设置
+            btn.style.cssText = `
+                background: ${{color}} !important;
+                background-color: ${{color}} !important;
+                background-image: none !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 4px !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+                font-weight: bold !important;
+                min-width: 24px !important;
+                min-height: 24px !important;
+            `;
+
+            // 移除所有可能的类名
+            btn.className = '';
+
+            // 添加自定义属性
+            btn.setAttribute('data-custom-color', color);
+            btn.setAttribute('data-button-index', index);
+
+            console.log(`按钮 ${{index}}: "${{btn.textContent}}" -> ${{color}}`);
+        }});
+
+        console.log('=== 暴力设置按钮颜色完成 ===');
+    }}
+
+    // 立即执行多次
+    setTimeout(bruteForceButtonColors, 100);
+    setTimeout(bruteForceButtonColors, 300);
+    setTimeout(bruteForceButtonColors, 500);
+    setTimeout(bruteForceButtonColors, 1000);
+    setTimeout(bruteForceButtonColors, 2000);
+    setTimeout(bruteForceButtonColors, 3000);
+    setTimeout(bruteForceButtonColors, 5000);
+
+    // 每隔2秒强制执行一次
+    setInterval(bruteForceButtonColors, 2000);
+
+    // 监听任何DOM变化
+    const bruteForceMutationObserver = new MutationObserver(function(mutations) {{
+        let needsUpdate = false;
+        mutations.forEach(function(mutation) {{
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {{
+                needsUpdate = true;
+            }}
+        }});
+
+        if (needsUpdate) {{
+            setTimeout(bruteForceButtonColors, 50);
+        }}
+    }});
+
+    bruteForceMutationObserver.observe(document.body, {{
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    }});
+
+    console.log('暴力按钮颜色系统已启动');
 
     </script>
     """, unsafe_allow_html=True)
@@ -1517,14 +1689,17 @@ elif st.session_state.current_page == "预测模型":
         "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
     }
 
-    # 添加新的参数行样式CSS - 根据图片效果设计
+    # 添加新的参数行样式CSS - 修复对齐问题
     st.markdown("""
     <style>
-    /* 特征行样式 - 每个特征标签和输入框在一行 */
+    /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
     .feature-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         background: rgba(255, 255, 255, 0.85);
         border-radius: 10px;
-        padding: 8px;
+        padding: 8px 12px;
         margin: 8px 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         border: 1px solid rgba(255,255,255,0.3);
@@ -1532,7 +1707,7 @@ elif st.session_state.current_page == "预测模型":
         min-height: 50px;
     }
 
-    /* 参数标签样式 - 彩色背景，固定宽度 */
+    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 */
     .param-label {
         color: white;
         font-weight: bold;
@@ -1542,7 +1717,10 @@ elif st.session_state.current_page == "预测模型":
         text-align: center;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         display: inline-block;
-        margin-bottom: 5px;
+        width: 80px;
+        flex-shrink: 0;
+        margin: 0;
+        line-height: 1.2;
     }
 
     /* 隐藏number_input的标签 */
@@ -1551,6 +1729,11 @@ elif st.session_state.current_page == "预测模型":
     }
 
     /* 调整number_input的样式 */
+    .stNumberInput {
+        flex: 1;
+        margin: 0 !important;
+    }
+
     .stNumberInput input {
         background-color: white !important;
         color: #333 !important;
@@ -1561,6 +1744,7 @@ elif st.session_state.current_page == "预测模型":
         font-size: 14px !important;
         padding: 8px 12px !important;
         width: 100% !important;
+        margin: 0 !important;
     }
 
     .stNumberInput input:focus {
@@ -1574,20 +1758,21 @@ elif st.session_state.current_page == "预测模型":
         color: white !important;
         font-weight: bold !important;
         border-radius: 4px !important;
+        margin: 0 !important;
     }
 
-    /* 第一列按钮颜色类 - 青绿色 */
-    .btn-col1 {
+    /* 第一列 Proximate Analysis 按钮颜色 - 青绿色 */
+    .stColumn:nth-child(1) .stNumberInput button {
         background-color: #20b2aa !important;
     }
 
-    /* 第二列按钮颜色类 - 金黄色 */
-    .btn-col2 {
+    /* 第二列 Ultimate Analysis 按钮颜色 - 金黄色 */
+    .stColumn:nth-child(2) .stNumberInput button {
         background-color: #daa520 !important;
     }
 
-    /* 第三列按钮颜色类 - 橙红色 */
-    .btn-col3 {
+    /* 第三列 Pyrolysis Conditions 按钮颜色 - 橙红色 */
+    .stColumn:nth-child(3) .stNumberInput button {
         background-color: #cd5c5c !important;
     }
 
@@ -1613,30 +1798,46 @@ elif st.session_state.current_page == "预测模型":
         padding: 10px !important;
     }
 
-    /* 特征输入行布局 */
-    .feature-input-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 10px;
-        padding: 8px 12px;
-        margin: 8px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.3);
-        backdrop-filter: blur(5px);
-        min-height: 50px;
+    /* 确保容器内的元素垂直对齐 */
+    .stContainer > div {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
     }
 
-    .feature-input-row .param-label {
-        margin-bottom: 0;
-        width: 80px;
-        flex-shrink: 0;
+    /* 强制对齐修复 */
+    .feature-container {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        background: rgba(255, 255, 255, 0.85) !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+        margin: 8px 0 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        backdrop-filter: blur(5px) !important;
+        min-height: 50px !important;
     }
 
-    .feature-input-row .stNumberInput {
-        flex: 1;
-        margin: 0;
+    /* 确保输入框容器内的元素正确对齐 */
+    .feature-row > div:last-child {
+        display: flex !important;
+        align-items: center !important;
+        flex: 1 !important;
+    }
+
+    /* 修复Streamlit默认的margin和padding */
+    .feature-row .stNumberInput > div {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 确保输入框和按钮在同一行 */
+    .feature-row .stNumberInput > div > div {
+        display: flex !important;
+        align-items: center !important;
+        margin: 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1666,31 +1867,29 @@ elif st.session_state.current_page == "预测模型":
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 使用容器创建特征行
-            with st.container():
-                # 创建两列：标签列和输入列
-                label_col, input_col = st.columns([1, 2])
+            # 使用HTML创建完整的特征行，确保标签和输入框在同一行
+            st.markdown(f"""
+            <div class='feature-row'>
+                <div class='param-label' style='background-color: {color};'>
+                    {feature}
+                </div>
+                <div style='flex: 1; margin-left: 10px;'>
+            """, unsafe_allow_html=True)
 
-                with label_col:
-                    # 创建标签
-                    st.markdown(f"""
-                    <div class='param-label' style='background-color: {color}; width: 100%; text-align: center;'>
-                        {feature}
-                    </div>
-                    """, unsafe_allow_html=True)
+            # 使用number_input让用户可以直接输入
+            new_value = st.number_input(
+                f"{feature}",
+                value=float(value),
+                step=0.001,
+                format="%.3f",
+                key=f"input_{category}_{feature}",
+                label_visibility="collapsed"
+            )
+            # 更新会话状态中的值
+            st.session_state.feature_values[feature] = new_value
 
-                with input_col:
-                    # 使用number_input让用户可以直接输入
-                    new_value = st.number_input(
-                        f"{feature}",
-                        value=float(value),
-                        step=0.001,
-                        format="%.3f",
-                        key=f"input_{category}_{feature}",
-                        label_visibility="collapsed"
-                    )
-                    # 更新会话状态中的值
-                    st.session_state.feature_values[feature] = new_value
+            # 关闭HTML容器
+            st.markdown("</div></div>", unsafe_allow_html=True)
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1707,31 +1906,29 @@ elif st.session_state.current_page == "预测模型":
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 使用容器创建特征行
-            with st.container():
-                # 创建两列：标签列和输入列
-                label_col, input_col = st.columns([1, 2])
+            # 使用HTML创建完整的特征行，确保标签和输入框在同一行
+            st.markdown(f"""
+            <div class='feature-row'>
+                <div class='param-label' style='background-color: {color};'>
+                    {feature}
+                </div>
+                <div style='flex: 1; margin-left: 10px;'>
+            """, unsafe_allow_html=True)
 
-                with label_col:
-                    # 创建标签
-                    st.markdown(f"""
-                    <div class='param-label' style='background-color: {color}; width: 100%; text-align: center;'>
-                        {feature}
-                    </div>
-                    """, unsafe_allow_html=True)
+            # 使用number_input让用户可以直接输入
+            new_value = st.number_input(
+                f"{feature}",
+                value=float(value),
+                step=0.001,
+                format="%.3f",
+                key=f"input_{category}_{feature}",
+                label_visibility="collapsed"
+            )
+            # 更新会话状态中的值
+            st.session_state.feature_values[feature] = new_value
 
-                with input_col:
-                    # 使用number_input让用户可以直接输入
-                    new_value = st.number_input(
-                        f"{feature}",
-                        value=float(value),
-                        step=0.001,
-                        format="%.3f",
-                        key=f"input_{category}_{feature}",
-                        label_visibility="collapsed"
-                    )
-                    # 更新会话状态中的值
-                    st.session_state.feature_values[feature] = new_value
+            # 关闭HTML容器
+            st.markdown("</div></div>", unsafe_allow_html=True)
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1748,31 +1945,29 @@ elif st.session_state.current_page == "预测模型":
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 使用容器创建特征行
-            with st.container():
-                # 创建两列：标签列和输入列
-                label_col, input_col = st.columns([1, 2])
+            # 使用HTML创建完整的特征行，确保标签和输入框在同一行
+            st.markdown(f"""
+            <div class='feature-row'>
+                <div class='param-label' style='background-color: {color};'>
+                    {feature}
+                </div>
+                <div style='flex: 1; margin-left: 10px;'>
+            """, unsafe_allow_html=True)
 
-                with label_col:
-                    # 创建标签
-                    st.markdown(f"""
-                    <div class='param-label' style='background-color: {color}; width: 100%; text-align: center;'>
-                        {feature}
-                    </div>
-                    """, unsafe_allow_html=True)
+            # 使用number_input让用户可以直接输入
+            new_value = st.number_input(
+                f"{feature}",
+                value=float(value),
+                step=0.001,
+                format="%.3f",
+                key=f"input_{category}_{feature}",
+                label_visibility="collapsed"
+            )
+            # 更新会话状态中的值
+            st.session_state.feature_values[feature] = new_value
 
-                with input_col:
-                    # 使用number_input让用户可以直接输入
-                    new_value = st.number_input(
-                        f"{feature}",
-                        value=float(value),
-                        step=0.001,
-                        format="%.3f",
-                        key=f"input_{category}_{feature}",
-                        label_visibility="collapsed"
-                    )
-                    # 更新会话状态中的值
-                    st.session_state.feature_values[feature] = new_value
+            # 关闭HTML容器
+            st.markdown("</div></div>", unsafe_allow_html=True)
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
