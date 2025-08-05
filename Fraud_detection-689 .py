@@ -1169,113 +1169,112 @@ elif st.session_state.current_page == "预测模型":
         "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
     }
 
-    # 添加新的卡片样式CSS
+    # 添加新的参数行样式CSS - 根据图片效果设计
     st.markdown("""
     <style>
-    /* 分析卡片容器样式 */
-    .analysis-card {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 15px;
-        padding: 0;
-        margin: 10px 5px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        overflow: hidden;
-        border: 1px solid rgba(0,0,0,0.1);
+    /* 特征行样式 - 每个特征标签和输入框在一行 */
+    .feature-row {
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 8px;
+        margin: 8px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.3);
+        backdrop-filter: blur(5px);
+        min-height: 50px;
     }
 
-    /* 卡片标题样式 */
-    .card-header {
-        color: white;
-        font-weight: bold;
-        font-size: 16px;
-        text-align: center;
-        padding: 12px;
-        margin: 0;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        border-radius: 15px 15px 0 0;
-    }
-
-    /* 卡片内容区域 */
-    .card-content {
-        padding: 15px;
-        background: rgba(255, 255, 255, 0.95);
-    }
-
-    /* 参数行样式 */
-    .param-row {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-        height: 40px;
-    }
-
-    /* 参数标签样式 */
+    /* 参数标签样式 - 彩色背景，固定宽度 */
     .param-label {
         color: white;
         font-weight: bold;
         font-size: 14px;
         padding: 8px 12px;
         border-radius: 6px;
-        min-width: 80px;
         text-align: center;
-        margin-right: 10px;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        display: inline-block;
+        margin-bottom: 5px;
     }
 
-    /* 数值显示框 */
-    .value-box {
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-weight: bold;
-        color: #333;
-        min-width: 70px;
-        text-align: center;
-        font-size: 14px;
-        margin-right: 8px;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+    /* 隐藏number_input的标签 */
+    .stNumberInput label {
+        display: none !important;
     }
 
-    /* 控制按钮样式 */
-    .ctrl-btn {
-        width: 28px;
-        height: 28px;
-        border: none;
-        border-radius: 4px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        margin: 0 1px;
+    /* 调整number_input的样式 */
+    .stNumberInput input {
+        background-color: white !important;
+        color: #333 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 6px !important;
+        text-align: center !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        padding: 8px 12px !important;
+        width: 100% !important;
+    }
+
+    .stNumberInput input:focus {
+        border-color: #20b2aa !important;
+        box-shadow: 0 0 5px rgba(32, 178, 170, 0.3) !important;
+    }
+
+    /* 确保主要按钮可见且样式正常 */
+    .main-buttons .stButton {
+        display: block !important;
+    }
+
+    .main-buttons .stButton button {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        padding: 12px 20px !important;
+        font-size: 18px !important;
+        border-radius: 8px !important;
+    }
+
+    /* 移除列容器的背景，让参数行独立显示 */
+    div[data-testid="column"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px !important;
+    }
+
+    /* 特征输入行布局 */
+    .feature-input-row {
         display: flex;
         align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        color: white;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin: 8px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.3);
+        backdrop-filter: blur(5px);
+        min-height: 50px;
     }
 
-    .ctrl-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    .feature-input-row .param-label {
+        margin-bottom: 0;
+        width: 80px;
+        flex-shrink: 0;
     }
 
-    .ctrl-btn:active {
-        transform: translateY(0);
-    }
-
-    /* 隐藏原始的number_input控件 */
-    .stNumberInput {
-        display: none !important;
+    .feature-input-row .stNumberInput {
+        flex: 1;
+        margin: 0;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # 颜色配置 - 根据图片调整颜色
+    # 颜色配置 - 根据用户要求的颜色配置
     category_colors = {
-        "Proximate Analysis": "#20b2aa",  # 青绿色
-        "Ultimate Analysis": "#ff8c00",   # 橙色
-        "Pyrolysis Conditions": "#dc3545" # 红色
+        "Proximate Analysis": "#20b2aa",  # 青绿色 (保持不变)
+        "Ultimate Analysis": "#cd853f",   # 金棕色/橙棕色
+        "Pyrolysis Conditions": "#d2691e" # 橙红色
     }
 
     # 创建三列布局
@@ -1289,46 +1288,38 @@ elif st.session_state.current_page == "预测模型":
         category = "Proximate Analysis"
         color = category_colors[category]
 
-        # 创建卡片标题
-        st.markdown(f"""
-        <div style='background-color: white; color: black; padding: 10px; text-align: center; font-weight: bold; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            {category}
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 为每个特征创建输入控件
+        # 为每个特征创建独立的参数行
         for feature in feature_categories[category]:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 创建每一行
-            row_col1, row_col2, row_col3, row_col4 = st.columns([3, 2, 1, 1])
+            # 使用容器创建特征行
+            with st.container():
+                # 创建两列：标签列和输入列
+                label_col, input_col = st.columns([1, 2])
 
-            with row_col1:
-                st.markdown(f"""
-                <div style='background-color: {color}; color: white; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
-                    {feature}
-                </div>
-                """, unsafe_allow_html=True)
+                with label_col:
+                    # 创建标签
+                    st.markdown(f"""
+                    <div class='param-label' style='background-color: {color}; width: 100%; text-align: center;'>
+                        {feature}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with row_col2:
-                st.markdown(f"""
-                <div style='background-color: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
-                    {value:.3f}
-                </div>
-                """, unsafe_allow_html=True)
-
-            with row_col3:
-                if st.button("-", key=f"dec_{category}_{feature}"):
-                    st.session_state.feature_values[feature] = max(0, value - 0.001)
-                    st.rerun()
-
-            with row_col4:
-                if st.button("+", key=f"inc_{category}_{feature}"):
-                    st.session_state.feature_values[feature] = value + 0.001
-                    st.rerun()
+                with input_col:
+                    # 使用number_input让用户可以直接输入
+                    new_value = st.number_input(
+                        f"{feature}",
+                        value=float(value),
+                        step=0.001,
+                        format="%.3f",
+                        key=f"input_{category}_{feature}",
+                        label_visibility="collapsed"
+                    )
+                    # 更新会话状态中的值
+                    st.session_state.feature_values[feature] = new_value
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1338,46 +1329,38 @@ elif st.session_state.current_page == "预测模型":
         category = "Ultimate Analysis"
         color = category_colors[category]
 
-        # 创建卡片标题
-        st.markdown(f"""
-        <div style='background-color: white; color: black; padding: 10px; text-align: center; font-weight: bold; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            {category}
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 为每个特征创建输入控件
+        # 为每个特征创建独立的参数行
         for feature in feature_categories[category]:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 创建每一行
-            row_col1, row_col2, row_col3, row_col4 = st.columns([3, 2, 1, 1])
+            # 使用容器创建特征行
+            with st.container():
+                # 创建两列：标签列和输入列
+                label_col, input_col = st.columns([1, 2])
 
-            with row_col1:
-                st.markdown(f"""
-                <div style='background-color: {color}; color: white; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
-                    {feature}
-                </div>
-                """, unsafe_allow_html=True)
+                with label_col:
+                    # 创建标签
+                    st.markdown(f"""
+                    <div class='param-label' style='background-color: {color}; width: 100%; text-align: center;'>
+                        {feature}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with row_col2:
-                st.markdown(f"""
-                <div style='background-color: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
-                    {value:.3f}
-                </div>
-                """, unsafe_allow_html=True)
-
-            with row_col3:
-                if st.button("-", key=f"dec_{category}_{feature}"):
-                    st.session_state.feature_values[feature] = max(0, value - 0.001)
-                    st.rerun()
-
-            with row_col4:
-                if st.button("+", key=f"inc_{category}_{feature}"):
-                    st.session_state.feature_values[feature] = value + 0.001
-                    st.rerun()
+                with input_col:
+                    # 使用number_input让用户可以直接输入
+                    new_value = st.number_input(
+                        f"{feature}",
+                        value=float(value),
+                        step=0.001,
+                        format="%.3f",
+                        key=f"input_{category}_{feature}",
+                        label_visibility="collapsed"
+                    )
+                    # 更新会话状态中的值
+                    st.session_state.feature_values[feature] = new_value
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1387,46 +1370,38 @@ elif st.session_state.current_page == "预测模型":
         category = "Pyrolysis Conditions"
         color = category_colors[category]
 
-        # 创建卡片标题
-        st.markdown(f"""
-        <div style='background-color: white; color: black; padding: 10px; text-align: center; font-weight: bold; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            {category}
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 为每个特征创建输入控件
+        # 为每个特征创建独立的参数行
         for feature in feature_categories[category]:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 创建每一行
-            row_col1, row_col2, row_col3, row_col4 = st.columns([3, 2, 1, 1])
+            # 使用容器创建特征行
+            with st.container():
+                # 创建两列：标签列和输入列
+                label_col, input_col = st.columns([1, 2])
 
-            with row_col1:
-                st.markdown(f"""
-                <div style='background-color: {color}; color: white; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
-                    {feature}
-                </div>
-                """, unsafe_allow_html=True)
+                with label_col:
+                    # 创建标签
+                    st.markdown(f"""
+                    <div class='param-label' style='background-color: {color}; width: 100%; text-align: center;'>
+                        {feature}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-            with row_col2:
-                st.markdown(f"""
-                <div style='background-color: #f8f9fa; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold;'>
-                    {value:.3f}
-                </div>
-                """, unsafe_allow_html=True)
-
-            with row_col3:
-                if st.button("-", key=f"dec_{category}_{feature}"):
-                    st.session_state.feature_values[feature] = max(0, value - 0.001)
-                    st.rerun()
-
-            with row_col4:
-                if st.button("+", key=f"inc_{category}_{feature}"):
-                    st.session_state.feature_values[feature] = value + 0.001
-                    st.rerun()
+                with input_col:
+                    # 使用number_input让用户可以直接输入
+                    new_value = st.number_input(
+                        f"{feature}",
+                        value=float(value),
+                        step=0.001,
+                        format="%.3f",
+                        key=f"input_{category}_{feature}",
+                        label_visibility="collapsed"
+                    )
+                    # 更新会话状态中的值
+                    st.session_state.feature_values[feature] = new_value
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1450,6 +1425,7 @@ elif st.session_state.current_page == "预测模型":
     result_container = st.container()
 
     # 预测按钮区域
+    st.markdown('<div class="main-buttons">', unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -1509,6 +1485,8 @@ elif st.session_state.current_page == "预测模型":
             st.session_state.warnings = []
             st.session_state.prediction_error = None
             st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 显示预测结果
     if st.session_state.prediction_result is not None:
