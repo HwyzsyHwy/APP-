@@ -1193,11 +1193,42 @@ if st.session_state.current_page == "预测模型":
 
         console.log(`找到 ${{incrementDecrementButtons.length}} 个+/-按钮`);
 
-        // 为每个+/-按钮设置颜色
+        // 为每个+/-按钮设置颜色 - 使用更直接的方法
         incrementDecrementButtons.forEach((btn, index) => {{
-            // 根据按钮的索引确定颜色（每列3个输入框，每个输入框2个按钮）
-            const columnIndex = Math.floor(index / 6); // 每列6个按钮（3个输入框 × 2个按钮）
-            const color = colors[columnIndex] || '#666666';
+            let color = '#666666'; // 默认颜色
+
+            // 通过检查按钮所在的列容器来确定颜色
+            let parent = btn.parentElement;
+            let columnIndex = -1;
+
+            // 向上遍历DOM树，寻找列容器
+            while (parent && columnIndex === -1) {{
+                if (parent.getAttribute && parent.getAttribute('data-testid') === 'column') {{
+                    // 找到列容器，确定它是第几列
+                    const allColumns = document.querySelectorAll('[data-testid="column"]');
+                    columnIndex = Array.from(allColumns).indexOf(parent);
+                    break;
+                }}
+                parent = parent.parentElement;
+            }}
+
+            // 根据列索引分配颜色
+            if (columnIndex === 0) {{
+                color = '#20b2aa'; // 第一列 - 青绿色
+            }} else if (columnIndex === 1) {{
+                color = '#daa520'; // 第二列 - 金黄色
+            }} else if (columnIndex === 2) {{
+                color = '#cd5c5c'; // 第三列 - 橙红色
+            }} else {{
+                // 如果无法确定列，使用简单的索引分配
+                if (index < 6) {{
+                    color = '#20b2aa'; // 第一列 - 青绿色
+                }} else if (index < 12) {{
+                    color = '#daa520'; // 第二列 - 金黄色
+                }} else {{
+                    color = '#cd5c5c'; // 第三列 - 橙红色
+                }}
+            }}
 
             // 最强力的样式设置
             btn.style.cssText = `
@@ -1867,29 +1898,29 @@ elif st.session_state.current_page == "预测模型":
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 使用HTML创建完整的特征行，确保标签和输入框在同一行
-            st.markdown(f"""
-            <div class='feature-row'>
-                <div class='param-label' style='background-color: {color};'>
+            # 创建水平布局：标签和输入框在同一行
+            label_col, input_col = st.columns([1, 1])
+
+            with label_col:
+                # 创建标签
+                st.markdown(f"""
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
                     {feature}
                 </div>
-                <div style='flex: 1; margin-left: 10px;'>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-            # 使用number_input让用户可以直接输入
-            new_value = st.number_input(
-                f"{feature}",
-                value=float(value),
-                step=0.001,
-                format="%.3f",
-                key=f"input_{category}_{feature}",
-                label_visibility="collapsed"
-            )
-            # 更新会话状态中的值
-            st.session_state.feature_values[feature] = new_value
-
-            # 关闭HTML容器
-            st.markdown("</div></div>", unsafe_allow_html=True)
+            with input_col:
+                # 使用number_input让用户可以直接输入
+                new_value = st.number_input(
+                    f"{feature}",
+                    value=float(value),
+                    step=0.001,
+                    format="%.3f",
+                    key=f"input_{category}_{feature}",
+                    label_visibility="collapsed"
+                )
+                # 更新会话状态中的值
+                st.session_state.feature_values[feature] = new_value
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1906,29 +1937,29 @@ elif st.session_state.current_page == "预测模型":
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 使用HTML创建完整的特征行，确保标签和输入框在同一行
-            st.markdown(f"""
-            <div class='feature-row'>
-                <div class='param-label' style='background-color: {color};'>
+            # 创建水平布局：标签和输入框在同一行
+            label_col, input_col = st.columns([1, 1])
+
+            with label_col:
+                # 创建标签
+                st.markdown(f"""
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
                     {feature}
                 </div>
-                <div style='flex: 1; margin-left: 10px;'>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-            # 使用number_input让用户可以直接输入
-            new_value = st.number_input(
-                f"{feature}",
-                value=float(value),
-                step=0.001,
-                format="%.3f",
-                key=f"input_{category}_{feature}",
-                label_visibility="collapsed"
-            )
-            # 更新会话状态中的值
-            st.session_state.feature_values[feature] = new_value
-
-            # 关闭HTML容器
-            st.markdown("</div></div>", unsafe_allow_html=True)
+            with input_col:
+                # 使用number_input让用户可以直接输入
+                new_value = st.number_input(
+                    f"{feature}",
+                    value=float(value),
+                    step=0.001,
+                    format="%.3f",
+                    key=f"input_{category}_{feature}",
+                    label_visibility="collapsed"
+                )
+                # 更新会话状态中的值
+                st.session_state.feature_values[feature] = new_value
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
@@ -1945,29 +1976,29 @@ elif st.session_state.current_page == "预测模型":
             else:
                 value = st.session_state.feature_values.get(feature, default_values[feature])
 
-            # 使用HTML创建完整的特征行，确保标签和输入框在同一行
-            st.markdown(f"""
-            <div class='feature-row'>
-                <div class='param-label' style='background-color: {color};'>
+            # 创建水平布局：标签和输入框在同一行
+            label_col, input_col = st.columns([1, 1])
+
+            with label_col:
+                # 创建标签
+                st.markdown(f"""
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
                     {feature}
                 </div>
-                <div style='flex: 1; margin-left: 10px;'>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
-            # 使用number_input让用户可以直接输入
-            new_value = st.number_input(
-                f"{feature}",
-                value=float(value),
-                step=0.001,
-                format="%.3f",
-                key=f"input_{category}_{feature}",
-                label_visibility="collapsed"
-            )
-            # 更新会话状态中的值
-            st.session_state.feature_values[feature] = new_value
-
-            # 关闭HTML容器
-            st.markdown("</div></div>", unsafe_allow_html=True)
+            with input_col:
+                # 使用number_input让用户可以直接输入
+                new_value = st.number_input(
+                    f"{feature}",
+                    value=float(value),
+                    step=0.001,
+                    format="%.3f",
+                    key=f"input_{category}_{feature}",
+                    label_visibility="collapsed"
+                )
+                # 更新会话状态中的值
+                st.session_state.feature_values[feature] = new_value
 
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
