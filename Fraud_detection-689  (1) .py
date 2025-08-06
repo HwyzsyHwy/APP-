@@ -1315,8 +1315,8 @@ if st.session_state.current_page == "预测模型":
 
     # 显示当前选择的模型
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; backdrop-filter: blur(5px);">
-        <h4 style="color: #333; margin: 0; text-shadow: none;">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 10px; backdrop-filter: blur(3px); box-shadow: none;">
+        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
