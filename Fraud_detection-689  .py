@@ -1727,11 +1727,7 @@ elif st.session_state.current_page == "预测模型":
 
     # Proximate Analysis - 第一列
     with col1:
-        st.markdown("""
-        <div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            Proximate Analysis
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Proximate Analysis</div>', unsafe_allow_html=True)
 
         category = "Proximate Analysis"
         color = category_colors[category]
