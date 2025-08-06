@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -24,7 +25,7 @@ st.markdown(
 
     /* 主应用背景 */
     .stApp {
-        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/背景.png');
+        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/%E8%83%8C%E6%99%AF.png');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
