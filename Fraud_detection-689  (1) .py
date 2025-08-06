@@ -132,19 +132,17 @@ st.markdown(
         text-align: center;
     }
 
-    /* 创建统一的整体白色半透明背景 - 优化主要显示区域位置 */
+    /* 创建统一的整体白色半透明背景 */
     .main .block-container {
         background-color: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: blur(10px) !important;
-        border-radius: 15px !important;
-        padding: 18px !important;
-        margin: 8px auto !important;
-        max-width: 98% !important;
-        width: 98% !important;
+        border-radius: 20px !important;
+        padding: 30px !important;
+        margin: 20px auto !important;
+        max-width: 1200px !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        min-height: 95vh !important;
-        margin-top: -120px !important;
+        min-height: 80vh !important;
     }
 
     /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
@@ -179,47 +177,29 @@ st.markdown(
         color: #333 !important;
     }
 
-    /* 全局字体大小设置 - 20号字体 */
-    .stApp, .main, .block-container, div, p, span, label,
-    .stMarkdown, .stText, .stButton, .stSelectbox, .stDataFrame,
-    .stMetric, .streamlit-expanderHeader, .streamlit-expanderContent {
-        font-size: 20px !important;
-        line-height: 1.2 !important;
-    }
+    /* 保持默认字体大小 */
 
-    /* 标题字体按比例增大 */
-    h1 { font-size: 32px !important; }
-    h2 { font-size: 28px !important; }
-    h3 { font-size: 24px !important; }
-    h4 { font-size: 22px !important; }
-    h5 { font-size: 21px !important; }
-    h6 { font-size: 20px !important; }
-
-    /* 标题样式 - 在统一背景上显示 - 修复间距 */
+    /* 标题样式 - 在统一背景上显示 */
     .main-title {
         text-align: center;
         font-size: 32px !important;
         font-weight: bold;
-        margin-bottom: 15px !important;
-        margin-top: 10px !important;
+        margin-bottom: 20px;
         color: #333 !important;
         text-shadow: none !important;
         background-color: transparent !important;
-        padding: 8px !important;
-        line-height: 1.2 !important;
+        padding: 15px !important;
     }
 
-    /* 区域标题样式 - 在统一背景上显示 - 修复间距 */
+    /* 区域标题样式 - 在统一背景上显示 */
     .section-header {
         color: #333 !important;
         font-weight: bold;
-        font-size: 20px !important;
+        font-size: 22px;
         text-align: center;
-        padding: 8px !important;
-        margin-bottom: 15px !important;
-        margin-top: 10px !important;
+        padding: 10px;
+        margin-bottom: 15px;
         background-color: transparent !important;
-        line-height: 1.2 !important;
     }
 
     /* 输入标签样式 - 在统一背景上显示 */
@@ -276,12 +256,9 @@ st.markdown(
         color: black !important;
     }
     
-    /* 增大按钮的字体 - 更紧凑版 */
+    /* 增大按钮的字体 */
     .stButton button {
-        font-size: 20px !important;
-        padding: 6px 12px !important;
-        line-height: 1.1 !important;
-        margin: 2px 0 !important;
+        font-size: 18px !important;
     }
     
     /* 警告样式 */
