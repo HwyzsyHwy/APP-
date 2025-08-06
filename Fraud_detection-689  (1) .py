@@ -134,7 +134,7 @@ st.markdown(
 
     /* 创建统一的整体白色半透明背景 */
     .main .block-container {
-        background-color: rgba(255, 255, 255, 0.5) !important;
+        background-color: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: blur(10px) !important;
         border-radius: 20px !important;
         padding: 30px !important;
@@ -220,7 +220,7 @@ st.markdown(
 
     /* expander内容部分 - 白色轻微透明背景 */
     div[data-testid="stExpander"] .streamlit-expanderContent {
-        background-color: rgba(255, 255, 255, 0.5) !important;
+        background-color: rgba(255, 255, 255, 0.8) !important;
         border-radius: 8px !important;
         padding: 15px !important;
         margin-top: 5px !important;
@@ -229,7 +229,7 @@ st.markdown(
 
     /* 结果显示样式 */
     .yield-result {
-        background-color: rgba(255, 255, 255, 0.5) !important;
+        background-color: rgba(255, 255, 255, 0.8) !important;
         color: white;
         font-size: 36px;
         font-weight: bold;
@@ -254,7 +254,7 @@ st.markdown(
     
     /* 警告样式 */
     .warning-box {
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.8);
         border-left: 5px solid orange;
         padding: 10px;
         margin: 10px 0;
@@ -265,7 +265,7 @@ st.markdown(
 
     /* 错误样式 */
     .error-box {
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.8);
         border-left: 5px solid red;
         padding: 10px;
         margin: 10px 0;
@@ -276,7 +276,7 @@ st.markdown(
 
     /* 成功样式 */
     .success-box {
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.8);
         border-left: 5px solid green;
         padding: 10px;
         margin: 10px 0;
@@ -289,7 +289,7 @@ st.markdown(
     .log-container {
         height: 300px;
         overflow-y: auto;
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.8);
         color: #00FF00;
         font-family: 'Courier New', monospace;
         padding: 10px;
@@ -301,7 +301,7 @@ st.markdown(
 
     /* 页面内容样式 - 与日志容器相同的白色半透明背景 */
     .page-content {
-        background-color: rgba(255, 255, 255, 0.5) !important;
+        background-color: rgba(255, 255, 255, 0.8) !important;
         color: #333 !important;
         padding: 20px !important;
         border-radius: 15px !important;
@@ -318,7 +318,7 @@ st.markdown(
     
     /* 模型选择器样式 */
     .model-selector {
-        background-color: rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.8);
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 20px;
@@ -353,7 +353,7 @@ st.markdown(
 
     /* 侧边栏导航按钮悬停效果 */
     .stSidebar [data-testid="stButton"] > button:hover {
-        background-color: rgba(100, 100, 100, 0.5) !important;
+        background-color: rgba(100, 100, 100, 0.8) !important;
         transform: translateY(-2px) !important;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
     }
@@ -383,7 +383,7 @@ st.markdown(
 
     /* 选中状态的导航按钮 */
     .nav-button-active {
-        background-color: rgba(0, 150, 136, 0.6) !important;
+        background-color: rgba(0, 150, 136, 0.9) !important;
         color: white !important;
         border: none;
         border-radius: 8px;
@@ -400,7 +400,7 @@ st.markdown(
 
     /* 导航按钮悬停效果 */
     .nav-button:hover {
-        background-color: rgba(100, 100, 100, 0.5);
+        background-color: rgba(100, 100, 100, 0.8);
         transform: translateY(-1px);
     }
 
@@ -587,14 +587,14 @@ if st.session_state.current_page == "预测模型":
 
     /* 未选中状态的卡片 - 白色轻微透明背景 */
     .model-card.unselected {
-        background: rgba(255,255,255,0.5);
+        background: rgba(255,255,255,0.8);
         color: #333;
         border: 2px solid rgba(255,255,255,0.3);
     }
 
     /* 选中状态的卡片 - 白色背景 */
     .model-card.selected {
-        background: rgba(255,255,255,0.6);
+        background: rgba(255,255,255,0.95);
         color: #333;
         border: 2px solid rgba(255,255,255,0.5);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -633,7 +633,7 @@ if st.session_state.current_page == "预测模型":
     /* 模型卡片按钮样式 - secondary按钮（未选中） */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        background: rgba(255,255,255,0.5) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
         border-radius: 15px !important;
         padding: 20px !important;
@@ -666,7 +666,7 @@ if st.session_state.current_page == "预测模型":
     /* 悬停效果 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:hover,
     div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
-        background: rgba(255,255,255,0.6) !important;
+        background: rgba(255,255,255,0.9) !important;
         transform: translateY(-2px) !important;
         box-shadow: 0 12px 40px rgba(255,255,255,0.2) !important;
     }
@@ -722,7 +722,7 @@ if st.session_state.current_page == "预测模型":
     button[kind="secondary"],
     .stButton > button[kind="secondary"],
     [data-testid="stButton"] > button[kind="secondary"] {{
-        background: rgba(255,255,255,0.5) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
         color: #333 !important;
         transition: all 0.3s ease !important;
