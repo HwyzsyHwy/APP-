@@ -268,15 +268,19 @@ st.markdown(
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
-        color: white;
-        font-size: 36px;
+        color: green;
+        font-size: 48px;
         font-weight: bold;
         text-align: center;
-        padding: 15px;
-        border-radius: 8px;
+        padding: 25px 40px;
+        border-radius: 12px;
         margin-top: 20px;
         backdrop-filter: blur(5px) !important;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* 强制应用白色背景到输入框 */
@@ -2370,7 +2374,7 @@ elif st.session_state.current_page == "预测模型":
 
         # 显示主预测结果
         result_container.markdown(
-            f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>",
+            f"<div class='yield-result'>预测结果：{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>",
             unsafe_allow_html=True
         )
 
