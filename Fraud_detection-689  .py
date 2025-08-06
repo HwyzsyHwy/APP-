@@ -1673,9 +1673,8 @@ elif st.session_state.current_page == "预测模型":
     }
 
     # 添加新的参数行样式CSS - 修复对齐问题
-    st.markdown(r"""
+    st.markdown("""
     <style>
-    /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
     .feature-row {
         display: flex;
         align-items: center;
