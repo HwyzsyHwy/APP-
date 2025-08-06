@@ -7,64 +7,212 @@ from datetime import datetime
 
 # 页面配置
 st.set_page_config(
-    page_title="Streamlit",
-    page_icon="🔥",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title='Biomass Pyrolysis Yield Prediction',
+    page_icon='🔥',
+    layout='wide',
+    initial_sidebar_state='expanded'
 )
 
-# 基本样式
-st.markdown("""
-<style>
-body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    font-family: 'Arial', sans-serif;
-}
+# 自定义样式（添加背景图片）
+st.markdown(
+    """
+    <style>
+    /* 全局字体设置和背景图片 */
+    html, body, [class*="css"] {
+        font-size: 16px !important;
+    }
 
-.main .block-container {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-top: 2rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
+    /* 主应用背景 */
+    .stApp {
+        background-image: url('https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/背景.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
 
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #20b2aa, #17a2b8) !important;
-    border: 3px solid #20b2aa !important;
-    color: white !important;
-    box-shadow: 0 8px 25px rgba(32, 178, 170, 0.4) !important;
-    transform: translateY(-2px) !important;
-}
+    /* 侧边栏背景 */
+    .css-1d391kg, .css-1lcbmhc, .css-1outpf7, section[data-testid="stSidebar"] {
+        background-color: #f8f9fa !important;
+    }
 
-.stButton > button[kind="secondary"] {
-    background: rgba(255,255,255,0.1) !important;
-    border: 2px solid rgba(255,255,255,0.3) !important;
-    color: white !important;
-    transition: all 0.3s ease !important;
-}
+    /* 侧边栏内容文字颜色 */
+    section[data-testid="stSidebar"] * {
+        color: #333333 !important;
+    }
 
-.stNumberInput button {
-    border: none !important;
-    color: white !important;
-    font-weight: bold !important;
-    border-radius: 4px !important;
-    margin: 0 !important;
-}
+    /* 侧边栏标题颜色 */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {
+        color: #333333 !important;
+    }
 
-.stColumn:nth-child(1) .stNumberInput button {
-    background-color: #20b2aa !important;
-}
-.stColumn:nth-child(2) .stNumberInput button {
-    background-color: #daa520 !important;
-}
-.stColumn:nth-child(3) .stNumberInput button {
-    background-color: #cd5c5c !important;
-}
-</style>
-""", unsafe_allow_html=True)
+    /* 用户信息区域 */
+    .user-info {
+        text-align: center;
+        padding: 20px 10px;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 20px;
+    }
+
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin: 0 auto 10px auto;
+        display: block;
+        background-color: #20b2aa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+
+    .user-name {
+        font-size: 16px;
+        color: #333;
+        margin: 0;
+    }
+
+    /* 移除整体白色背景，保持透明 */
+    .main .block-container {
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        border-radius: 20px !important;
+        padding: 30px !important;
+        margin: 20px auto !important;
+        max-width: 1200px !important;
+        box-shadow: none !important;
+        border: none !important;
+        min-height: 80vh !important;
+    }
+
+    /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
+    .main .block-container .stMarkdown,
+    .main .block-container .stText,
+    .main .block-container .stExpander,
+    .main .block-container .stSelectbox,
+    .main .block-container .stButton,
+    .main .block-container .stDataFrame,
+    .main .block-container .stMetric,
+    .main .block-container .streamlit-expanderHeader,
+    .main .block-container .streamlit-expanderContent,
+    .main .block-container p,
+    .main .block-container h1,
+    .main .block-container h2,
+    .main .block-container h3,
+    .main .block-container h4,
+    .main .block-container h5,
+    .main .block-container h6,
+    .main .block-container ul,
+    .main .block-container li,
+    .main .block-container div {
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    /* 确保文本颜色在白色背景上清晰可见 */
+    .main .block-container * {
+        color: #333 !important;
+    }
+
+    /* 侧边栏导航按钮基础样式 - 灰色背景，矩形样式 */
+    .stSidebar [data-testid="stButton"] > button {
+        background-color: rgba(128, 128, 128, 0.7) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 12px 20px !important;
+        margin: 8px 0 !important;
+        font-weight: 500 !important;
+        transition: all 0.3s ease !important;
+        width: 100% !important;
+        font-size: 16px !important;
+    }
+
+    /* 选中状态的侧边栏导航按钮 - 绿色高亮 */
+    .stSidebar [data-testid="stButton"] > button[kind="primary"] {
+        background-color: #20b2aa !important;
+        color: white !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 8px rgba(32, 178, 170, 0.3) !important;
+    }
+
+    /* 侧边栏导航按钮悬停效果 */
+    .stSidebar [data-testid="stButton"] > button:hover {
+        background-color: rgba(100, 100, 100, 0.8) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+
+    /* 选中的侧边栏按钮悬停效果 */
+    .stSidebar [data-testid="stButton"] > button[kind="primary"]:hover {
+        background-color: #1a9a92 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(32, 178, 170, 0.4) !important;
+    }
+
+    /* 模型卡片按钮样式 - secondary按钮（未选中） */
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
+    div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+        background: rgba(255,255,255,0.9) !important;
+        border: 2px solid rgba(255,255,255,0.3) !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        height: auto !important;
+        min-height: 120px !important;
+        color: black !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    /* 模型卡片按钮样式 - primary按钮（选中） */
+    div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"],
+    div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+        background: linear-gradient(135deg, #20b2aa, #17a2b8) !important;
+        border: 3px solid #20b2aa !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        height: auto !important;
+        min-height: 120px !important;
+        color: white !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        box-shadow: 0 12px 40px rgba(32, 178, 170, 0.3) !important;
+        transform: translateY(-2px) !important;
+        transition: all 0.3s ease !important;
+    }
+
+    /* 数字输入框按钮的强制样式 */
+    .stNumberInput button {
+        color: white !important;
+        border: none !important;
+        font-weight: bold !important;
+        border-radius: 4px !important;
+        margin: 0 !important;
+    }
+
+    .stColumn:nth-child(1) .stNumberInput button {
+        background-color: #20b2aa !important;
+    }
+    .stColumn:nth-child(2) .stNumberInput button {
+        background-color: #daa520 !important;
+    }
+    .stColumn:nth-child(3) .stNumberInput button {
+        background-color: #cd5c5c !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # 初始化会话状态
 if 'current_page' not in st.session_state:
@@ -91,16 +239,34 @@ def log(message):
 
 # 侧边栏导航
 with st.sidebar:
-    st.markdown('<div style="text-align: center; margin-bottom: 30px;"><img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/用户.png" style="width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px;"><p style="color: white; margin: 0;">用户：wy1122</p></div>', unsafe_allow_html=True)
-    
+    # 用户信息区域
+    st.markdown("""
+    <div class="user-info">
+        <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/用户.png" class="user-avatar" alt="用户头像">
+        <p class="user-name">用户：wy1122</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     current_page = st.session_state.current_page
-    
+
     if st.button("预测模型", key="nav_predict", use_container_width=True, type="primary" if current_page == "预测模型" else "secondary"):
         st.session_state.current_page = "预测模型"
         st.rerun()
-    
+
     if st.button("执行日志", key="nav_log", use_container_width=True, type="primary" if current_page == "执行日志" else "secondary"):
         st.session_state.current_page = "执行日志"
+        st.rerun()
+
+    if st.button("模型信息", key="nav_info", use_container_width=True, type="primary" if current_page == "模型信息" else "secondary"):
+        st.session_state.current_page = "模型信息"
+        st.rerun()
+
+    if st.button("技术说明", key="nav_tech", use_container_width=True, type="primary" if current_page == "技术说明" else "secondary"):
+        st.session_state.current_page = "技术说明"
+        st.rerun()
+
+    if st.button("使用指南", key="nav_guide", use_container_width=True, type="primary" if current_page == "使用指南" else "secondary"):
+        st.session_state.current_page = "使用指南"
         st.rerun()
 
 # 主要内容
