@@ -639,7 +639,11 @@ if st.session_state.current_page == "预测模型":
     """, unsafe_allow_html=True)
 
     # 添加模型选择区域 - 修改为可点击卡片样式
-    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align: center; margin-top: 15px; margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+        <h3 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 24px;">选择预测目标</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 添加模型选择卡片的自定义样式
     st.markdown("""
