@@ -211,11 +211,14 @@ st.markdown(
     }
     
     /* 显示当前输入值expander的特殊样式 */
-    /* expander标题部分 - 透明背景（与当前模型样式一致） */
+    /* expander标题部分 - 与当前模型样式一致 */
     div[data-testid="stExpander"] summary[aria-expanded] {
-        background-color: transparent !important;
+        background: rgba(255,255,255,0.1) !important;
         border: none !important;
         box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+        padding: 10px !important;
     }
 
     /* expander内容部分 - 白色轻微透明背景 */
