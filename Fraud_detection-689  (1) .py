@@ -231,6 +231,7 @@ st.markdown(
         padding: 15px !important;
         margin-top: 5px !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        color: black !important;
     }
 
     /* 结果显示样式 */
