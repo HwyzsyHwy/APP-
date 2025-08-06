@@ -965,280 +965,88 @@ if st.session_state.current_page == "预测模型":
     </style>
 
     <script>
-    // DOM结构调试和按钮颜色设置脚本
-    function debugAndSetButtonColors() {{
-        console.log('=== 开始DOM结构调试 ===');
+    // 简化的按钮颜色设置脚本
+    function setButtonColors() {{
+        console.log('开始设置按钮颜色...');
 
-        // 1. 详细分析DOM结构
-        const allButtons = document.querySelectorAll('button');
-        console.log(`页面总按钮数: ${{allButtons.length}}`);
-
-        // 打印每个按钮的详细信息
-        allButtons.forEach((btn, index) => {{
-            const text = btn.textContent.trim();
-            const ariaLabel = btn.getAttribute('aria-label') || '';
-            const title = btn.getAttribute('title') || '';
-            const className = btn.className || '';
-            const parentClass = btn.parentElement ? btn.parentElement.className : '';
-            const computedStyle = window.getComputedStyle(btn);
-
-            console.log(`按钮${{index + 1}}:`, {{
-                text: text,
-                ariaLabel: ariaLabel,
-                title: title,
-                className: className,
-                parentClass: parentClass,
-                backgroundColor: computedStyle.backgroundColor,
-                element: btn
-            }});
-        }});
-
-        // 2. 查找数字输入框
-        const numberInputs = document.querySelectorAll('[data-testid="stNumberInput"]');
-        console.log(`找到${{numberInputs.length}}个数字输入框`);
-
-        numberInputs.forEach((input, index) => {{
-            const buttons = input.querySelectorAll('button');
-            console.log(`数字输入框${{index + 1}}包含${{buttons.length}}个按钮`);
-
-            buttons.forEach((btn, btnIndex) => {{
-                console.log(`  按钮${{btnIndex + 1}}: "${{btn.textContent}}" - ${{btn.getAttribute('aria-label')}}`);
-            }});
-        }});
-
-        // 3. 查找列容器
-        const columns = document.querySelectorAll('[data-testid="column"]');
-        console.log(`找到${{columns.length}}个列容器`);
-
-        columns.forEach((column, colIndex) => {{
-            const buttons = column.querySelectorAll('button');
-            console.log(`列${{colIndex + 1}}包含${{buttons.length}}个按钮`);
-        }});
-
-        // 4. 强制设置按钮颜色 - 使用最直接的方法
-        console.log('=== 开始强制设置按钮颜色 ===');
-
+        // 定义颜色
         const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
 
-        // 方法1: 通过数字输入框设置
-        numberInputs.forEach((input, inputIndex) => {{
+        // 查找所有数字输入框
+        const numberInputs = document.querySelectorAll('[data-testid="stNumberInput"]');
+        console.log('找到 ' + numberInputs.length + ' 个数字输入框');
+
+        // 为每个输入框的按钮设置颜色
+        numberInputs.forEach(function(input, inputIndex) {{
             const columnIndex = Math.floor(inputIndex / 3);
             if (columnIndex < 3) {{
                 const color = colors[columnIndex];
                 const buttons = input.querySelectorAll('button');
 
-                buttons.forEach(btn => {{
-                    // 超强力设置
-                    btn.style.cssText = `
-                        background-color: ${{color}} !important;
-                        background: ${{color}} !important;
-                        color: white !important;
-                        border: none !important;
-                        border-radius: 4px !important;
-                    `;
-
-                    // 添加标识
-                    btn.setAttribute('data-forced-color', color);
-                    btn.setAttribute('data-column', columnIndex + 1);
-
-                    console.log(`强制设置输入框${{inputIndex + 1}}的按钮为${{color}}`);
+                buttons.forEach(function(btn) {{
+                    btn.style.setProperty('background-color', color, 'important');
+                    btn.style.setProperty('background', color, 'important');
+                    btn.style.setProperty('color', 'white', 'important');
+                    btn.style.setProperty('border', '1px solid ' + color, 'important');
+                    btn.style.setProperty('border-radius', '4px', 'important');
+                    btn.style.setProperty('font-weight', 'bold', 'important');
                 }});
             }}
         }});
 
-        // 方法2: 直接遍历所有+-按钮
-        const plusMinusButtons = Array.from(allButtons).filter(btn => {{
-            const text = btn.textContent.trim();
-            return text === '+' || text === '−' || text === '-' || text === '＋' || text === '－';
-        }});
-
-        console.log(`找到${{plusMinusButtons.length}}个+-按钮`);
-
-        plusMinusButtons.forEach((btn, index) => {{
-            const columnIndex = Math.floor(index / 6); // 每列6个按钮
-            if (columnIndex < 3) {{
-                const color = colors[columnIndex];
-
-                // 最强力的设置方法
-                btn.style.cssText = `
-                    background-color: ${{color}} !important;
-                    background: ${{color}} !important;
-                    background-image: none !important;
-                    color: white !important;
-                    border: none !important;
-                    border-radius: 4px !important;
-                `;
-
-                btn.setAttribute('data-forced-color', color);
-                btn.setAttribute('data-column', columnIndex + 1);
-
-                console.log(`强制设置+-按钮${{index + 1}}("${{btn.textContent}}")为${{color}}`);
-            }}
-        }});
-
-        console.log('=== DOM调试和颜色设置完成 ===');
-    }}
-
-    // 立即执行多次调试和设置函数
-    setTimeout(debugAndSetButtonColors, 50);
-    setTimeout(debugAndSetButtonColors, 100);
-    setTimeout(debugAndSetButtonColors, 200);
-    setTimeout(debugAndSetButtonColors, 500);
-    setTimeout(debugAndSetButtonColors, 1000);
-    setTimeout(debugAndSetButtonColors, 2000);
-    setTimeout(debugAndSetButtonColors, 3000);
-
-    // 持续监听和重新应用
-    const observer = new MutationObserver(function(mutations) {{
-        let shouldReapply = false;
-        mutations.forEach(function(mutation) {{
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {{
-                // 检查是否有新的按钮或输入框
-                const hasNewButtons = Array.from(mutation.addedNodes).some(node => {{
-                    if (node.nodeType === 1) {{ // Element node
-                        return node.tagName === 'BUTTON' ||
-                               node.querySelector && node.querySelector('button') ||
-                               node.getAttribute && node.getAttribute('data-testid') === 'stNumberInput';
-                    }}
-                    return false;
-                }});
-
-                if (hasNewButtons) {{
-                    shouldReapply = true;
-                }}
-            }}
-        }});
-
-        if (shouldReapply) {{
-            console.log('检测到DOM变化，重新应用按钮颜色');
-            setTimeout(debugAndSetButtonColors, 50);
-            setTimeout(debugAndSetButtonColors, 200);
-        }}
-    }});
-
-    // 开始观察
-    observer.observe(document.body, {{
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-    }});
-
-    // 定期强制重新应用（每5秒）
-    setInterval(function() {{
-        console.log('定期重新应用按钮颜色');
-        debugAndSetButtonColors();
-    }}, 5000);
-
-    // 添加诊断函数
-    function diagnoseButtons() {{
-        console.log('=== 按钮诊断开始 ===');
-
-        // 1. 检查所有按钮
+        // 备用方案：直接查找+/-按钮
         const allButtons = document.querySelectorAll('button');
-        console.log('总按钮数量:', allButtons.length);
+        const plusMinusButtons = [];
 
-        // 2. 检查+-按钮
-        const plusMinusButtons = Array.from(allButtons).filter(btn =>
-            btn.textContent === '+' || btn.textContent === '−' || btn.textContent === '-'
-        );
-        console.log('+-按钮数量:', plusMinusButtons.length);
-
-        // 3. 检查每个+-按钮的当前样式
-        plusMinusButtons.forEach((btn, index) => {{
-            const computedStyle = window.getComputedStyle(btn);
-            console.log(`按钮${{index + 1}} "${{btn.textContent}}": 背景色=${{computedStyle.backgroundColor}}, 内联样式=${{btn.style.backgroundColor}}`);
-        }});
-
-        // 4. 强制设置红色测试
-        console.log('=== 测试强制设置红色 ===');
-        plusMinusButtons.forEach((btn, index) => {{
-            btn.style.setProperty('background-color', '#ff0000', 'important');
-            console.log(`按钮${{index + 1}}设置红色后: ${{btn.style.backgroundColor}}`);
-        }});
-
-        // 5. 1秒后检查是否被覆盖
-        setTimeout(() => {{
-            console.log('=== 1秒后检查是否被覆盖 ===');
-            plusMinusButtons.forEach((btn, index) => {{
-                const computedStyle = window.getComputedStyle(btn);
-                console.log(`按钮${{index + 1}} 1秒后: 计算样式=${{computedStyle.backgroundColor}}, 内联样式=${{btn.style.backgroundColor}}`);
-            }});
-        }}, 1000);
-    }}
-
-    // 延迟执行诊断
-    setTimeout(diagnoseButtons, 2000);
-
-
-    // 最终解决方案：直接暴力设置按钮颜色
-    function forceButtonColors() {{
-        console.log('开始强制设置按钮颜色...');
-
-        // 获取所有+/-按钮
-        const allButtons = document.querySelectorAll('button');
-        const incrementButtons = [];
-
-        allButtons.forEach(btn => {{
+        allButtons.forEach(function(btn) {{
             const text = btn.textContent.trim();
             if (text === '+' || text === '−' || text === '-') {{
-                incrementButtons.push(btn);
+                plusMinusButtons.push(btn);
             }}
         }});
 
-        console.log('找到 ' + incrementButtons.length + ' 个+/-按钮');
+        console.log('找到 ' + plusMinusButtons.length + ' 个+/-按钮');
 
-        // 按顺序给按钮分配颜色
-        // 前6个按钮（第一列的3个输入框，每个2个按钮）= 青绿色
-        // 中间6个按钮（第二列）= 金黄色
-        // 后6个按钮（第三列）= 橙红色
-        incrementButtons.forEach((btn, index) => {{
-            let color;
-            if (index < 6) {{
-                color = '#20b2aa'; // 青绿色
-            }} else if (index < 12) {{
-                color = '#daa520'; // 金黄色
-            }} else {{
-                color = '#cd5c5c'; // 橙红色
+        plusMinusButtons.forEach(function(btn, index) {{
+            const columnIndex = Math.floor(index / 6);
+            if (columnIndex < 3) {{
+                const color = colors[columnIndex];
+                btn.style.setProperty('background-color', color, 'important');
+                btn.style.setProperty('background', color, 'important');
+                btn.style.setProperty('color', 'white', 'important');
+                btn.style.setProperty('border', '1px solid ' + color, 'important');
+                btn.style.setProperty('border-radius', '4px', 'important');
+                btn.style.setProperty('font-weight', 'bold', 'important');
             }}
-
-            // 直接设置内联样式，最高优先级
-            btn.style.setProperty('background', color, 'important');
-            btn.style.setProperty('background-color', color, 'important');
-            btn.style.setProperty('background-image', 'none', 'important');
-            btn.style.setProperty('border', '1px solid ' + color, 'important');
-            btn.style.setProperty('color', 'white', 'important');
-            btn.style.setProperty('border-radius', '4px', 'important');
-            btn.style.setProperty('font-weight', 'bold', 'important');
-
-            console.log('按钮 ' + index + ': "' + btn.textContent + '" -> ' + color);
         }});
 
         console.log('按钮颜色设置完成');
     }}
 
-    // 立即执行
-    setTimeout(forceButtonColors, 100);
-    setTimeout(forceButtonColors, 500);
-    setTimeout(forceButtonColors, 1000);
-    setTimeout(forceButtonColors, 2000);
+    // 立即执行按钮颜色设置
+    setTimeout(setButtonColors, 100);
+    setTimeout(setButtonColors, 500);
+    setTimeout(setButtonColors, 1000);
+    setTimeout(setButtonColors, 2000);
 
-    // 每3秒重新执行一次
-    setInterval(forceButtonColors, 3000);
-
-    // 监听DOM变化
+    // 监听DOM变化并重新应用颜色
     const observer = new MutationObserver(function() {{
-        setTimeout(forceButtonColors, 100);
+        setTimeout(setButtonColors, 100);
     }});
 
+    // 开始观察DOM变化
     observer.observe(document.body, {{
         childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
+        subtree: true
     }});
 
-    console.log('暴力按钮颜色系统已启动');
+    // 定期重新应用颜色
+    setInterval(setButtonColors, 3000);
+
+    console.log('按钮颜色系统已启动');
+
+
+
 
     </script>
     """, unsafe_allow_html=True)
