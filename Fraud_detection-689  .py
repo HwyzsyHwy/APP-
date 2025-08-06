@@ -1669,7 +1669,7 @@ elif st.session_state.current_page == "预测模型":
     feature_categories = {
         "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)"],
         "Ultimate Analysis": ["O/C", "H/C", "N/C"],
-        "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
+        "Pyrolysis Conditions": ["FT(C)", "HR(C/min)", "FR(mL/min)"]
     }
 
     # 添加新的参数行样式CSS - 修复对齐问题
