@@ -243,7 +243,7 @@ st.markdown(
     
     /* 强制应用白色背景到输入框 */
     [data-testid="stNumberInput"] input {
-        background-color: white !important;
+        background-color: rgba(255, 255, 255, 0.9) !important;
         color: black !important;
     }
     
@@ -1742,17 +1742,18 @@ elif st.session_state.current_page == "预测模型":
     <style>
     /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
     .feature-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: rgba(255, 255, 255, 0.6);
-        border-radius: 10px;
-        padding: 8px 12px;
-        margin: 8px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.1);
-        backdrop-filter: blur(15px);
-        min-height: 50px;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+        margin: 8px 0 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        min-height: 50px !important;
     }
 
     /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 */
@@ -1886,6 +1887,23 @@ elif st.session_state.current_page == "预测模型":
         display: flex !important;
         align-items: center !important;
         margin: 0 !important;
+    }
+
+    /* 强制透明背景到特征行容器 - 最高优先级 */
+    .feature-row,
+    .feature-container,
+    div.feature-row,
+    div.feature-container {
+        background: rgba(255, 255, 255, 0.6) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+
+    /* 确保输入框也有透明背景 */
+    .feature-row [data-testid="stNumberInput"] input,
+    .feature-container [data-testid="stNumberInput"] input {
+        background-color: rgba(255, 255, 255, 0.8) !important;
     }
     </style>
     """, unsafe_allow_html=True)
