@@ -251,6 +251,8 @@ st.markdown(
         border-radius: 10px !important;
         padding: 10px !important;
         color: black !important;
+        font-weight: normal !important;
+        text-shadow: none !important;
     }
 
     /* expander内容部分 - 白色轻微透明背景 */
