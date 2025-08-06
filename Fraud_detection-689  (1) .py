@@ -767,14 +767,14 @@ if st.session_state.current_page == "预测模型":
         transition: all 0.2s ease !important;
     }}
 
-    /* 第一列按钮 - 青绿色 (Proximate Analysis) */
+    /* 第一列按钮 - 绿色 (Proximate Analysis) */
     [data-testid="column"]:nth-child(1) button[aria-label="Increment"],
     [data-testid="column"]:nth-child(1) button[aria-label="Decrement"],
     [data-testid="column"]:nth-child(1) button[title="Increment"],
     [data-testid="column"]:nth-child(1) button[title="Decrement"],
     [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
     [data-testid="column"]:nth-child(1) button:has(svg) {{
-        background-color: #20b2aa !important;
+        background-color: #00FF00 !important;
     }}
 
     /* 第二列按钮 - 金黄色 (Ultimate Analysis) */
@@ -857,7 +857,7 @@ if st.session_state.current_page == "预测模型":
 
     /* 终极解决方案 - 使用CSS变量和更高优先级 */
     :root {{
-        --col1-color: #20b2aa;
+        --col1-color: #00FF00;
         --col2-color: #daa520;
         --col3-color: #cd5c5c;
     }}
@@ -891,8 +891,8 @@ if st.session_state.current_page == "预测模型":
 
     /* 通过容器div来定位按钮 */
     div[data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
+        background-color: #00FF00 !important;
+        background: #00FF00 !important;
         color: white !important;
         border: none !important;
         border-radius: 4px !important;
@@ -918,8 +918,8 @@ if st.session_state.current_page == "预测模型":
     [data-testid="stNumberInput"]:nth-of-type(1) button,
     [data-testid="stNumberInput"]:nth-of-type(2) button,
     [data-testid="stNumberInput"]:nth-of-type(3) button {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
+        background-color: #00FF00 !important;
+        background: #00FF00 !important;
         color: white !important;
     }}
 
@@ -941,7 +941,7 @@ if st.session_state.current_page == "预测模型":
 
     /* 最强力的覆盖 - 使用CSS动画 */
     @keyframes forceGreen {{
-        0%, 100% {{ background-color: #20b2aa !important; }}
+        0%, 100% {{ background-color: #00FF00 !important; }}
     }}
 
     @keyframes forceGold {{
@@ -970,8 +970,8 @@ if st.session_state.current_page == "预测模型":
 
     /* 通过自定义属性强制设置 */
     button[data-forced-color="green"] {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
+        background-color: #00FF00 !important;
+        background: #00FF00 !important;
         color: white !important;
     }}
 
@@ -1723,6 +1723,8 @@ elif st.session_state.current_page == "预测模型":
         st.session_state.prediction_error = None
     if 'feature_values' not in st.session_state:
         st.session_state.feature_values = {}
+    if 'bottom_button_selected' not in st.session_state:
+        st.session_state.bottom_button_selected = "predict"  # "predict" 或 "reset"
 
     # 根据图片特征统计信息定义默认值（使用均值）
     default_values = {
@@ -1816,9 +1818,14 @@ elif st.session_state.current_page == "预测模型":
         margin: 0 !important;
     }
 
-    /* 第一列 Proximate Analysis 按钮颜色 - 青绿色 */
+    /* 第一列 Proximate Analysis 按钮颜色 - 绿色 */
+    .stColumn:nth-child(1) .stColumn:nth-child(2) .stNumberInput button {
+        background-color: #00FF00 !important;
+    }
+
+    /* 备用选择器 - 第一列的所有number_input按钮 */
     .stColumn:nth-child(1) .stNumberInput button {
-        background-color: #20b2aa !important;
+        background-color: #00FF00 !important;
     }
 
     /* 第二列 Ultimate Analysis 按钮颜色 - 金黄色 */
@@ -1829,6 +1836,15 @@ elif st.session_state.current_page == "预测模型":
     /* 第三列 Pyrolysis Conditions 按钮颜色 - 橙红色 */
     .stColumn:nth-child(3) .stNumberInput button {
         background-color: #cd5c5c !important;
+    }
+
+    /* 强力选择器 - 针对嵌套列结构 */
+    /* 第一列的所有按钮（包括嵌套列中的） */
+    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
+    [data-testid="column"]:nth-child(1) [data-testid="column"] [data-testid="stNumberInput"] button {
+        background-color: #00FF00 !important;
+        background: #00FF00 !important;
+        border-color: #00FF00 !important;
     }
 
     /* 确保主要按钮可见且样式正常 */
@@ -2171,8 +2187,10 @@ elif st.session_state.current_page == "预测模型":
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
+        predict_clicked = st.button("🔮 运行预测", use_container_width=True,
+                                   type="primary" if st.session_state.bottom_button_selected == "predict" else "secondary")
         if predict_clicked:
+            st.session_state.bottom_button_selected = "predict"
             log("开始预测流程...")
 
             # 切换模型后需要重新初始化预测器
@@ -2218,9 +2236,13 @@ elif st.session_state.current_page == "预测模型":
                 log(f"预测错误: {str(e)}")
                 log(traceback.format_exc())
                 st.error(error_msg)
+            st.rerun()
 
     with col2:
-        if st.button("🔄 重置输入", use_container_width=True):
+        reset_clicked = st.button("🔄 重置输入", use_container_width=True,
+                                 type="primary" if st.session_state.bottom_button_selected == "reset" else "secondary")
+        if reset_clicked:
+            st.session_state.bottom_button_selected = "reset"
             log("重置所有输入值")
             st.session_state.clear_pressed = True
             st.session_state.prediction_result = None
