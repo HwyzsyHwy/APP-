@@ -2091,7 +2091,17 @@ elif st.session_state.current_page == "预测模型":
     """, unsafe_allow_html=True)
 
     with st.expander("📊 显示当前输入值", expanded=False):
-        debug_info = "<div style='columns: 3; column-gap: 20px;'>"
+        debug_info = """
+        <div style='
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            margin: 10px 0;
+            columns: 3;
+            column-gap: 20px;
+        '>
+        """
         for feature, value in features.items():
             debug_info += f"<p style='color: #000 !important; margin: 5px 0;'><b>{feature}</b>: {value:.3f}</p>"
         debug_info += "</div>"
