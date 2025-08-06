@@ -1673,7 +1673,7 @@ elif st.session_state.current_page == "预测模型":
     }
 
     # 添加新的参数行样式CSS - 修复对齐问题
-    st.markdown('''
+    st.markdown(r"""
     <style>
     /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
     .feature-row {
@@ -1885,7 +1885,7 @@ elif st.session_state.current_page == "预测模型":
         margin: 0 !important;
     }
     </style>
-    ''', unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
     # 颜色配置 - 根据用户要求的颜色配置
     category_colors = {
