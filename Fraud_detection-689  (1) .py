@@ -132,17 +132,18 @@ st.markdown(
         text-align: center;
     }
 
-    /* 创建统一的整体白色半透明背景 */
+    /* 创建统一的整体白色半透明背景 - 更紧凑布局 */
     .main .block-container {
         background-color: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: blur(10px) !important;
-        border-radius: 20px !important;
-        padding: 30px !important;
-        margin: 20px auto !important;
-        max-width: 1200px !important;
+        border-radius: 15px !important;
+        padding: 8px !important;
+        margin: 1px auto !important;
+        max-width: 99.8% !important;
+        width: 99.8% !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        min-height: 80vh !important;
+        min-height: 99vh !important;
     }
 
     /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
@@ -177,27 +178,47 @@ st.markdown(
         color: #333 !important;
     }
 
-    /* 标题样式 - 在统一背景上显示 */
+    /* 全局字体大小设置 - 20号字体 */
+    .stApp, .main, .block-container, div, p, span, label,
+    .stMarkdown, .stText, .stButton, .stSelectbox, .stDataFrame,
+    .stMetric, .streamlit-expanderHeader, .streamlit-expanderContent {
+        font-size: 20px !important;
+        line-height: 1.2 !important;
+    }
+
+    /* 标题字体按比例增大 */
+    h1 { font-size: 32px !important; }
+    h2 { font-size: 28px !important; }
+    h3 { font-size: 24px !important; }
+    h4 { font-size: 22px !important; }
+    h5 { font-size: 21px !important; }
+    h6 { font-size: 20px !important; }
+
+    /* 标题样式 - 在统一背景上显示 - 更紧凑版 */
     .main-title {
         text-align: center;
         font-size: 32px !important;
         font-weight: bold;
-        margin-bottom: 20px;
+        margin-bottom: 2px !important;
+        margin-top: 0px !important;
         color: #333 !important;
         text-shadow: none !important;
         background-color: transparent !important;
-        padding: 15px !important;
+        padding: 1px !important;
+        line-height: 1.0 !important;
     }
 
-    /* 区域标题样式 - 在统一背景上显示 */
+    /* 区域标题样式 - 在统一背景上显示 - 更紧凑版 */
     .section-header {
         color: #333 !important;
         font-weight: bold;
-        font-size: 22px;
+        font-size: 20px !important;
         text-align: center;
-        padding: 10px;
-        margin-bottom: 15px;
+        padding: 1px !important;
+        margin-bottom: 2px !important;
+        margin-top: 1px !important;
         background-color: transparent !important;
+        line-height: 1.0 !important;
     }
 
     /* 输入标签样式 - 在统一背景上显示 */
@@ -254,9 +275,12 @@ st.markdown(
         color: black !important;
     }
     
-    /* 增大按钮的字体 */
+    /* 增大按钮的字体 - 更紧凑版 */
     .stButton button {
-        font-size: 18px !important;
+        font-size: 20px !important;
+        padding: 6px 12px !important;
+        line-height: 1.1 !important;
+        margin: 2px 0 !important;
     }
     
     /* 警告样式 */
@@ -421,16 +445,16 @@ st.markdown(
         margin: 0 5px;
     }
     
-    /* 填满屏幕 */
+    /* 填满屏幕 - 更紧凑 */
     .stApp {
         width: 100%;
         min-width: 100%;
         margin: 0 auto;
     }
-    
+
     .main .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
+        padding-top: 0.2rem;
+        padding-bottom: 0.2rem;
         max-width: 100%;
     }
     
@@ -551,18 +575,18 @@ if 'model_cache' not in st.session_state:
     
 # 只在预测模型页面显示标题和模型选择器
 if st.session_state.current_page == "预测模型":
-    # 简洁的Streamlit样式标题
+    # 简洁的Streamlit样式标题 - 更紧凑
     st.markdown("""
-    <div style="margin-bottom: 30px;">
-        <h1 style="color: white; font-size: 2.5rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+    <div style="margin-bottom: 15px;">
+        <h1 style="color: white; font-size: 2.0rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
             Streamlit
         </h1>
-        <div style="height: 3px; background: white; margin-top: 5px; border-radius: 2px;"></div>
+        <div style="height: 2px; background: white; margin-top: 3px; border-radius: 2px;"></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 添加模型选择区域 - 修改为可点击卡片样式
-    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    # 添加模型选择区域 - 修改为可点击卡片样式 - 更紧凑
+    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 15px;'>选择预测目标</h3>", unsafe_allow_html=True)
 
     # 添加模型选择卡片的自定义样式
     st.markdown("""
@@ -575,11 +599,11 @@ if st.session_state.current_page == "预测模型":
         justify-content: space-between;
     }
 
-    /* 模型选择卡片样式 */
+    /* 模型选择卡片样式 - 更紧凑 */
     .model-card {
         flex: 1;
-        height: 120px;
-        border-radius: 15px;
+        height: 80px;
+        border-radius: 12px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -588,7 +612,7 @@ if st.session_state.current_page == "预测模型":
         transition: all 0.3s ease;
         text-decoration: none;
         position: relative;
-        padding: 20px;
+        padding: 12px;
         box-sizing: border-box;
     }
 
@@ -637,34 +661,34 @@ if st.session_state.current_page == "预测模型":
         position: relative !important;
     }
 
-    /* 模型卡片按钮样式 - secondary按钮（未选中） */
+    /* 模型卡片按钮样式 - secondary按钮（未选中） - 更紧凑 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
         background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
         height: auto !important;
-        min-height: 120px !important;
+        min-height: 80px !important;
         color: #333 !important;
         font-weight: bold !important;
-        font-size: 16px !important;
+        font-size: 20px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
         transition: all 0.3s ease !important;
     }
 
-    /* 模型卡片按钮样式 - primary按钮（选中） */
+    /* 模型卡片按钮样式 - primary按钮（选中） - 更紧凑 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"],
     div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background: linear-gradient(135deg, #20b2aa, #17a2b8) !important;
         border: 3px solid #20b2aa !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
         height: auto !important;
-        min-height: 120px !important;
+        min-height: 80px !important;
         color: white !important;
         font-weight: bold !important;
-        font-size: 16px !important;
+        font-size: 20px !important;
         box-shadow: 0 12px 40px rgba(32, 178, 170, 0.3) !important;
         transform: translateY(-2px) !important;
         transition: all 0.3s ease !important;
@@ -1320,10 +1344,10 @@ if st.session_state.current_page == "预测模型":
     </script>
     """, unsafe_allow_html=True)
 
-    # 显示当前选择的模型
+    # 显示当前选择的模型 - 更紧凑
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 10px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
-        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold;">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: 10px; padding: 6px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 20px;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1746,38 +1770,38 @@ elif st.session_state.current_page == "预测模型":
         "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
     }
 
-    # 添加新的参数行样式CSS - 修复对齐问题
+    # 添加新的参数行样式CSS - 修复对齐问题 - 更紧凑
     st.markdown("""
     <style>
-    /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
+    /* 特征行样式 - 每个特征标签和输入框在一行对齐 - 更紧凑 */
     .feature-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
         background: rgba(255, 255, 255, 0.85);
-        border-radius: 10px;
-        padding: 8px 12px;
-        margin: 8px 0;
+        border-radius: 8px;
+        padding: 4px 8px;
+        margin: 4px 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         border: 1px solid rgba(255,255,255,0.3);
         backdrop-filter: blur(5px);
-        min-height: 50px;
+        min-height: 40px;
     }
 
-    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 */
+    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 - 更紧凑 */
     .param-label {
         color: white;
         font-weight: bold;
-        font-size: 14px;
-        padding: 8px 12px;
-        border-radius: 6px;
+        font-size: 20px;
+        padding: 6px 8px;
+        border-radius: 5px;
         text-align: center;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         display: inline-block;
-        width: 80px;
+        width: 70px;
         flex-shrink: 0;
         margin: 0;
-        line-height: 1.2;
+        line-height: 1.1;
     }
 
     /* 隐藏number_input的标签 */
@@ -1795,11 +1819,11 @@ elif st.session_state.current_page == "预测模型":
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #ddd !important;
-        border-radius: 6px !important;
+        border-radius: 5px !important;
         text-align: center !important;
         font-weight: bold !important;
-        font-size: 14px !important;
-        padding: 8px 12px !important;
+        font-size: 20px !important;
+        padding: 6px 8px !important;
         width: 100% !important;
         margin: 0 !important;
     }
