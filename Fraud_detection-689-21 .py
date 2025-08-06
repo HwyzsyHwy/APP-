@@ -268,7 +268,7 @@ st.markdown(
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
-        color: red !important;
+        color: #00ff88 !important;
         font-size: 60px !important;
         font-weight: bold;
         text-align: center;
