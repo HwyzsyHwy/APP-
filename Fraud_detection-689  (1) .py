@@ -984,6 +984,28 @@ if st.session_state.current_page == "预测模型":
         background-color: #cd5c5c !important;
         background: #cd5c5c !important;
         color: white !important;
+    }
+
+    /* 超级强力的第一列按钮颜色设置 - 最高优先级 */
+    div[data-testid="column"]:first-child button,
+    div[data-testid="column"]:first-child [role="button"],
+    div[data-testid="column"]:first-child [data-testid="stNumberInput"] button,
+    div[data-testid="column"]:first-child [data-testid="stNumberInput"] [role="button"],
+    div[data-testid="column"]:first-child button[title*="crement"],
+    div[data-testid="column"]:first-child button[aria-label*="crement"] {
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+        color: white !important;
+        border: 1px solid #20b2aa !important;
+    }
+
+    /* 针对第一列的所有可能的按钮选择器 */
+    .stColumn:first-child button:not([kind="primary"]):not([kind="secondary"]),
+    .stColumn:first-child [data-testid="stNumberInput"] button,
+    .stColumn:first-child [data-baseweb="input"] button {
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+        color: white !important;
     }}
     </style>
 
@@ -1960,7 +1982,7 @@ elif st.session_state.current_page == "预测模型":
         # 添加列标题
         st.markdown("""
         <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Ultimate Analysis</h3>
+            <h3 style='margin: 0; color: #daa520; font-weight: bold;'>Ultimate Analysis</h3>
         </div>
         """, unsafe_allow_html=True)
 
