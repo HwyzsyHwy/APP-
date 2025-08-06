@@ -144,7 +144,7 @@ st.markdown(
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         min-height: 95vh !important;
-        margin-top: 5px !important;
+        margin-top: -120px !important;
     }
 
     /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
