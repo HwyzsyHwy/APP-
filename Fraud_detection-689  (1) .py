@@ -2050,45 +2050,96 @@ elif st.session_state.current_page == "预测模型":
 
 
 
-    # 调试信息：显示所有当前输入值
+    # 添加expander标题的自定义样式 - 使用所有可能的Streamlit expander选择器
     st.markdown("""
     <style>
-    /* 强制修改所有expander的样式 */
-    div[data-testid="stExpander"] {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
-    }
+    /* 尝试所有可能的expander标题选择器 */
 
-    div[data-testid="stExpander"] summary {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
+    /* 方法1: 使用data-testid */
+    [data-testid="stExpander"] {
+        background: rgba(255,255,255,0.1) !important;
         border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
+        backdrop-filter: blur(5px) !important;
         padding: 10px !important;
+        margin: 10px 0 !important;
     }
 
-    div[data-testid="stExpander"] details {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
+    /* 使用更具体的选择器来覆盖全局的 .main .block-container * 规则 */
+    .main .block-container [data-testid="stExpander"] summary {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        font-weight: bold !important;
     }
 
-    div[data-testid="stExpander"] details summary {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
+    .main .block-container [data-testid="stExpander"] summary * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    }
+
+    /* 方法2: 使用details元素 */
+    details {
+        background: rgba(255,255,255,0.1) !important;
         border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
+        backdrop-filter: blur(5px) !important;
         padding: 10px !important;
+        margin: 10px 0 !important;
+    }
+
+    .main .block-container details summary {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        font-weight: bold !important;
+    }
+
+    .main .block-container details summary * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    }
+
+    /* 方法3: 使用streamlit类名 */
+    .streamlit-expanderHeader,
+    .stExpanderHeader {
+        background: rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(5px) !important;
+        padding: 10px !important;
+        margin: 10px 0 !important;
+    }
+
+    .main .block-container .streamlit-expanderHeader *,
+    .main .block-container .stExpanderHeader * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    }
+
+    /* 方法4: 强制覆盖所有可能的文本元素 */
+    [data-testid="stExpander"] p,
+    [data-testid="stExpander"] span,
+    [data-testid="stExpander"] div,
+    details p,
+    details span,
+    details div {
+        color: black !important;
+    }
+
+    /* 方法5: 使用CSS属性选择器 */
+    [aria-expanded] {
+        background: rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(5px) !important;
+        padding: 10px !important;
+        margin: 10px 0 !important;
+        color: black !important;
+    }
+
+    [aria-expanded] * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
     }
     </style>
     """, unsafe_allow_html=True)
+
+    # 调试信息：显示所有当前输入值
 
     with st.expander("📊 显示当前输入值", expanded=False):
         debug_info = """
