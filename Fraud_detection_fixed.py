@@ -274,7 +274,7 @@ with st.sidebar:
     # 用户信息区域
     st.markdown("""
     <div class="user-info">
-        <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/用户.png" class="user-avatar" alt="用户头像">
+        <img src="https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/%E7%94%A8%E6%88%B7.png" class="user-avatar" alt="用户头像">
         <p class="user-name">用户：wy1122</p>
     </div>
     """, unsafe_allow_html=True)
@@ -493,7 +493,7 @@ elif st.session_state.current_page == "使用指南":
     st.markdown("### 如何使用本系统")
     st.markdown("1. **选择预测目标**：点击相应的模型卡片")
     st.markdown("2. **输入参数**：在三个类别中输入相应的数值")
-    st.markdown("3. **运行预测**：点击"运行预测"按钮")
+    st.markdown("3. **运行预测**：点击'运行预测'按钮")
     st.markdown("4. **查看结果**：预测结果将显示在页面底部")
-    st.markdown("5. **重置输入**：如需重新输入，点击"重置输入"按钮")
+    st.markdown("5. **重置输入**：如需重新输入，点击'重置输入'按钮")
     st.markdown('</div>', unsafe_allow_html=True)
