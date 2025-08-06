@@ -1293,8 +1293,8 @@ class ModelPredictor:
         
         # UI显示的特征映射（处理温度符号）
         self.ui_to_model_mapping = {
-            'FT(°C)': 'FT(℃)',
-            'HR(°C/min)': 'HR(℃/min)'
+            'FT(C)': 'FT(℃)',
+            'HR(C/min)': 'HR(℃/min)'
         }
         
         self.last_features = {}  # 存储上次的特征值
@@ -1621,7 +1621,7 @@ elif st.session_state.current_page == "使用指南":
     <ul>
     <li>所有数值应为正数</li>
     <li>工业分析数据单位为wt%</li>
-    <li>温度单位为°C</li>
+    <li>温度单位为C</li>
     <li>流量单位为mL/min</li>
     </ul>
 
@@ -1660,8 +1660,8 @@ elif st.session_state.current_page == "预测模型":
         "O/C": 0.715,
         "H/C": 1.534,
         "N/C": 0.034,
-        "FT(°C)": 505.811,
-        "HR(°C/min)": 29.011,
+        "FT(C)": 505.811,
+        "HR(C/min)": 29.011,
         "FR(mL/min)": 93.962
     }
 
