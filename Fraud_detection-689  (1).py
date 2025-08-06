@@ -616,13 +616,13 @@ if st.session_state.current_page == "预测模型":
     /* 模型卡片按钮样式 - secondary按钮（未选中） */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        background: rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
         border-radius: 15px !important;
         padding: 20px !important;
         height: auto !important;
         min-height: 120px !important;
-        color: white !important;
+        color: #333 !important;
         font-weight: bold !important;
         font-size: 16px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
@@ -649,9 +649,9 @@ if st.session_state.current_page == "预测模型":
     /* 悬停效果 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:hover,
     div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
-        background: rgba(255,255,255,0.2) !important;
+        background: rgba(255,255,255,0.9) !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 12px 40px rgba(255,255,255,0.1) !important;
+        box-shadow: 0 12px 40px rgba(255,255,255,0.2) !important;
     }
 
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"]:hover,
