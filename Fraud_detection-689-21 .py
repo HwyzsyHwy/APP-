@@ -262,6 +262,16 @@ st.markdown(
         color: black !important;
     }
 
+    /* 确保expander内容中的所有文字都是黑色 */
+    div[data-testid="stExpander"] .streamlit-expanderContent *,
+    div[data-testid="stExpander"] .streamlit-expanderContent p,
+    div[data-testid="stExpander"] .streamlit-expanderContent b,
+    div[data-testid="stExpander"] .streamlit-expanderContent strong,
+    div[data-testid="stExpander"] .streamlit-expanderContent span,
+    div[data-testid="stExpander"] .streamlit-expanderContent div {
+        color: black !important;
+    }
+
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
@@ -1403,7 +1413,7 @@ if st.session_state.current_page == "预测模型":
 
     # 显示当前选择的模型 - 调整间距平衡
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 15px; margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+    <div style="text-align: center; margin-top: -10px; margin-bottom: -10px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
         <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 20px;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
@@ -2159,7 +2169,8 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
-
+    # 明确结束三列布局 - 添加一个空的容器来确保退出列上下文
+    st.empty()
 
     # 添加expander标题的自定义样式 - 使用所有可能的Streamlit expander选择器
     st.markdown("""
@@ -2172,19 +2183,19 @@ elif st.session_state.current_page == "预测模型":
         border-radius: 10px !important;
         backdrop-filter: blur(5px) !important;
         padding: 10px !important;
-        margin: 10px 0 !important;
+        margin: 0px 0 !important;
     }
 
     /* 使用更具体的选择器来覆盖全局的 .main .block-container * 规则 */
     .main .block-container [data-testid="stExpander"] summary {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        color: black !important;
+        text-shadow: none !important;
         font-weight: bold !important;
     }
 
     .main .block-container [data-testid="stExpander"] summary * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        color: black !important;
+        text-shadow: none !important;
     }
 
     /* 方法2: 使用details元素 */
@@ -2193,18 +2204,18 @@ elif st.session_state.current_page == "预测模型":
         border-radius: 10px !important;
         backdrop-filter: blur(5px) !important;
         padding: 10px !important;
-        margin: 10px 0 !important;
+        margin: 0px 0 !important;
     }
 
     .main .block-container details summary {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        color: black !important;
+        text-shadow: none !important;
         font-weight: bold !important;
     }
 
     .main .block-container details summary * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        color: black !important;
+        text-shadow: none !important;
     }
 
     /* 方法3: 使用streamlit类名 */
@@ -2214,45 +2225,157 @@ elif st.session_state.current_page == "预测模型":
         border-radius: 10px !important;
         backdrop-filter: blur(5px) !important;
         padding: 10px !important;
-        margin: 10px 0 !important;
+        margin: 0px 0 !important;
     }
 
     .main .block-container .streamlit-expanderHeader *,
     .main .block-container .stExpanderHeader * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-
-    /* 方法4: 强制覆盖所有可能的文本元素 */
-    [data-testid="stExpander"] p,
-    [data-testid="stExpander"] span,
-    [data-testid="stExpander"] div,
-    details p,
-    details span,
-    details div {
         color: black !important;
+        text-shadow: none !important;
     }
 
-    /* 方法5: 使用CSS属性选择器 */
-    [aria-expanded] {
+    /* 方法4: expander标题样式 */
+    [data-testid="stExpander"] summary,
+    details summary {
         background: rgba(255,255,255,0.1) !important;
         border-radius: 10px !important;
         backdrop-filter: blur(5px) !important;
         padding: 10px !important;
         margin: 10px 0 !important;
         color: black !important;
+        text-shadow: none !important;
+        font-weight: bold !important;
     }
 
-    [aria-expanded] * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    /* expander内容样式 */
+    [data-testid="stExpander"] div[data-testid="stExpanderDetails"],
+    details > div:not(summary) {
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 0 0 10px 10px !important;
+        padding: 15px !important;
+        margin-top: -10px !important;
+    }
+
+    /* expander内容文本样式 */
+    [data-testid="stExpander"] div[data-testid="stExpanderDetails"] p,
+    [data-testid="stExpander"] div[data-testid="stExpanderDetails"] div,
+    details > div:not(summary) p,
+    details > div:not(summary) div {
+        color: #333 !important;
+        background: rgba(255,255,255,0.9) !important;
+        padding: 2px 5px !important;
+        border-radius: 3px !important;
+        margin: 2px 0 !important;
+    }
+
+    /* 最高优先级：强制所有expander标题为黑色 - 终极解决方案 */
+    div[data-testid="stExpander"] > summary,
+    div[data-testid="stExpander"] > details > summary,
+    div[data-testid="stExpander"] [role="button"],
+    [data-testid="stExpander"] summary,
+    [data-testid="stExpander"] [role="button"] {
+        color: black !important;
+        text-shadow: none !important;
+        font-weight: bold !important;
+    }
+
+    div[data-testid="stExpander"] > summary *,
+    div[data-testid="stExpander"] > details > summary *,
+    div[data-testid="stExpander"] [role="button"] *,
+    [data-testid="stExpander"] summary *,
+    [data-testid="stExpander"] [role="button"] * {
+        color: black !important;
+        text-shadow: none !important;
+    }
+
+    /* 专门针对显示当前输入值的expander进行定位 */
+    div[data-testid="stExpander"]:has(summary:contains("显示当前输入值")) {
+        position: relative !important;
+        top: -120px !important;
+        z-index: 1000 !important;
+        margin-bottom: -120px !important;
+    }
+
+    /* 如果上面的选择器不工作，使用更通用的方法 */
+    .main .block-container div[data-testid="stExpander"]:nth-last-of-type(2) {
+        position: relative !important;
+        top: -120px !important;
+        z-index: 1000 !important;
+        margin-bottom: -120px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    # 调试信息：显示所有当前输入值
-    st.markdown("<div style='margin-top: 20px; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+    # 创建向上移动并居中重叠的容器
+    st.markdown("""
+    <div style='
+        position: relative;
+        z-index: 10;
+        margin-top: -120px;
+        margin-bottom: -20px;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    '>
+    """, unsafe_allow_html=True)
 
+    # 添加JavaScript强制设置expander标题颜色
+    st.markdown("""
+    <script>
+    function forceExpanderTextBlack() {
+        // 查找所有expander标题元素
+        const expanderTitles = document.querySelectorAll('[data-testid="stExpander"] summary, [data-testid="stExpander"] [role="button"]');
+
+        expanderTitles.forEach(title => {
+            // 强制设置为黑色
+            title.style.setProperty('color', 'black', 'important');
+            title.style.setProperty('text-shadow', 'none', 'important');
+
+            // 设置所有子元素也为黑色
+            const children = title.querySelectorAll('*');
+            children.forEach(child => {
+                child.style.setProperty('color', 'black', 'important');
+                child.style.setProperty('text-shadow', 'none', 'important');
+            });
+        });
+
+        console.log('强制设置expander标题为黑色');
+    }
+
+    // 立即执行
+    setTimeout(forceExpanderTextBlack, 100);
+    setTimeout(forceExpanderTextBlack, 500);
+    setTimeout(forceExpanderTextBlack, 1000);
+
+    // 监听DOM变化
+    const expanderObserver = new MutationObserver(function(mutations) {
+        let needsUpdate = false;
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                const addedNodes = Array.from(mutation.addedNodes);
+                if (addedNodes.some(node =>
+                    node.nodeType === 1 &&
+                    (node.getAttribute && node.getAttribute('data-testid') === 'stExpander' ||
+                     node.querySelector && node.querySelector('[data-testid="stExpander"]'))
+                )) {
+                    needsUpdate = true;
+                }
+            }
+        });
+
+        if (needsUpdate) {
+            setTimeout(forceExpanderTextBlack, 50);
+        }
+    });
+
+    expanderObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    </script>
+    """, unsafe_allow_html=True)
+
+    # 调试信息：显示所有当前输入值
     with st.expander("📊 显示当前输入值", expanded=False):
         debug_info = """
         <div style='
@@ -2269,6 +2392,9 @@ elif st.session_state.current_page == "预测模型":
             debug_info += f"<p style='color: #000 !important; margin: 5px 0;'><b>{feature}</b>: {value:.3f}</p>"
         debug_info += "</div>"
         st.markdown(debug_info, unsafe_allow_html=True)
+
+    # 关闭居中重叠容器
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # 重置状态
     if st.session_state.clear_pressed:
