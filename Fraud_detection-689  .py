@@ -1186,7 +1186,7 @@ if st.session_state.current_page == "预测模型":
             }}
         }});
 
-        console.log(`找到 ${{incrementButtons.length}} 个+/-按钮`);
+        console.log('找到 ' + incrementButtons.length + ' 个+/-按钮');
 
         // 按顺序给按钮分配颜色
         // 前6个按钮（第一列的3个输入框，每个2个按钮）= 青绿色
@@ -1203,17 +1203,15 @@ if st.session_state.current_page == "预测模型":
             }}
 
             // 直接设置内联样式，最高优先级
-            btn.setAttribute('style', `
-                background: ${{color}} !important;
-                background-color: ${{color}} !important;
-                background-image: none !important;
-                border: 1px solid ${{color}} !important;
-                color: white !important;
-                border-radius: 4px !important;
-                font-weight: bold !important;
-            `);
+            btn.style.setProperty('background', color, 'important');
+            btn.style.setProperty('background-color', color, 'important');
+            btn.style.setProperty('background-image', 'none', 'important');
+            btn.style.setProperty('border', '1px solid ' + color, 'important');
+            btn.style.setProperty('color', 'white', 'important');
+            btn.style.setProperty('border-radius', '4px', 'important');
+            btn.style.setProperty('font-weight', 'bold', 'important');
 
-            console.log(`按钮 ${{index}}: "${{btn.textContent}}" -> ${{color}}`);
+            console.log('按钮 ' + index + ': "' + btn.textContent + '" -> ' + color);
         }});
 
         console.log('按钮颜色设置完成');
