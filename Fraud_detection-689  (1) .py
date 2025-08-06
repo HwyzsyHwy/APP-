@@ -210,23 +210,6 @@ st.markdown(
         font-weight: 500 !important;
     }
     
-    /* 显示当前输入值expander的特殊样式 */
-    /* expander标题部分 - 透明背景（与当前模型样式一致） */
-    div[data-testid="stExpander"] summary[aria-expanded] {
-        background-color: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-
-    /* expander内容部分 - 白色轻微透明背景 */
-    div[data-testid="stExpander"] .streamlit-expanderContent {
-        background-color: rgba(255, 255, 255, 0.8) !important;
-        border-radius: 8px !important;
-        padding: 15px !important;
-        margin-top: 5px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-    }
-
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
@@ -722,9 +705,9 @@ if st.session_state.current_page == "预测模型":
     button[kind="secondary"],
     .stButton > button[kind="secondary"],
     [data-testid="stButton"] > button[kind="secondary"] {{
-        background: rgba(255,255,255,0.8) !important;
+        background: rgba(255,255,255,0.1) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
-        color: #333 !important;
+        color: white !important;
         transition: all 0.3s ease !important;
     }}
 
@@ -1315,8 +1298,8 @@ if st.session_state.current_page == "预测模型":
 
     # 显示当前选择的模型
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 10px; backdrop-filter: blur(3px); box-shadow: none;">
-        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold;">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; backdrop-filter: blur(5px);">
+        <h4 style="color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
