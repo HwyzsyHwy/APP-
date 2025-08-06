@@ -212,7 +212,10 @@ st.markdown(
     
     /* 显示当前输入值expander的特殊样式 */
     /* expander标题部分 - 与当前模型样式一致 */
-    div[data-testid="stExpander"] summary[aria-expanded] {
+    div[data-testid="stExpander"] summary,
+    div[data-testid="stExpander"] > summary,
+    .streamlit-expanderHeader,
+    [data-testid="stExpander"] [role="button"] {
         background: rgba(255,255,255,0.8) !important;
         border: none !important;
         box-shadow: none !important;
@@ -2026,6 +2029,43 @@ elif st.session_state.current_page == "预测模型":
 
 
     # 调试信息：显示所有当前输入值
+    st.markdown("""
+    <style>
+    /* 强制修改所有expander标题的样式 */
+    div[data-testid="stExpander"] details summary {
+        background: rgba(255,255,255,0.8) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+        padding: 10px !important;
+    }
+
+    /* 备用选择器 */
+    .streamlit-expanderHeader {
+        background: rgba(255,255,255,0.8) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+    }
+    </style>
+
+    <script>
+    setTimeout(function() {
+        const expanders = document.querySelectorAll('[data-testid="stExpander"] summary, [data-testid="stExpander"] details summary');
+        expanders.forEach(function(expander) {
+            if (expander.textContent.includes('显示当前输入值')) {
+                expander.style.background = 'rgba(255,255,255,0.8)';
+                expander.style.borderRadius = '10px';
+                expander.style.backdropFilter = 'blur(3px)';
+                expander.style.padding = '10px';
+                expander.style.border = 'none';
+                expander.style.boxShadow = 'none';
+            }
+        });
+    }, 100);
+    </script>
+    """, unsafe_allow_html=True)
+
     with st.expander("📊 显示当前输入值", expanded=False):
         debug_info = "<div style='columns: 3; column-gap: 20px;'>"
         for feature, value in features.items():
