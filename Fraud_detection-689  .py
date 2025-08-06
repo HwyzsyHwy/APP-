@@ -668,7 +668,7 @@ if st.session_state.current_page == "预测模型":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🔥\n\nChar Yield", key="char_card", use_container_width=True,
+        if st.button("🔥 Char Yield", key="char_card", use_container_width=True,
                     type="primary" if st.session_state.selected_model == "Char Yield" else "secondary"):
             if st.session_state.selected_model != "Char Yield":
                 st.session_state.selected_model = "Char Yield"
@@ -678,7 +678,7 @@ if st.session_state.current_page == "预测模型":
                 st.rerun()
 
     with col2:
-        if st.button("🛢️\n\nOil Yield", key="oil_card", use_container_width=True,
+        if st.button("🛢️ Oil Yield", key="oil_card", use_container_width=True,
                     type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary"):
             if st.session_state.selected_model != "Oil Yield":
                 st.session_state.selected_model = "Oil Yield"
@@ -688,7 +688,7 @@ if st.session_state.current_page == "预测模型":
                 st.rerun()
 
     with col3:
-        if st.button("💨\n\nGas Yield", key="gas_card", use_container_width=True,
+        if st.button("💨 Gas Yield", key="gas_card", use_container_width=True,
                     type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary"):
             if st.session_state.selected_model != "Gas Yield":
                 st.session_state.selected_model = "Gas Yield"
