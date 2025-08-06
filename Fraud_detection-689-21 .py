@@ -2295,7 +2295,7 @@ elif st.session_state.current_page == "预测模型":
     result_container = st.container()
 
     # 添加间距
-    st.markdown("<div style='margin-top: 50px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 20px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
     # 预测按钮区域
     st.markdown('<div class="main-buttons">', unsafe_allow_html=True)
