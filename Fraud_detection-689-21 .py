@@ -33,9 +33,9 @@ st.markdown(
     /* 全局字体设置和背景图片 */
     html, body, [class*="css"] {
         font-size: 16px !important;
-        -webkit-font-smoothing: antialiased !important;
-        -moz-osx-font-smoothing: grayscale !important;
-        text-rendering: optimizeLegibility !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
     }
 
     /* 主应用背景 */
@@ -58,6 +58,10 @@ st.markdown(
     /* 侧边栏内容文字颜色 */
     section[data-testid="stSidebar"] * {
         color: #333333 !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
+        font-weight: 500 !important;
     }
 
     /* 侧边栏标题颜色 */
@@ -140,8 +144,7 @@ st.markdown(
 
     /* 创建统一的整体白色半透明背景 */
     .main .block-container {
-        background-color: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(10px) !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
         border-radius: 20px !important;
         padding: 30px !important;
         margin: 20px auto !important;
@@ -246,7 +249,6 @@ st.markdown(
         border: none !important;
         box-shadow: none !important;
         border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
         padding: 10px !important;
     }
 
@@ -508,6 +510,29 @@ st.markdown(
     [data-testid="stSidebar"] .block-container {
         padding-top: 1rem !important;
         margin-top: 0 !important;
+    }
+
+    /* 强制所有文字清晰显示 - 最高优先级 */
+    * {
+        -webkit-font-smoothing: none !important;
+        -moz-osx-font-smoothing: unset !important;
+        text-rendering: geometricPrecision !important;
+        font-smooth: never !important;
+        -webkit-text-stroke: 0.01em transparent !important;
+    }
+
+    /* 特别针对侧边栏文字 */
+    section[data-testid="stSidebar"] *,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] div,
+    section[data-testid="stSidebar"] button {
+        -webkit-font-smoothing: none !important;
+        -moz-osx-font-smoothing: unset !important;
+        text-rendering: geometricPrecision !important;
+        font-smooth: never !important;
+        font-weight: 600 !important;
+        text-shadow: none !important;
     }
     </style>
     """,
