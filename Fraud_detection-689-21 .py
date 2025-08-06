@@ -269,7 +269,7 @@ st.markdown(
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
         color: green;
-        font-size: 48px;
+        font-size: 30px;
         font-weight: bold;
         text-align: center;
         padding: 25px 40px;
@@ -2369,7 +2369,7 @@ elif st.session_state.current_page == "预测模型":
 
     # 显示预测结果
     if st.session_state.prediction_result is not None:
-        st.markdown("<div style='margin-top: 25px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: 10px; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
         st.markdown("---")
 
         # 显示主预测结果
