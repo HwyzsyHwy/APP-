@@ -767,14 +767,14 @@ if st.session_state.current_page == "预测模型":
         transition: all 0.2s ease !important;
     }}
 
-    /* 第一列按钮 - 绿色 (Proximate Analysis) */
+    /* 第一列按钮 - 青绿色 (Proximate Analysis) */
     [data-testid="column"]:nth-child(1) button[aria-label="Increment"],
     [data-testid="column"]:nth-child(1) button[aria-label="Decrement"],
     [data-testid="column"]:nth-child(1) button[title="Increment"],
     [data-testid="column"]:nth-child(1) button[title="Decrement"],
     [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
     [data-testid="column"]:nth-child(1) button:has(svg) {{
-        background-color: #00FF00 !important;
+        background-color: #20B2AA !important;
     }}
 
     /* 第二列按钮 - 金黄色 (Ultimate Analysis) */
@@ -857,7 +857,7 @@ if st.session_state.current_page == "预测模型":
 
     /* 终极解决方案 - 使用CSS变量和更高优先级 */
     :root {{
-        --col1-color: #00FF00;
+        --col1-color: #20B2AA;
         --col2-color: #daa520;
         --col3-color: #cd5c5c;
     }}
@@ -891,8 +891,8 @@ if st.session_state.current_page == "预测模型":
 
     /* 通过容器div来定位按钮 */
     div[data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button {{
-        background-color: #00FF00 !important;
-        background: #00FF00 !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
         color: white !important;
         border: none !important;
         border-radius: 4px !important;
@@ -918,8 +918,8 @@ if st.session_state.current_page == "预测模型":
     [data-testid="stNumberInput"]:nth-of-type(1) button,
     [data-testid="stNumberInput"]:nth-of-type(2) button,
     [data-testid="stNumberInput"]:nth-of-type(3) button {{
-        background-color: #00FF00 !important;
-        background: #00FF00 !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
         color: white !important;
     }}
 
@@ -941,7 +941,7 @@ if st.session_state.current_page == "预测模型":
 
     /* 最强力的覆盖 - 使用CSS动画 */
     @keyframes forceGreen {{
-        0%, 100% {{ background-color: #00FF00 !important; }}
+        0%, 100% {{ background-color: #20B2AA !important; }}
     }}
 
     @keyframes forceGold {{
@@ -970,8 +970,8 @@ if st.session_state.current_page == "预测模型":
 
     /* 通过自定义属性强制设置 */
     button[data-forced-color="green"] {{
-        background-color: #00FF00 !important;
-        background: #00FF00 !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
         color: white !important;
     }}
 
@@ -1818,14 +1818,14 @@ elif st.session_state.current_page == "预测模型":
         margin: 0 !important;
     }
 
-    /* 第一列 Proximate Analysis 按钮颜色 - 绿色 */
+    /* 第一列 Proximate Analysis 按钮颜色 - 青绿色 */
     .stColumn:nth-child(1) .stColumn:nth-child(2) .stNumberInput button {
-        background-color: #00FF00 !important;
+        background-color: #20B2AA !important;
     }
 
     /* 备用选择器 - 第一列的所有number_input按钮 */
     .stColumn:nth-child(1) .stNumberInput button {
-        background-color: #00FF00 !important;
+        background-color: #20B2AA !important;
     }
 
     /* 第二列 Ultimate Analysis 按钮颜色 - 金黄色 */
@@ -1842,9 +1842,9 @@ elif st.session_state.current_page == "预测模型":
     /* 第一列的所有按钮（包括嵌套列中的） */
     [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
     [data-testid="column"]:nth-child(1) [data-testid="column"] [data-testid="stNumberInput"] button {
-        background-color: #00FF00 !important;
-        background: #00FF00 !important;
-        border-color: #00FF00 !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
+        border-color: #20B2AA !important;
     }
 
     /* 确保主要按钮可见且样式正常 */
@@ -1909,6 +1909,20 @@ elif st.session_state.current_page == "预测模型":
         display: flex !important;
         align-items: center !important;
         margin: 0 !important;
+    }
+
+    /* 最终解决方案 - 针对嵌套列结构的强力选择器 */
+    /* 选择第一个主列中的所有number_input按钮，无论嵌套多深 */
+    div[data-testid="column"]:nth-child(1) * [data-testid="stNumberInput"] button {
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
+        border: 1px solid #20B2AA !important;
+    }
+
+    /* 使用更高优先级的选择器 */
+    body div[data-testid="column"]:nth-child(1) button[aria-label*="crement"] {
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
     }
     </style>
     """, unsafe_allow_html=True)
