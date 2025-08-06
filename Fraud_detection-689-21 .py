@@ -274,7 +274,7 @@ st.markdown(
         text-align: center;
         padding: 25px 40px;
         border-radius: 12px;
-        margin-top: 20px;
+        margin-top: -10px;
         backdrop-filter: blur(5px) !important;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         min-height: 120px;
