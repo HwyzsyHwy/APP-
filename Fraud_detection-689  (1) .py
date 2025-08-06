@@ -216,7 +216,7 @@ st.markdown(
     div[data-testid="stExpander"] > summary,
     .streamlit-expanderHeader,
     [data-testid="stExpander"] [role="button"] {
-        background: rgba(255,255,255,0.8) !important;
+        background: rgba(255,255,255,1.0) !important;
         border: none !important;
         box-shadow: none !important;
         border-radius: 10px !important;
@@ -1321,7 +1321,7 @@ if st.session_state.current_page == "预测模型":
 
     # 显示当前选择的模型
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.8) !important; border-radius: 10px; backdrop-filter: blur(3px); box-shadow: none;">
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.3) !important; border-radius: 10px; backdrop-filter: blur(3px); box-shadow: none;">
         <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
@@ -1911,6 +1911,13 @@ elif st.session_state.current_page == "预测模型":
 
     # Proximate Analysis - 第一列
     with col1:
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Proximate Analysis</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
         category = "Proximate Analysis"
         color = category_colors[category]
 
@@ -1950,6 +1957,13 @@ elif st.session_state.current_page == "预测模型":
 
     # Ultimate Analysis - 第二列
     with col2:
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Ultimate Analysis</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
         category = "Ultimate Analysis"
         color = category_colors[category]
 
@@ -1989,6 +2003,13 @@ elif st.session_state.current_page == "预测模型":
 
     # Pyrolysis Conditions - 第三列
     with col3:
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #cd5c5c; font-weight: bold;'>Pyrolysis Conditions</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
         category = "Pyrolysis Conditions"
         color = category_colors[category]
 
@@ -2031,9 +2052,17 @@ elif st.session_state.current_page == "预测模型":
     # 调试信息：显示所有当前输入值
     st.markdown("""
     <style>
-    /* 强制修改所有expander标题的样式 */
-    div[data-testid="stExpander"] details summary {
-        background: rgba(255,255,255,0.8) !important;
+    /* 强制修改所有expander的样式 */
+    div[data-testid="stExpander"] {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+    }
+
+    div[data-testid="stExpander"] summary {
+        background: rgba(255,255,255,0.3) !important;
         border: none !important;
         box-shadow: none !important;
         border-radius: 10px !important;
@@ -2041,29 +2070,23 @@ elif st.session_state.current_page == "预测模型":
         padding: 10px !important;
     }
 
-    /* 备用选择器 */
-    .streamlit-expanderHeader {
-        background: rgba(255,255,255,0.8) !important;
+    div[data-testid="stExpander"] details {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
         border-radius: 10px !important;
         backdrop-filter: blur(3px) !important;
     }
-    </style>
 
-    <script>
-    setTimeout(function() {
-        const expanders = document.querySelectorAll('[data-testid="stExpander"] summary, [data-testid="stExpander"] details summary');
-        expanders.forEach(function(expander) {
-            if (expander.textContent.includes('显示当前输入值')) {
-                expander.style.background = 'rgba(255,255,255,0.8)';
-                expander.style.borderRadius = '10px';
-                expander.style.backdropFilter = 'blur(3px)';
-                expander.style.padding = '10px';
-                expander.style.border = 'none';
-                expander.style.boxShadow = 'none';
-            }
-        });
-    }, 100);
-    </script>
+    div[data-testid="stExpander"] details summary {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+        padding: 10px !important;
+    }
+    </style>
     """, unsafe_allow_html=True)
 
     with st.expander("📊 显示当前输入值", expanded=False):
