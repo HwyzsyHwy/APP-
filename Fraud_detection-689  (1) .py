@@ -2093,7 +2093,7 @@ elif st.session_state.current_page == "预测模型":
     with st.expander("📊 显示当前输入值", expanded=False):
         debug_info = "<div style='columns: 3; column-gap: 20px;'>"
         for feature, value in features.items():
-            debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
+            debug_info += f"<p style='color: #000 !important; margin: 5px 0;'><b>{feature}</b>: {value:.3f}</p>"
         debug_info += "</div>"
         st.markdown(debug_info, unsafe_allow_html=True)
 
