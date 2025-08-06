@@ -209,6 +209,37 @@ st.markdown(
     .stColumn:nth-child(3) .stNumberInput button {
         background-color: #cd5c5c !important;
     }
+
+    /* 页面内容样式 - 与日志容器相同的白色半透明背景 */
+    .page-content {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        color: #333 !important;
+        padding: 20px !important;
+        border-radius: 15px !important;
+        backdrop-filter: blur(5px) !important;
+        margin: 10px 0 !important;
+        min-height: 400px !important;
+    }
+
+    /* 确保页面内容内的所有元素都没有单独背景 */
+    .page-content * {
+        background-color: transparent !important;
+        backdrop-filter: none !important;
+    }
+
+    /* 日志样式 - 保留背景框 */
+    .log-container {
+        height: 300px;
+        overflow-y: auto;
+        background-color: rgba(255, 255, 255, 0.8);
+        color: #00FF00;
+        font-family: 'Courier New', monospace;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 14px !important;
+        backdrop-filter: blur(5px);
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -271,8 +302,17 @@ with st.sidebar:
 
 # 主要内容
 if st.session_state.current_page == "预测模型":
-    st.markdown('<h1 style="color: white; text-align: center; margin-bottom: 30px;">Streamlit</h1>', unsafe_allow_html=True)
-    st.markdown('<h3 style="color: white; text-align: center; margin-bottom: 30px;">选择预测目标</h3>', unsafe_allow_html=True)
+    # 简洁的Streamlit样式标题
+    st.markdown("""
+    <div style="margin-bottom: 30px;">
+        <h1 style="color: white; font-size: 2.5rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            Streamlit
+        </h1>
+        <div style="height: 3px; background: white; margin-top: 5px; border-radius: 2px;"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
     
     # 模型选择
     col1, col2, col3 = st.columns(3)
@@ -337,10 +377,13 @@ if st.session_state.current_page == "预测模型":
     col1, col2, col3 = st.columns(3)
     features = {}
     
+    # 创建页面内容容器
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+
     # 第一列
     with col1:
         st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Proximate Analysis</div>', unsafe_allow_html=True)
-        
+
         for feature in feature_categories["Proximate Analysis"]:
             value = st.number_input(
                 feature,
@@ -350,11 +393,11 @@ if st.session_state.current_page == "预测模型":
                 key=f"input_{feature}"
             )
             features[feature] = value
-    
+
     # 第二列
     with col2:
         st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Ultimate Analysis</div>', unsafe_allow_html=True)
-        
+
         for feature in feature_categories["Ultimate Analysis"]:
             value = st.number_input(
                 feature,
@@ -364,11 +407,11 @@ if st.session_state.current_page == "预测模型":
                 key=f"input_{feature}"
             )
             features[feature] = value
-    
+
     # 第三列
     with col3:
         st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Pyrolysis Conditions</div>', unsafe_allow_html=True)
-        
+
         for feature in feature_categories["Pyrolysis Conditions"]:
             value = st.number_input(
                 feature,
@@ -378,6 +421,8 @@ if st.session_state.current_page == "预测模型":
                 key=f"input_{feature}"
             )
             features[feature] = value
+
+    st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown("---")
     
@@ -410,9 +455,44 @@ if st.session_state.current_page == "预测模型":
 
 elif st.session_state.current_page == "执行日志":
     st.markdown('<h2 style="color: white; text-align: center; margin-bottom: 30px;">执行日志</h2>', unsafe_allow_html=True)
-    
+
     if st.session_state.log_messages:
         log_content = "<br>".join(st.session_state.log_messages[-50:])
-        st.markdown(f'<div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; font-family: monospace; color: white; max-height: 400px; overflow-y: auto;">{log_content}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="log-container">{log_content}</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; text-align: center; color: white;">暂无日志记录</div>', unsafe_allow_html=True)
+        st.markdown('<div class="log-container" style="text-align: center;">暂无日志记录</div>', unsafe_allow_html=True)
+
+elif st.session_state.current_page == "模型信息":
+    st.markdown('<h2 style="color: white; text-align: center; margin-bottom: 30px;">模型信息</h2>', unsafe_allow_html=True)
+
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("### 当前模型：" + st.session_state.selected_model)
+    st.markdown("**模型类型：** GBDT (Gradient Boosting Decision Tree)")
+    st.markdown("**特征数量：** 9个")
+    st.markdown("**训练数据：** 生物质热解产率数据集")
+    st.markdown("**预处理：** RobustScaler标准化")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+elif st.session_state.current_page == "技术说明":
+    st.markdown('<h2 style="color: white; text-align: center; margin-bottom: 30px;">技术说明</h2>', unsafe_allow_html=True)
+
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("### 生物质热解产率预测系统")
+    st.markdown("本系统基于机器学习技术，能够预测生物质在不同条件下的热解产率。")
+    st.markdown("**支持的预测目标：**")
+    st.markdown("- Char Yield (炭产率)")
+    st.markdown("- Oil Yield (油产率)")
+    st.markdown("- Gas Yield (气产率)")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+elif st.session_state.current_page == "使用指南":
+    st.markdown('<h2 style="color: white; text-align: center; margin-bottom: 30px;">使用指南</h2>', unsafe_allow_html=True)
+
+    st.markdown('<div class="page-content">', unsafe_allow_html=True)
+    st.markdown("### 如何使用本系统")
+    st.markdown("1. **选择预测目标**：点击相应的模型卡片")
+    st.markdown("2. **输入参数**：在三个类别中输入相应的数值")
+    st.markdown("3. **运行预测**：点击"运行预测"按钮")
+    st.markdown("4. **查看结果**：预测结果将显示在页面底部")
+    st.markdown("5. **重置输入**：如需重新输入，点击"重置输入"按钮")
+    st.markdown('</div>', unsafe_allow_html=True)
