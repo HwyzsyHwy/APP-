@@ -2392,24 +2392,7 @@ elif st.session_state.current_page == "预测模型":
             warnings_html += "</ul><p><i>建议调整输入值以获得更准确的预测结果。</i></p></div>"
             result_container.markdown(warnings_html, unsafe_allow_html=True)
 
-        # 显示预测详情
-        with st.expander("📈 预测详情", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown(f"""
-                **预测信息:**
-                - 目标变量: {st.session_state.selected_model}
-                - 预测结果: {st.session_state.prediction_result:.4f} wt%
-                - 模型类型: GBDT Pipeline
-                - 预处理: RobustScaler
-                """)
-            with col2:
-                st.markdown(f"""
-                **模型状态:**
-                - 加载状态: {'✅ 正常' if predictor.model_loaded else '❌ 失败'}
-                - 特征数量: {len(predictor.feature_names)}
-                - 警告数量: {len(st.session_state.warnings)}
-                """)
+
 
     elif st.session_state.prediction_error is not None:
         st.markdown("---")
