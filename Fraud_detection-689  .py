@@ -962,93 +962,37 @@ if st.session_state.current_page == "预测模型":
         background: #cd5c5c !important;
         color: white !important;
     }}
-    </style>
 
-    <script>
-    // 简化的按钮颜色设置脚本
-    function setButtonColors() {{
-        console.log('开始设置按钮颜色...');
+    /* 纯CSS解决方案 - 无需JavaScript */
 
-        // 定义颜色
-        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
-
-        // 查找所有数字输入框
-        const numberInputs = document.querySelectorAll('[data-testid="stNumberInput"]');
-        console.log('找到 ' + numberInputs.length + ' 个数字输入框');
-
-        // 为每个输入框的按钮设置颜色
-        numberInputs.forEach(function(input, inputIndex) {{
-            const columnIndex = Math.floor(inputIndex / 3);
-            if (columnIndex < 3) {{
-                const color = colors[columnIndex];
-                const buttons = input.querySelectorAll('button');
-
-                buttons.forEach(function(btn) {{
-                    btn.style.setProperty('background-color', color, 'important');
-                    btn.style.setProperty('background', color, 'important');
-                    btn.style.setProperty('color', 'white', 'important');
-                    btn.style.setProperty('border', '1px solid ' + color, 'important');
-                    btn.style.setProperty('border-radius', '4px', 'important');
-                    btn.style.setProperty('font-weight', 'bold', 'important');
-                }});
-            }}
-        }});
-
-        // 备用方案：直接查找+/-按钮
-        const allButtons = document.querySelectorAll('button');
-        const plusMinusButtons = [];
-
-        allButtons.forEach(function(btn) {{
-            const text = btn.textContent.trim();
-            if (text === '+' || text === '−' || text === '-') {{
-                plusMinusButtons.push(btn);
-            }}
-        }});
-
-        console.log('找到 ' + plusMinusButtons.length + ' 个+/-按钮');
-
-        plusMinusButtons.forEach(function(btn, index) {{
-            const columnIndex = Math.floor(index / 6);
-            if (columnIndex < 3) {{
-                const color = colors[columnIndex];
-                btn.style.setProperty('background-color', color, 'important');
-                btn.style.setProperty('background', color, 'important');
-                btn.style.setProperty('color', 'white', 'important');
-                btn.style.setProperty('border', '1px solid ' + color, 'important');
-                btn.style.setProperty('border-radius', '4px', 'important');
-                btn.style.setProperty('font-weight', 'bold', 'important');
-            }}
-        }});
-
-        console.log('按钮颜色设置完成');
+    /* 方法1: 通过列的顺序来定位按钮 */
+    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button {{
+        background-color: #20b2aa !important;
+        background: #20b2aa !important;
+        color: white !important;
+        border: 1px solid #20b2aa !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
     }}
 
-    // 立即执行按钮颜色设置
-    setTimeout(setButtonColors, 100);
-    setTimeout(setButtonColors, 500);
-    setTimeout(setButtonColors, 1000);
-    setTimeout(setButtonColors, 2000);
+    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] button {{
+        background-color: #daa520 !important;
+        background: #daa520 !important;
+        color: white !important;
+        border: 1px solid #daa520 !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
+    }}
 
-    // 监听DOM变化并重新应用颜色
-    const observer = new MutationObserver(function() {{
-        setTimeout(setButtonColors, 100);
-    }});
-
-    // 开始观察DOM变化
-    observer.observe(document.body, {{
-        childList: true,
-        subtree: true
-    }});
-
-    // 定期重新应用颜色
-    setInterval(setButtonColors, 3000);
-
-    console.log('按钮颜色系统已启动');
-
-
-
-
-    </script>
+    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] button {{
+        background-color: #cd5c5c !important;
+        background: #cd5c5c !important;
+        color: white !important;
+        border: 1px solid #cd5c5c !important;
+        border-radius: 4px !important;
+        font-weight: bold !important;
+    }}
+    </style>
     """, unsafe_allow_html=True)
 
     # 显示当前选择的模型
