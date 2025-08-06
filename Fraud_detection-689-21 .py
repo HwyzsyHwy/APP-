@@ -269,14 +269,14 @@ st.markdown(
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
         color: red !important;
-        font-size: 100px !important;
+        font-size: 60px !important;
         font-weight: bold;
         text-align: center;
-        padding: 25px 40px;
+        padding: 15px 25px;
         border-radius: 12px;
         margin-top: -30px;
         backdrop-filter: blur(5px) !important;
-        min-height: 120px;
+        min-height: 80px;
         display: flex;
         align-items: center;
         justify-content: center;
