@@ -630,11 +630,11 @@ if 'model_cache' not in st.session_state:
 if st.session_state.current_page == "预测模型":
     # 简洁的Streamlit样式标题 - 调整间距平衡
     st.markdown("""
-    <div style="margin-bottom: 18px; margin-top: -80px;">
-        <h1 style="color: white; font-size: 2.0rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+    <div style="margin-bottom: 10px; margin-top: -80px;">
+        <h1 style="color: white; font-size: 2.0rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); transform: translateY(8px);">
             Streamlit
         </h1>
-        <div style="height: 2px; background: white; margin-top: 6px; border-radius: 2px;"></div>
+        <div style="height: 4px; background: white; margin-top: 6px; border-radius: 2px;"></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2288,7 +2288,7 @@ elif st.session_state.current_page == "预测模型":
     result_container = st.container()
 
     # 添加间距
-    st.markdown("<div style='margin-top: 25px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 50px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
     # 预测按钮区域
     st.markdown('<div class="main-buttons">', unsafe_allow_html=True)
