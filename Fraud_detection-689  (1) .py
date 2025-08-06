@@ -1745,7 +1745,7 @@ elif st.session_state.current_page == "预测模型":
         display: flex;
         align-items: center;
         gap: 10px;
-        background: rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.85);
         border-radius: 10px;
         padding: 8px 12px;
         margin: 8px 0;
@@ -1858,7 +1858,7 @@ elif st.session_state.current_page == "预测模型":
         display: flex !important;
         align-items: center !important;
         gap: 10px !important;
-        background: rgba(255, 255, 255, 0.5) !important;
+        background: rgba(255, 255, 255, 0.85) !important;
         border-radius: 10px !important;
         padding: 8px 12px !important;
         margin: 8px 0 !important;
