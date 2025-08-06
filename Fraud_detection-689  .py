@@ -1213,7 +1213,7 @@ if st.session_state.current_page == "预测模型":
                 font-weight: bold !important;
             `);
 
-            console.log(`按钮 ${{index}}: "${{text}}" -> ${{color}}`);
+            console.log(`按钮 ${{index}}: "${{btn.textContent}}" -> ${{color}}`);
         }});
 
         console.log('按钮颜色设置完成');
