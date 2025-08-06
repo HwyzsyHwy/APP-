@@ -630,7 +630,7 @@ if 'model_cache' not in st.session_state:
 if st.session_state.current_page == "预测模型":
     # 简洁的Streamlit样式标题 - 调整间距平衡
     st.markdown("""
-    <div style="margin-bottom: 18px; margin-top: 5px;">
+    <div style="margin-bottom: 18px; margin-top: -80px;">
         <h1 style="color: white; font-size: 2.0rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
             Streamlit
         </h1>
@@ -640,7 +640,7 @@ if st.session_state.current_page == "预测模型":
 
     # 添加模型选择区域 - 修改为可点击卡片样式
     st.markdown("""
-    <div style="text-align: center; margin-top: 15px; margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+    <div style="text-align: center; margin-top: 0px; margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
         <h3 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 24px;">选择预测目标</h3>
     </div>
     """, unsafe_allow_html=True)
