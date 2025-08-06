@@ -1770,11 +1770,7 @@ elif st.session_state.current_page == "预测模型":
 
     # Ultimate Analysis - 第二列
     with col2:
-        st.markdown("""
-        <div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            Ultimate Analysis
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Ultimate Analysis</div>', unsafe_allow_html=True)
 
         category = "Ultimate Analysis"
         color = category_colors[category]
@@ -1817,11 +1813,7 @@ elif st.session_state.current_page == "预测模型":
 
     # Pyrolysis Conditions - 第三列
     with col3:
-        st.markdown("""
-        <div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            Pyrolysis Conditions
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Pyrolysis Conditions</div>', unsafe_allow_html=True)
 
         category = "Pyrolysis Conditions"
         color = category_colors[category]
