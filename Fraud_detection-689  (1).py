@@ -210,6 +210,27 @@ st.markdown(
         font-weight: 500 !important;
     }
     
+    /* 显示当前输入值expander的特殊样式 */
+    .input-values-expander {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        margin: 10px 0 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .input-values-expander .streamlit-expanderHeader {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        border-radius: 6px !important;
+        padding: 8px 12px !important;
+    }
+
+    .input-values-expander .streamlit-expanderContent {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        border-radius: 0 0 6px 6px !important;
+        padding: 10px !important;
+    }
+
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
@@ -705,9 +726,9 @@ if st.session_state.current_page == "预测模型":
     button[kind="secondary"],
     .stButton > button[kind="secondary"],
     [data-testid="stButton"] > button[kind="secondary"] {{
-        background: rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
-        color: white !important;
+        color: #333 !important;
         transition: all 0.3s ease !important;
     }}
 
@@ -1298,8 +1319,8 @@ if st.session_state.current_page == "预测模型":
 
     # 显示当前选择的模型
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; backdrop-filter: blur(5px);">
-        <h4 style="color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.8); border-radius: 10px; backdrop-filter: blur(5px);">
+        <h4 style="color: #333; margin: 0; text-shadow: none;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2006,12 +2027,14 @@ elif st.session_state.current_page == "预测模型":
 
 
     # 调试信息：显示所有当前输入值
+    st.markdown('<div class="input-values-expander">', unsafe_allow_html=True)
     with st.expander("📊 显示当前输入值", expanded=False):
         debug_info = "<div style='columns: 3; column-gap: 20px;'>"
         for feature, value in features.items():
             debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
         debug_info += "</div>"
         st.markdown(debug_info, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # 重置状态
     if st.session_state.clear_pressed:
