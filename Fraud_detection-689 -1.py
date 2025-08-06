@@ -132,16 +132,16 @@ st.markdown(
         text-align: center;
     }
 
-    /* 移除整体白色背景，保持透明 */
+    /* 创建统一的整体白色半透明背景 */
     .main .block-container {
-        background-color: transparent !important;
-        backdrop-filter: none !important;
+        background-color: rgba(255, 255, 255, 0.85) !important;
+        backdrop-filter: blur(10px) !important;
         border-radius: 20px !important;
         padding: 30px !important;
         margin: 20px auto !important;
         max-width: 1200px !important;
-        box-shadow: none !important;
-        border: none !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         min-height: 80vh !important;
     }
 
@@ -210,6 +210,29 @@ st.markdown(
         font-weight: 500 !important;
     }
     
+    /* 显示当前输入值expander的特殊样式 */
+    /* expander标题部分 - 与当前模型样式一致 */
+    div[data-testid="stExpander"] summary,
+    div[data-testid="stExpander"] > summary,
+    .streamlit-expanderHeader,
+    [data-testid="stExpander"] [role="button"] {
+        background: rgba(255,255,255,1.0) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+        padding: 10px !important;
+    }
+
+    /* expander内容部分 - 白色轻微透明背景 */
+    div[data-testid="stExpander"] .streamlit-expanderContent {
+        background-color: rgba(255, 255, 255, 0.8) !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        margin-top: 5px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
@@ -616,13 +639,13 @@ if st.session_state.current_page == "预测模型":
     /* 模型卡片按钮样式 - secondary按钮（未选中） */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        background: rgba(255,255,255,0.9) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
         border-radius: 15px !important;
         padding: 20px !important;
         height: auto !important;
         min-height: 120px !important;
-        color: black !important;
+        color: #333 !important;
         font-weight: bold !important;
         font-size: 16px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
@@ -649,9 +672,9 @@ if st.session_state.current_page == "预测模型":
     /* 悬停效果 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"]:hover,
     div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
-        background: rgba(255,255,255,0.2) !important;
+        background: rgba(255,255,255,0.9) !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 12px 40px rgba(255,255,255,0.1) !important;
+        box-shadow: 0 12px 40px rgba(255,255,255,0.2) !important;
     }
 
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"]:hover,
@@ -668,7 +691,7 @@ if st.session_state.current_page == "预测模型":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🔥 Char Yield", key="char_card", use_container_width=True,
+        if st.button("🔥\n\nChar Yield", key="char_card", use_container_width=True,
                     type="primary" if st.session_state.selected_model == "Char Yield" else "secondary"):
             if st.session_state.selected_model != "Char Yield":
                 st.session_state.selected_model = "Char Yield"
@@ -678,7 +701,7 @@ if st.session_state.current_page == "预测模型":
                 st.rerun()
 
     with col2:
-        if st.button("🛢️ Oil Yield", key="oil_card", use_container_width=True,
+        if st.button("⚡️\n\nOil Yield", key="oil_card", use_container_width=True,
                     type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary"):
             if st.session_state.selected_model != "Oil Yield":
                 st.session_state.selected_model = "Oil Yield"
@@ -688,7 +711,7 @@ if st.session_state.current_page == "预测模型":
                 st.rerun()
 
     with col3:
-        if st.button("💨 Gas Yield", key="gas_card", use_container_width=True,
+        if st.button("💨\n\nGas Yield", key="gas_card", use_container_width=True,
                     type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary"):
             if st.session_state.selected_model != "Gas Yield":
                 st.session_state.selected_model = "Gas Yield"
@@ -705,9 +728,9 @@ if st.session_state.current_page == "预测模型":
     button[kind="secondary"],
     .stButton > button[kind="secondary"],
     [data-testid="stButton"] > button[kind="secondary"] {{
-        background: rgba(255,255,255,0.1) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
-        color: white !important;
+        color: #333 !important;
         transition: all 0.3s ease !important;
     }}
 
@@ -962,43 +985,344 @@ if st.session_state.current_page == "预测模型":
         background: #cd5c5c !important;
         color: white !important;
     }}
-
-    /* 纯CSS解决方案 - 无需JavaScript */
-
-    /* 方法1: 通过列的顺序来定位按钮 */
-    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
-        color: white !important;
-        border: 1px solid #20b2aa !important;
-        border-radius: 4px !important;
-        font-weight: bold !important;
-    }}
-
-    [data-testid="column"]:nth-child(2) [data-testid="stNumberInput"] button {{
-        background-color: #daa520 !important;
-        background: #daa520 !important;
-        color: white !important;
-        border: 1px solid #daa520 !important;
-        border-radius: 4px !important;
-        font-weight: bold !important;
-    }}
-
-    [data-testid="column"]:nth-child(3) [data-testid="stNumberInput"] button {{
-        background-color: #cd5c5c !important;
-        background: #cd5c5c !important;
-        color: white !important;
-        border: 1px solid #cd5c5c !important;
-        border-radius: 4px !important;
-        font-weight: bold !important;
-    }}
     </style>
+
+    <script>
+    // DOM结构调试和按钮颜色设置脚本
+    function debugAndSetButtonColors() {{
+        console.log('=== 开始DOM结构调试 ===');
+
+        // 1. 详细分析DOM结构
+        const allButtons = document.querySelectorAll('button');
+        console.log(`页面总按钮数: ${{allButtons.length}}`);
+
+        // 打印每个按钮的详细信息
+        allButtons.forEach((btn, index) => {{
+            const text = btn.textContent.trim();
+            const ariaLabel = btn.getAttribute('aria-label') || '';
+            const title = btn.getAttribute('title') || '';
+            const className = btn.className || '';
+            const parentClass = btn.parentElement ? btn.parentElement.className : '';
+            const computedStyle = window.getComputedStyle(btn);
+
+            console.log(`按钮${{index + 1}}:`, {{
+                text: text,
+                ariaLabel: ariaLabel,
+                title: title,
+                className: className,
+                parentClass: parentClass,
+                backgroundColor: computedStyle.backgroundColor,
+                element: btn
+            }});
+        }});
+
+        // 2. 查找数字输入框
+        const numberInputs = document.querySelectorAll('[data-testid="stNumberInput"]');
+        console.log(`找到${{numberInputs.length}}个数字输入框`);
+
+        numberInputs.forEach((input, index) => {{
+            const buttons = input.querySelectorAll('button');
+            console.log(`数字输入框${{index + 1}}包含${{buttons.length}}个按钮`);
+
+            buttons.forEach((btn, btnIndex) => {{
+                console.log(`  按钮${{btnIndex + 1}}: "${{btn.textContent}}" - ${{btn.getAttribute('aria-label')}}`);
+            }});
+        }});
+
+        // 3. 查找列容器
+        const columns = document.querySelectorAll('[data-testid="column"]');
+        console.log(`找到${{columns.length}}个列容器`);
+
+        columns.forEach((column, colIndex) => {{
+            const buttons = column.querySelectorAll('button');
+            console.log(`列${{colIndex + 1}}包含${{buttons.length}}个按钮`);
+        }});
+
+        // 4. 强制设置按钮颜色 - 使用最直接的方法
+        console.log('=== 开始强制设置按钮颜色 ===');
+
+        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
+
+        // 方法1: 通过数字输入框设置
+        numberInputs.forEach((input, inputIndex) => {{
+            const columnIndex = Math.floor(inputIndex / 3);
+            if (columnIndex < 3) {{
+                const color = colors[columnIndex];
+                const buttons = input.querySelectorAll('button');
+
+                buttons.forEach(btn => {{
+                    // 超强力设置
+                    btn.style.cssText = `
+                        background-color: ${{color}} !important;
+                        background: ${{color}} !important;
+                        color: white !important;
+                        border: none !important;
+                        border-radius: 4px !important;
+                    `;
+
+                    // 添加标识
+                    btn.setAttribute('data-forced-color', color);
+                    btn.setAttribute('data-column', columnIndex + 1);
+
+                    console.log(`强制设置输入框${{inputIndex + 1}}的按钮为${{color}}`);
+                }});
+            }}
+        }});
+
+        // 方法2: 直接遍历所有+-按钮
+        const plusMinusButtons = Array.from(allButtons).filter(btn => {{
+            const text = btn.textContent.trim();
+            return text === '+' || text === '−' || text === '-' || text === '＋' || text === '－';
+        }});
+
+        console.log(`找到${{plusMinusButtons.length}}个+-按钮`);
+
+        plusMinusButtons.forEach((btn, index) => {{
+            const columnIndex = Math.floor(index / 6); // 每列6个按钮
+            if (columnIndex < 3) {{
+                const color = colors[columnIndex];
+
+                // 最强力的设置方法
+                btn.style.cssText = `
+                    background-color: ${{color}} !important;
+                    background: ${{color}} !important;
+                    background-image: none !important;
+                    color: white !important;
+                    border: none !important;
+                    border-radius: 4px !important;
+                `;
+
+                btn.setAttribute('data-forced-color', color);
+                btn.setAttribute('data-column', columnIndex + 1);
+
+                console.log(`强制设置+-按钮${{index + 1}}("${{btn.textContent}}")为${{color}}`);
+            }}
+        }});
+
+        console.log('=== DOM调试和颜色设置完成 ===');
+    }}
+
+    // 立即执行多次调试和设置函数
+    setTimeout(debugAndSetButtonColors, 50);
+    setTimeout(debugAndSetButtonColors, 100);
+    setTimeout(debugAndSetButtonColors, 200);
+    setTimeout(debugAndSetButtonColors, 500);
+    setTimeout(debugAndSetButtonColors, 1000);
+    setTimeout(debugAndSetButtonColors, 2000);
+    setTimeout(debugAndSetButtonColors, 3000);
+
+    // 持续监听和重新应用
+    const observer = new MutationObserver(function(mutations) {{
+        let shouldReapply = false;
+        mutations.forEach(function(mutation) {{
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {{
+                // 检查是否有新的按钮或输入框
+                const hasNewButtons = Array.from(mutation.addedNodes).some(node => {{
+                    if (node.nodeType === 1) {{ // Element node
+                        return node.tagName === 'BUTTON' ||
+                               node.querySelector && node.querySelector('button') ||
+                               node.getAttribute && node.getAttribute('data-testid') === 'stNumberInput';
+                    }}
+                    return false;
+                }});
+
+                if (hasNewButtons) {{
+                    shouldReapply = true;
+                }}
+            }}
+        }});
+
+        if (shouldReapply) {{
+            console.log('检测到DOM变化，重新应用按钮颜色');
+            setTimeout(debugAndSetButtonColors, 50);
+            setTimeout(debugAndSetButtonColors, 200);
+        }}
+    }});
+
+    // 开始观察
+    observer.observe(document.body, {{
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    }});
+
+    // 定期强制重新应用（每5秒）
+    setInterval(function() {{
+        console.log('定期重新应用按钮颜色');
+        debugAndSetButtonColors();
+    }}, 5000);
+
+    // 添加诊断函数
+    function diagnoseButtons() {{
+        console.log('=== 按钮诊断开始 ===');
+
+        // 1. 检查所有按钮
+        const allButtons = document.querySelectorAll('button');
+        console.log('总按钮数量:', allButtons.length);
+
+        // 2. 检查+-按钮
+        const plusMinusButtons = Array.from(allButtons).filter(btn =>
+            btn.textContent === '+' || btn.textContent === '−' || btn.textContent === '-'
+        );
+        console.log('+-按钮数量:', plusMinusButtons.length);
+
+        // 3. 检查每个+-按钮的当前样式
+        plusMinusButtons.forEach((btn, index) => {{
+            const computedStyle = window.getComputedStyle(btn);
+            console.log(`按钮${{index + 1}} "${{btn.textContent}}": 背景色=${{computedStyle.backgroundColor}}, 内联样式=${{btn.style.backgroundColor}}`);
+        }});
+
+        // 4. 强制设置红色测试
+        console.log('=== 测试强制设置红色 ===');
+        plusMinusButtons.forEach((btn, index) => {{
+            btn.style.setProperty('background-color', '#ff0000', 'important');
+            console.log(`按钮${{index + 1}}设置红色后: ${{btn.style.backgroundColor}}`);
+        }});
+
+        // 5. 1秒后检查是否被覆盖
+        setTimeout(() => {{
+            console.log('=== 1秒后检查是否被覆盖 ===');
+            plusMinusButtons.forEach((btn, index) => {{
+                const computedStyle = window.getComputedStyle(btn);
+                console.log(`按钮${{index + 1}} 1秒后: 计算样式=${{computedStyle.backgroundColor}}, 内联样式=${{btn.style.backgroundColor}}`);
+            }});
+        }}, 1000);
+    }}
+
+    // 延迟执行诊断
+    setTimeout(diagnoseButtons, 2000);
+
+
+    // 最终解决方案：暴力覆盖所有按钮样式
+    function bruteForceButtonColors() {{
+        console.log('=== 暴力设置按钮颜色开始 ===');
+
+        // 获取所有按钮
+        const allButtons = document.querySelectorAll('button');
+        console.log(`找到 ${{allButtons.length}} 个按钮`);
+
+        // 定义颜色
+        const colors = ['#20b2aa', '#daa520', '#cd5c5c']; // 青绿、金黄、橙红
+
+        // 找到所有+/-按钮
+        const incrementDecrementButtons = [];
+        allButtons.forEach(btn => {{
+            const text = btn.textContent.trim();
+            if (text === '+' || text === '−' || text === '-' || text === '＋' || text === '－') {{
+                incrementDecrementButtons.push(btn);
+            }}
+        }});
+
+        console.log(`找到 ${{incrementDecrementButtons.length}} 个+/-按钮`);
+
+        // 为每个+/-按钮设置颜色 - 使用更直接的方法
+        incrementDecrementButtons.forEach((btn, index) => {{
+            let color = '#666666'; // 默认颜色
+
+            // 通过检查按钮所在的列容器来确定颜色
+            let parent = btn.parentElement;
+            let columnIndex = -1;
+
+            // 向上遍历DOM树，寻找列容器
+            while (parent && columnIndex === -1) {{
+                if (parent.getAttribute && parent.getAttribute('data-testid') === 'column') {{
+                    // 找到列容器，确定它是第几列
+                    const allColumns = document.querySelectorAll('[data-testid="column"]');
+                    columnIndex = Array.from(allColumns).indexOf(parent);
+                    break;
+                }}
+                parent = parent.parentElement;
+            }}
+
+            // 根据列索引分配颜色
+            if (columnIndex === 0) {{
+                color = '#20b2aa'; // 第一列 - 青绿色
+            }} else if (columnIndex === 1) {{
+                color = '#daa520'; // 第二列 - 金黄色
+            }} else if (columnIndex === 2) {{
+                color = '#cd5c5c'; // 第三列 - 橙红色
+            }} else {{
+                // 如果无法确定列，使用简单的索引分配
+                if (index < 6) {{
+                    color = '#20b2aa'; // 第一列 - 青绿色
+                }} else if (index < 12) {{
+                    color = '#daa520'; // 第二列 - 金黄色
+                }} else {{
+                    color = '#cd5c5c'; // 第三列 - 橙红色
+                }}
+            }}
+
+            // 最强力的样式设置
+            btn.style.cssText = `
+                background: ${{color}} !important;
+                background-color: ${{color}} !important;
+                background-image: none !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 4px !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+                font-weight: bold !important;
+                min-width: 24px !important;
+                min-height: 24px !important;
+            `;
+
+            // 移除所有可能的类名
+            btn.className = '';
+
+            // 添加自定义属性
+            btn.setAttribute('data-custom-color', color);
+            btn.setAttribute('data-button-index', index);
+
+            console.log(`按钮 ${{index}}: "${{btn.textContent}}" -> ${{color}}`);
+        }});
+
+        console.log('=== 暴力设置按钮颜色完成 ===');
+    }}
+
+    // 立即执行多次
+    setTimeout(bruteForceButtonColors, 100);
+    setTimeout(bruteForceButtonColors, 300);
+    setTimeout(bruteForceButtonColors, 500);
+    setTimeout(bruteForceButtonColors, 1000);
+    setTimeout(bruteForceButtonColors, 2000);
+    setTimeout(bruteForceButtonColors, 3000);
+    setTimeout(bruteForceButtonColors, 5000);
+
+    // 每隔2秒强制执行一次
+    setInterval(bruteForceButtonColors, 2000);
+
+    // 监听任何DOM变化
+    const bruteForceMutationObserver = new MutationObserver(function(mutations) {{
+        let needsUpdate = false;
+        mutations.forEach(function(mutation) {{
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {{
+                needsUpdate = true;
+            }}
+        }});
+
+        if (needsUpdate) {{
+            setTimeout(bruteForceButtonColors, 50);
+        }}
+    }});
+
+    bruteForceMutationObserver.observe(document.body, {{
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    }});
+
+    console.log('暴力按钮颜色系统已启动');
+
+    </script>
     """, unsafe_allow_html=True)
 
     # 显示当前选择的模型
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; backdrop-filter: blur(5px);">
-        <h4 style="color: white; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.3) !important; border-radius: 10px; backdrop-filter: blur(3px); box-shadow: none;">
+        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1042,8 +1366,8 @@ class ModelPredictor:
         
         # UI显示的特征映射（处理温度符号）
         self.ui_to_model_mapping = {
-            'FT(C)': 'FT(℃)',
-            'HR(C/min)': 'HR(℃/min)'
+            'FT(°C)': 'FT(℃)',
+            'HR(°C/min)': 'HR(℃/min)'
         }
         
         self.last_features = {}  # 存储上次的特征值
@@ -1370,7 +1694,7 @@ elif st.session_state.current_page == "使用指南":
     <ul>
     <li>所有数值应为正数</li>
     <li>工业分析数据单位为wt%</li>
-    <li>温度单位为C</li>
+    <li>温度单位为°C</li>
     <li>流量单位为mL/min</li>
     </ul>
 
@@ -1398,8 +1722,6 @@ elif st.session_state.current_page == "预测模型":
         st.session_state.prediction_error = None
     if 'feature_values' not in st.session_state:
         st.session_state.feature_values = {}
-    if 'bottom_button_selected' not in st.session_state:
-        st.session_state.bottom_button_selected = "predict"  # "predict" 或 "reset"
 
     # 根据图片特征统计信息定义默认值（使用均值）
     default_values = {
@@ -1409,8 +1731,8 @@ elif st.session_state.current_page == "预测模型":
         "O/C": 0.715,
         "H/C": 1.534,
         "N/C": 0.034,
-        "FT(C)": 505.811,
-        "HR(C/min)": 29.011,
+        "FT(°C)": 505.811,
+        "HR(°C/min)": 29.011,
         "FR(mL/min)": 93.962
     }
 
@@ -1418,12 +1740,13 @@ elif st.session_state.current_page == "预测模型":
     feature_categories = {
         "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)"],
         "Ultimate Analysis": ["O/C", "H/C", "N/C"],
-        "Pyrolysis Conditions": ["FT(C)", "HR(C/min)", "FR(mL/min)"]
+        "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
     }
 
     # 添加新的参数行样式CSS - 修复对齐问题
     st.markdown("""
     <style>
+    /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
     .feature-row {
         display: flex;
         align-items: center;
@@ -1438,6 +1761,52 @@ elif st.session_state.current_page == "预测模型":
         min-height: 50px;
     }
 
+    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 */
+    .param-label {
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        text-align: center;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        display: inline-block;
+        width: 80px;
+        flex-shrink: 0;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    /* 隐藏number_input的标签 */
+    .stNumberInput label {
+        display: none !important;
+    }
+
+    /* 调整number_input的样式 */
+    .stNumberInput {
+        flex: 1;
+        margin: 0 !important;
+    }
+
+    .stNumberInput input {
+        background-color: white !important;
+        color: #333 !important;
+        border: 1px solid #ddd !important;
+        border-radius: 6px !important;
+        text-align: center !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        padding: 8px 12px !important;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .stNumberInput input:focus {
+        border-color: #20b2aa !important;
+        box-shadow: 0 0 5px rgba(32, 178, 170, 0.3) !important;
+    }
+
+    /* number_input的加减按钮样式 - 通用样式 */
     .stNumberInput button {
         border: none !important;
         color: white !important;
@@ -1446,16 +1815,84 @@ elif st.session_state.current_page == "预测模型":
         margin: 0 !important;
     }
 
+    /* 第一列 Proximate Analysis 按钮颜色 - 青绿色 */
     .stColumn:nth-child(1) .stNumberInput button {
         background-color: #20b2aa !important;
     }
+
+    /* 第二列 Ultimate Analysis 按钮颜色 - 金黄色 */
     .stColumn:nth-child(2) .stNumberInput button {
         background-color: #daa520 !important;
     }
+
+    /* 第三列 Pyrolysis Conditions 按钮颜色 - 橙红色 */
     .stColumn:nth-child(3) .stNumberInput button {
         background-color: #cd5c5c !important;
     }
 
+    /* 确保主要按钮可见且样式正常 */
+    .main-buttons .stButton {
+        display: block !important;
+    }
+
+    .main-buttons .stButton button {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        padding: 12px 20px !important;
+        font-size: 18px !important;
+        border-radius: 8px !important;
+    }
+
+    /* 移除列容器的背景，让参数行独立显示 */
+    div[data-testid="column"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 10px !important;
+    }
+
+    /* 确保容器内的元素垂直对齐 */
+    .stContainer > div {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    /* 强制对齐修复 */
+    .feature-container {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        background: rgba(255, 255, 255, 0.85) !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+        margin: 8px 0 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        border: 1px solid rgba(255,255,255,0.3) !important;
+        backdrop-filter: blur(5px) !important;
+        min-height: 50px !important;
+    }
+
+    /* 确保输入框容器内的元素正确对齐 */
+    .feature-row > div:last-child {
+        display: flex !important;
+        align-items: center !important;
+        flex: 1 !important;
+    }
+
+    /* 修复Streamlit默认的margin和padding */
+    .feature-row .stNumberInput > div {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* 确保输入框和按钮在同一行 */
+    .feature-row .stNumberInput > div > div {
+        display: flex !important;
+        align-items: center !important;
+        margin: 0 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1472,11 +1909,14 @@ elif st.session_state.current_page == "预测模型":
     # 使用字典存储所有输入值
     features = {}
 
-
-
     # Proximate Analysis - 第一列
     with col1:
-        st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Proximate Analysis</div>', unsafe_allow_html=True)
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Proximate Analysis</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         category = "Proximate Analysis"
         color = category_colors[category]
@@ -1515,11 +1955,14 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
-
-
     # Ultimate Analysis - 第二列
     with col2:
-        st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Ultimate Analysis</div>', unsafe_allow_html=True)
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Ultimate Analysis</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         category = "Ultimate Analysis"
         color = category_colors[category]
@@ -1558,11 +2001,14 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
-
-
     # Pyrolysis Conditions - 第三列
     with col3:
-        st.markdown('<div style="background: white; color: #333; padding: 12px 20px; border-radius: 25px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">Pyrolysis Conditions</div>', unsafe_allow_html=True)
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #cd5c5c; font-weight: bold;'>Pyrolysis Conditions</h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         category = "Pyrolysis Conditions"
         color = category_colors[category]
@@ -1601,203 +2047,52 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
-    # 添加expander标题的自定义样式 - 使用所有可能的Streamlit expander选择器
-    st.markdown("""
-    <style>
-    /* 尝试所有可能的expander标题选择器 */
 
-    /* 方法1: 使用data-testid */
-    [data-testid="stExpander"] {
-        background: rgba(255,255,255,0.1) !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(5px) !important;
-        padding: 10px !important;
-        margin: 10px 0 !important;
-    }
-
-    /* 使用更具体的选择器来覆盖全局的 .main .block-container * 规则 */
-    .main .block-container [data-testid="stExpander"] summary {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-        font-weight: bold !important;
-    }
-
-    .main .block-container [data-testid="stExpander"] summary * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-
-    /* 方法2: 使用details元素 */
-    details {
-        background: rgba(255,255,255,0.1) !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(5px) !important;
-        padding: 10px !important;
-        margin: 10px 0 !important;
-    }
-
-    .main .block-container details summary {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-        font-weight: bold !important;
-    }
-
-    .main .block-container details summary * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-
-    /* 方法3: 使用streamlit类名 */
-    .streamlit-expanderHeader,
-    .stExpanderHeader {
-        background: rgba(255,255,255,0.1) !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(5px) !important;
-        padding: 10px !important;
-        margin: 10px 0 !important;
-    }
-
-    .main .block-container .streamlit-expanderHeader *,
-    .main .block-container .stExpanderHeader * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-
-    /* 方法4: 强制覆盖所有可能的文本元素 */
-    [data-testid="stExpander"] p,
-    [data-testid="stExpander"] span,
-    [data-testid="stExpander"] div,
-    details p,
-    details span,
-    details div {
-        color: black !important;
-    }
-
-    /* 方法5: 使用CSS属性选择器 */
-    [aria-expanded] {
-        background: rgba(255,255,255,0.1) !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(5px) !important;
-        padding: 10px !important;
-        margin: 10px 0 !important;
-        color: black !important;
-    }
-
-    [aria-expanded] * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-
-    /* 确保expander内容区域的文字保持黑色 */
-    [data-testid="stExpander"] > div > div:last-child * {
-        color: #000 !important;
-        text-shadow: none !important;
-    }
-
-    details > div * {
-        color: #000 !important;
-        text-shadow: none !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # 使用更强力的CSS和JavaScript组合来强制修改expander标题颜色
-    st.markdown("""
-    <style>
-    /* 使用CSS变量和更高优先级的选择器 */
-    [data-testid="stExpander"] summary,
-    details summary {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-        font-weight: bold !important;
-    }
-
-    [data-testid="stExpander"] summary *,
-    details summary * {
-        color: white !important;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
-    }
-
-    /* 使用属性选择器强制覆盖 */
-    [data-testid="stExpander"][style*="color"] summary,
-    [data-testid="stExpander"] summary[style*="color"] {
-        color: white !important;
-    }
-    </style>
-
-    <script>
-    // 使用MutationObserver持续监控DOM变化
-    function forceExpanderWhiteText() {
-        const expanders = document.querySelectorAll('[data-testid="stExpander"], details');
-        expanders.forEach(function(expander) {
-            const summary = expander.querySelector('summary');
-            if (summary) {
-                // 强制设置样式
-                summary.style.setProperty('color', 'white', 'important');
-                summary.style.setProperty('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)', 'important');
-                summary.style.setProperty('font-weight', 'bold', 'important');
-
-                // 修改所有子元素
-                const allElements = summary.querySelectorAll('*');
-                allElements.forEach(function(el) {
-                    el.style.setProperty('color', 'white', 'important');
-                    el.style.setProperty('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)', 'important');
-                });
-
-                // 直接修改文本节点的父元素
-                const walker = document.createTreeWalker(
-                    summary,
-                    NodeFilter.SHOW_TEXT,
-                    null,
-                    false
-                );
-                let node;
-                while (node = walker.nextNode()) {
-                    if (node.parentElement) {
-                        node.parentElement.style.setProperty('color', 'white', 'important');
-                        node.parentElement.style.setProperty('text-shadow', '1px 1px 2px rgba(0,0,0,0.8)', 'important');
-                    }
-                }
-            }
-        });
-    }
-
-    // 立即执行
-    setTimeout(forceExpanderWhiteText, 100);
-    setTimeout(forceExpanderWhiteText, 500);
-    setTimeout(forceExpanderWhiteText, 1000);
-
-    // 设置MutationObserver持续监控
-    const observer = new MutationObserver(function(mutations) {
-        forceExpanderWhiteText();
-    });
-
-    setTimeout(function() {
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['style', 'class']
-        });
-    }, 100);
-    </script>
-    """, unsafe_allow_html=True)
 
     # 调试信息：显示所有当前输入值
+    st.markdown("""
+    <style>
+    /* 强制修改所有expander的样式 */
+    div[data-testid="stExpander"] {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+    }
+
+    div[data-testid="stExpander"] summary {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+        padding: 10px !important;
+    }
+
+    div[data-testid="stExpander"] details {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+    }
+
+    div[data-testid="stExpander"] details summary {
+        background: rgba(255,255,255,0.3) !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(3px) !important;
+        padding: 10px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     with st.expander("📊 显示当前输入值", expanded=False):
-        debug_info = """
-        <div style='
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            backdrop-filter: blur(5px);
-            margin: 10px 0;
-            columns: 3;
-            column-gap: 20px;
-        '>
-        """
+        debug_info = "<div style='columns: 3; column-gap: 20px;'>"
         for feature, value in features.items():
-            debug_info += f"<p style='color: #000 !important; margin: 5px 0;'><b>{feature}</b>: {value:.3f}</p>"
+            debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
         debug_info += "</div>"
         st.markdown(debug_info, unsafe_allow_html=True)
 
@@ -1814,10 +2109,8 @@ elif st.session_state.current_page == "预测模型":
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        predict_clicked = st.button("运行预测", use_container_width=True,
-                                   type="primary" if st.session_state.bottom_button_selected == "predict" else "secondary")
+        predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
         if predict_clicked:
-            st.session_state.bottom_button_selected = "predict"
             log("开始预测流程...")
 
             # 切换模型后需要重新初始化预测器
@@ -1863,13 +2156,9 @@ elif st.session_state.current_page == "预测模型":
                 log(f"预测错误: {str(e)}")
                 log(traceback.format_exc())
                 st.error(error_msg)
-            st.rerun()
 
     with col2:
-        reset_clicked = st.button("重置输入", use_container_width=True,
-                                 type="primary" if st.session_state.bottom_button_selected == "reset" else "secondary")
-        if reset_clicked:
-            st.session_state.bottom_button_selected = "reset"
+        if st.button("🔄 重置输入", use_container_width=True):
             log("重置所有输入值")
             st.session_state.clear_pressed = True
             st.session_state.prediction_result = None
