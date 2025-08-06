@@ -250,6 +250,7 @@ st.markdown(
         box-shadow: none !important;
         border-radius: 10px !important;
         padding: 10px !important;
+        color: black !important;
     }
 
     /* expander内容部分 - 白色轻微透明背景 */
