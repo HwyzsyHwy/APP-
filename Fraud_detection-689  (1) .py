@@ -134,14 +134,14 @@ st.markdown(
 
     /* 创建统一的整体白色半透明背景 */
     .main .block-container {
-        background-color: rgba(255, 255, 255, 0.85) !important;
+        background-color: rgba(255, 255, 255, 0.65) !important;
         backdrop-filter: blur(10px) !important;
         border-radius: 20px !important;
         padding: 30px !important;
         margin: 20px auto !important;
         max-width: 1200px !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
         min-height: 80vh !important;
     }
 
@@ -174,7 +174,7 @@ st.markdown(
 
     /* 确保文本颜色在白色背景上清晰可见 */
     .main .block-container * {
-        color: #333 !important;
+        color: white !important;
     }
 
     /* 标题样式 - 在统一背景上显示 */
@@ -183,7 +183,7 @@ st.markdown(
         font-size: 32px !important;
         font-weight: bold;
         margin-bottom: 20px;
-        color: #333 !important;
+        color: white !important;
         text-shadow: none !important;
         background-color: transparent !important;
         padding: 15px !important;
@@ -191,7 +191,7 @@ st.markdown(
 
     /* 区域标题样式 - 在统一背景上显示 */
     .section-header {
-        color: #333 !important;
+        color: white !important;
         font-weight: bold;
         font-size: 22px;
         text-align: center;
@@ -205,7 +205,7 @@ st.markdown(
         padding: 5px;
         margin-bottom: 5px;
         font-size: 18px;
-        color: #333 !important;
+        color: white !important;
         background-color: transparent !important;
         font-weight: 500 !important;
     }
@@ -220,7 +220,7 @@ st.markdown(
 
     /* expander内容部分 - 白色轻微透明背景 */
     div[data-testid="stExpander"] .streamlit-expanderContent {
-        background-color: rgba(255, 255, 255, 0.8) !important;
+        background-color: rgba(255, 255, 255, 0.6) !important;
         border-radius: 8px !important;
         padding: 15px !important;
         margin-top: 5px !important;
@@ -229,7 +229,7 @@ st.markdown(
 
     /* 结果显示样式 */
     .yield-result {
-        background-color: rgba(255, 255, 255, 0.8) !important;
+        background-color: rgba(255, 255, 255, 0.6) !important;
         color: white;
         font-size: 36px;
         font-weight: bold;
@@ -254,43 +254,43 @@ st.markdown(
     
     /* 警告样式 */
     .warning-box {
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: rgba(255, 255, 255, 0.6);
         border-left: 5px solid orange;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
         backdrop-filter: blur(3px);
-        color: #333;
+        color: white;
     }
 
     /* 错误样式 */
     .error-box {
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: rgba(255, 255, 255, 0.6);
         border-left: 5px solid red;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
         backdrop-filter: blur(3px);
-        color: #333;
+        color: white;
     }
 
     /* 成功样式 */
     .success-box {
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: rgba(255, 255, 255, 0.6);
         border-left: 5px solid green;
         padding: 10px;
         margin: 10px 0;
         border-radius: 5px;
         backdrop-filter: blur(3px);
-        color: #333;
+        color: white;
     }
     
     /* 日志样式 - 保留背景框 */
     .log-container {
         height: 300px;
         overflow-y: auto;
-        background-color: rgba(255, 255, 255, 0.8);
-        color: #00FF00;
+        background-color: rgba(255, 255, 255, 0.6);
+        color: white;
         font-family: 'Courier New', monospace;
         padding: 10px;
         border-radius: 5px;
@@ -301,8 +301,8 @@ st.markdown(
 
     /* 页面内容样式 - 与日志容器相同的白色半透明背景 */
     .page-content {
-        background-color: rgba(255, 255, 255, 0.8) !important;
-        color: #333 !important;
+        background-color: rgba(255, 255, 255, 0.6) !important;
+        color: white !important;
         padding: 20px !important;
         border-radius: 15px !important;
         backdrop-filter: blur(5px) !important;
@@ -318,7 +318,7 @@ st.markdown(
     
     /* 模型选择器样式 */
     .model-selector {
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: rgba(255, 255, 255, 0.6);
         padding: 15px;
         border-radius: 10px;
         margin-bottom: 20px;
@@ -587,16 +587,16 @@ if st.session_state.current_page == "预测模型":
 
     /* 未选中状态的卡片 - 白色轻微透明背景 */
     .model-card.unselected {
-        background: rgba(255,255,255,0.8);
-        color: #333;
-        border: 2px solid rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.6);
+        color: white;
+        border: 2px solid rgba(255,255,255,0.1);
     }
 
     /* 选中状态的卡片 - 白色背景 */
     .model-card.selected {
-        background: rgba(255,255,255,0.95);
-        color: #333;
-        border: 2px solid rgba(255,255,255,0.5);
+        background: rgba(255,255,255,0.75);
+        color: white;
+        border: 2px solid rgba(255,255,255,0.3);
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
@@ -633,13 +633,13 @@ if st.session_state.current_page == "预测模型":
     /* 模型卡片按钮样式 - secondary按钮（未选中） */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-        background: rgba(255,255,255,0.8) !important;
-        border: 2px solid rgba(255,255,255,0.3) !important;
+        background: rgba(255,255,255,0.6) !important;
+        border: 2px solid rgba(255,255,255,0.1) !important;
         border-radius: 15px !important;
         padding: 20px !important;
         height: auto !important;
         min-height: 120px !important;
-        color: #333 !important;
+        color: white !important;
         font-weight: bold !important;
         font-size: 16px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
@@ -1315,8 +1315,8 @@ if st.session_state.current_page == "预测模型":
 
     # 显示当前选择的模型
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.8); border-radius: 10px; backdrop-filter: blur(5px);">
-        <h4 style="color: #333; margin: 0; text-shadow: none;">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.0); box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+        <h4 style="color: white; margin: 0; text-shadow: none;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
