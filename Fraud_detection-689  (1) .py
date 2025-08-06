@@ -132,18 +132,19 @@ st.markdown(
         text-align: center;
     }
 
-    /* 创建统一的整体白色半透明背景 - 更紧凑布局 */
+    /* 创建统一的整体白色半透明背景 - 优化主要显示区域位置 */
     .main .block-container {
         background-color: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: blur(10px) !important;
         border-radius: 15px !important;
-        padding: 8px !important;
-        margin: 1px auto !important;
-        max-width: 99.8% !important;
-        width: 99.8% !important;
+        padding: 18px !important;
+        margin: 8px auto !important;
+        max-width: 98% !important;
+        width: 98% !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        min-height: 99vh !important;
+        min-height: 95vh !important;
+        margin-top: 5px !important;
     }
 
     /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
@@ -194,31 +195,31 @@ st.markdown(
     h5 { font-size: 21px !important; }
     h6 { font-size: 20px !important; }
 
-    /* 标题样式 - 在统一背景上显示 - 更紧凑版 */
+    /* 标题样式 - 在统一背景上显示 - 修复间距 */
     .main-title {
         text-align: center;
         font-size: 32px !important;
         font-weight: bold;
-        margin-bottom: 2px !important;
-        margin-top: 0px !important;
+        margin-bottom: 15px !important;
+        margin-top: 10px !important;
         color: #333 !important;
         text-shadow: none !important;
         background-color: transparent !important;
-        padding: 1px !important;
-        line-height: 1.0 !important;
+        padding: 8px !important;
+        line-height: 1.2 !important;
     }
 
-    /* 区域标题样式 - 在统一背景上显示 - 更紧凑版 */
+    /* 区域标题样式 - 在统一背景上显示 - 修复间距 */
     .section-header {
         color: #333 !important;
         font-weight: bold;
         font-size: 20px !important;
         text-align: center;
-        padding: 1px !important;
-        margin-bottom: 2px !important;
-        margin-top: 1px !important;
+        padding: 8px !important;
+        margin-bottom: 15px !important;
+        margin-top: 10px !important;
         background-color: transparent !important;
-        line-height: 1.0 !important;
+        line-height: 1.2 !important;
     }
 
     /* 输入标签样式 - 在统一背景上显示 */
@@ -445,7 +446,7 @@ st.markdown(
         margin: 0 5px;
     }
     
-    /* 填满屏幕 - 更紧凑 */
+    /* 填满屏幕 - 优化间距分布 */
     .stApp {
         width: 100%;
         min-width: 100%;
@@ -453,9 +454,9 @@ st.markdown(
     }
 
     .main .block-container {
-        padding-top: 0.2rem;
-        padding-bottom: 0.2rem;
-        max-width: 100%;
+        padding-top: 0.8rem;
+        padding-bottom: 1.2rem;
+        max-width: 98%;
     }
     
     /* 侧边栏模型信息样式 */
@@ -575,18 +576,18 @@ if 'model_cache' not in st.session_state:
     
 # 只在预测模型页面显示标题和模型选择器
 if st.session_state.current_page == "预测模型":
-    # 简洁的Streamlit样式标题 - 更紧凑
+    # 简洁的Streamlit样式标题 - 调整间距平衡
     st.markdown("""
-    <div style="margin-bottom: 15px;">
+    <div style="margin-bottom: 18px; margin-top: 5px;">
         <h1 style="color: white; font-size: 2.0rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
             Streamlit
         </h1>
-        <div style="height: 2px; background: white; margin-top: 3px; border-radius: 2px;"></div>
+        <div style="height: 2px; background: white; margin-top: 6px; border-radius: 2px;"></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # 添加模型选择区域 - 修改为可点击卡片样式 - 更紧凑
-    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 15px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    # 添加模型选择区域 - 修改为可点击卡片样式 - 调整间距平衡
+    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 18px; margin-top: 8px;'>选择预测目标</h3>", unsafe_allow_html=True)
 
     # 添加模型选择卡片的自定义样式
     st.markdown("""
@@ -595,14 +596,14 @@ if st.session_state.current_page == "预测模型":
     .model-card-container {
         display: flex;
         gap: 15px;
-        margin: 20px 0;
+        margin: 15px 0;
         justify-content: space-between;
     }
 
-    /* 模型选择卡片样式 - 更紧凑 */
+    /* 模型选择卡片样式 - 调整间距平衡 */
     .model-card {
         flex: 1;
-        height: 80px;
+        height: 85px;
         border-radius: 12px;
         display: flex;
         flex-direction: column;
@@ -612,7 +613,7 @@ if st.session_state.current_page == "预测模型":
         transition: all 0.3s ease;
         text-decoration: none;
         position: relative;
-        padding: 12px;
+        padding: 15px;
         box-sizing: border-box;
     }
 
@@ -1344,9 +1345,9 @@ if st.session_state.current_page == "预测模型":
     </script>
     """, unsafe_allow_html=True)
 
-    # 显示当前选择的模型 - 更紧凑
+    # 显示当前选择的模型 - 调整间距平衡
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 10px; padding: 6px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+    <div style="text-align: center; margin-top: 15px; margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
         <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 20px;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
@@ -1968,7 +1969,7 @@ elif st.session_state.current_page == "预测模型":
     with col1:
         # 添加列标题
         st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
             <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Proximate Analysis</h3>
         </div>
         """, unsafe_allow_html=True)
@@ -1989,7 +1990,7 @@ elif st.session_state.current_page == "预测模型":
             with label_col:
                 # 创建标签
                 st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
                     {feature}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2014,7 +2015,7 @@ elif st.session_state.current_page == "预测模型":
     with col2:
         # 添加列标题
         st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
             <h3 style='margin: 0; color: #daa520; font-weight: bold;'>Ultimate Analysis</h3>
         </div>
         """, unsafe_allow_html=True)
@@ -2035,7 +2036,7 @@ elif st.session_state.current_page == "预测模型":
             with label_col:
                 # 创建标签
                 st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
                     {feature}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2060,7 +2061,7 @@ elif st.session_state.current_page == "预测模型":
     with col3:
         # 添加列标题
         st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
             <h3 style='margin: 0; color: #cd5c5c; font-weight: bold;'>Pyrolysis Conditions</h3>
         </div>
         """, unsafe_allow_html=True)
@@ -2081,7 +2082,7 @@ elif st.session_state.current_page == "预测模型":
             with label_col:
                 # 创建标签
                 st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
                     {feature}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2194,6 +2195,7 @@ elif st.session_state.current_page == "预测模型":
     """, unsafe_allow_html=True)
 
     # 调试信息：显示所有当前输入值
+    st.markdown("<div style='margin-top: 20px; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
     with st.expander("📊 显示当前输入值", expanded=False):
         debug_info = """
@@ -2219,6 +2221,9 @@ elif st.session_state.current_page == "预测模型":
 
     # 预测结果显示区域
     result_container = st.container()
+
+    # 添加间距
+    st.markdown("<div style='margin-top: 25px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
 
     # 预测按钮区域
     st.markdown('<div class="main-buttons">', unsafe_allow_html=True)
@@ -2292,6 +2297,7 @@ elif st.session_state.current_page == "预测模型":
 
     # 显示预测结果
     if st.session_state.prediction_result is not None:
+        st.markdown("<div style='margin-top: 25px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
         st.markdown("---")
 
         # 显示主预测结果
