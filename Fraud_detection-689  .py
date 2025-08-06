@@ -1235,8 +1235,7 @@ if st.session_state.current_page == "预测模型":
 
     observer.observe(document.body, {{
         childList: true,
-        subtree: true
-    }});
+        subtree: true,
         attributes: true,
         attributeFilter: ['style', 'class']
     }});
