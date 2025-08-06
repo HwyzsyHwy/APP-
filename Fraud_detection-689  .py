@@ -1689,52 +1689,6 @@ elif st.session_state.current_page == "预测模型":
         min-height: 50px;
     }
 
-    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 */
-    .param-label {
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 8px 12px;
-        border-radius: 6px;
-        text-align: center;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        display: inline-block;
-        width: 80px;
-        flex-shrink: 0;
-        margin: 0;
-        line-height: 1.2;
-    }
-
-    /* 隐藏number_input的标签 */
-    .stNumberInput label {
-        display: none !important;
-    }
-
-    /* 调整number_input的样式 */
-    .stNumberInput {
-        flex: 1;
-        margin: 0 !important;
-    }
-
-    .stNumberInput input {
-        background-color: white !important;
-        color: #333 !important;
-        border: 1px solid #ddd !important;
-        border-radius: 6px !important;
-        text-align: center !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-        padding: 8px 12px !important;
-        width: 100% !important;
-        margin: 0 !important;
-    }
-
-    .stNumberInput input:focus {
-        border-color: #20b2aa !important;
-        box-shadow: 0 0 5px rgba(32, 178, 170, 0.3) !important;
-    }
-
-    /* number_input的加减按钮样式 - 通用样式 */
     .stNumberInput button {
         border: none !important;
         color: white !important;
@@ -1743,40 +1697,14 @@ elif st.session_state.current_page == "预测模型":
         margin: 0 !important;
     }
 
-    /* 第一列 Proximate Analysis 按钮颜色 - 青绿色 - 加强选择器 */
-    .stColumn:nth-child(1) .stNumberInput button,
-    [data-testid="column"]:nth-child(1) .stNumberInput button,
-    [data-testid="column"]:nth-child(1) button[aria-label="Increment"],
-    [data-testid="column"]:nth-child(1) button[aria-label="Decrement"],
-    .stColumn:nth-child(1) button[aria-label="Increment"],
-    .stColumn:nth-child(1) button[aria-label="Decrement"] {
+    .stColumn:nth-child(1) .stNumberInput button {
         background-color: #20b2aa !important;
-        background: #20b2aa !important;
-        border-color: #20b2aa !important;
     }
-
-    /* 第二列 Ultimate Analysis 按钮颜色 - 金黄色 - 加强选择器 */
-    .stColumn:nth-child(2) .stNumberInput button,
-    [data-testid="column"]:nth-child(2) .stNumberInput button,
-    [data-testid="column"]:nth-child(2) button[aria-label="Increment"],
-    [data-testid="column"]:nth-child(2) button[aria-label="Decrement"],
-    .stColumn:nth-child(2) button[aria-label="Increment"],
-    .stColumn:nth-child(2) button[aria-label="Decrement"] {
+    .stColumn:nth-child(2) .stNumberInput button {
         background-color: #daa520 !important;
-        background: #daa520 !important;
-        border-color: #daa520 !important;
     }
-
-    /* 第三列 Pyrolysis Conditions 按钮颜色 - 橙红色 - 加强选择器 */
-    .stColumn:nth-child(3) .stNumberInput button,
-    [data-testid="column"]:nth-child(3) .stNumberInput button,
-    [data-testid="column"]:nth-child(3) button[aria-label="Increment"],
-    [data-testid="column"]:nth-child(3) button[aria-label="Decrement"],
-    .stColumn:nth-child(3) button[aria-label="Increment"],
-    .stColumn:nth-child(3) button[aria-label="Decrement"] {
+    .stColumn:nth-child(3) .stNumberInput button {
         background-color: #cd5c5c !important;
-        background: #cd5c5c !important;
-        border-color: #cd5c5c !important;
     }
 
     /* 最终解决方案：超级强制的按钮颜色 */
