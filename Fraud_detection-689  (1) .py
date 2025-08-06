@@ -132,19 +132,17 @@ st.markdown(
         text-align: center;
     }
 
-    /* 创建统一的整体白色半透明背景 - 优化主要显示区域位置 */
+    /* 创建统一的整体白色半透明背景 */
     .main .block-container {
         background-color: rgba(255, 255, 255, 0.85) !important;
         backdrop-filter: blur(10px) !important;
-        border-radius: 15px !important;
-        padding: 18px !important;
-        margin: 8px auto !important;
-        max-width: 98% !important;
-        width: 98% !important;
+        border-radius: 20px !important;
+        padding: 30px !important;
+        margin: 20px auto !important;
+        max-width: 1200px !important;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        min-height: 95vh !important;
-        margin-top: 0px !important;
+        min-height: 80vh !important;
     }
 
     /* 移除所有子元素的单独背景，让它们显示在统一背景上 */
@@ -454,9 +452,9 @@ st.markdown(
     }
 
     .main .block-container {
-        padding-top: 0.8rem;
-        padding-bottom: 1.2rem;
-        max-width: 98%;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 100%;
     }
     
     /* 侧边栏模型信息样式 */
