@@ -624,8 +624,13 @@ log("目标变量：Cd, Pb, Hg")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "GBDT"  # 默认选择GBDT模型
+    st.session_state.selected_model = "Multi Target"  # 默认选择多目标模型
     log(f"初始化选定模型: {st.session_state.selected_model}")
+
+# 初始化目标选择
+if 'selected_target' not in st.session_state:
+    st.session_state.selected_target = "All"  # 默认预测所有目标
+    log(f"初始化选定目标: {st.session_state.selected_target}")
 
 # 添加模型缓存 - 避免重复加载相同模型
 if 'model_cache' not in st.session_state:
@@ -774,34 +779,34 @@ if st.session_state.current_page == "预测模型":
     </style>
     """, unsafe_allow_html=True)
 
-    # 模型选择卡片
+    # 模型选择卡片 - 根据训练代码的模型类型
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🌲\n\nGBDT", key="gbdt_card", use_container_width=True,
-                    type="primary" if st.session_state.selected_model == "GBDT" else "secondary"):
-            if st.session_state.selected_model != "GBDT":
-                st.session_state.selected_model = "GBDT"
+        if st.button("🎯\n\nSingle Target", key="single_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "Single Target" else "secondary"):
+            if st.session_state.selected_model != "Single Target":
+                st.session_state.selected_model = "Single Target"
                 st.session_state.prediction_result = None
                 st.session_state.warnings = []
                 log(f"切换到模型: {st.session_state.selected_model}")
                 st.rerun()
 
     with col2:
-        if st.button("🌳\n\nRF", key="rf_card", use_container_width=True,
-                    type="primary" if st.session_state.selected_model == "RF" else "secondary"):
-            if st.session_state.selected_model != "RF":
-                st.session_state.selected_model = "RF"
+        if st.button("🎯🎯🎯\n\nMulti Target", key="multi_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "Multi Target" else "secondary"):
+            if st.session_state.selected_model != "Multi Target":
+                st.session_state.selected_model = "Multi Target"
                 st.session_state.prediction_result = None
                 st.session_state.warnings = []
                 log(f"切换到模型: {st.session_state.selected_model}")
                 st.rerun()
 
     with col3:
-        if st.button("🐱\n\nCAT", key="cat_card", use_container_width=True,
-                    type="primary" if st.session_state.selected_model == "CAT" else "secondary"):
-            if st.session_state.selected_model != "CAT":
-                st.session_state.selected_model = "CAT"
+        if st.button("🔗\n\nEnsemble", key="ensemble_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "Ensemble" else "secondary"):
+            if st.session_state.selected_model != "Ensemble":
+                st.session_state.selected_model = "Ensemble"
                 st.session_state.prediction_result = None
                 st.session_state.warnings = []
                 log(f"切换到模型: {st.session_state.selected_model}")
@@ -1422,42 +1427,40 @@ if st.session_state.current_page == "预测模型":
 class ModelPredictor:
     """重金属预测器类 - 根据训练代码调整"""
 
-    def __init__(self, target_model="GBDT"):
+    def __init__(self, target_model="Multi Target"):
         self.target_name = target_model
 
         # 根据训练代码，获取除目标变量外的所有特征
         # 训练代码中：X = df.drop(['Cd','Pb','Hg'], axis=1)
-        # 这里需要根据实际数据集的特征来定义，暂时使用示例特征
+        # 使用实际的特征名称（根据训练代码的特征统计信息）
         self.feature_names = [
-            'Feature1',         # 特征1
-            'Feature2',         # 特征2
-            'Feature3',         # 特征3
-            'Feature4',         # 特征4
-            'Feature5',         # 特征5
-            'Feature6',         # 特征6
-            'Feature7',         # 特征7
-            'Feature8',         # 特征8
-            'Feature9'          # 特征9
+            'pH',               # pH值
+            'V',                # V值
+            'T',                # 温度
+            'LD',               # LD值
+            'Ap',               # Ap值
+            'f',                # f值
+            'SP'                # SP值
         ]
 
         # 目标变量（根据训练代码）
         self.target_cols = ['Cd', 'Pb', 'Hg']
 
-        # 设置特征范围（需要根据实际数据调整）
+        # 设置特征范围（根据训练代码的特征统计信息）
         self.training_ranges = {
-            'Feature1': {'min': 0.0, 'max': 100.0},
-            'Feature2': {'min': 0.0, 'max': 100.0},
-            'Feature3': {'min': 0.0, 'max': 100.0},
-            'Feature4': {'min': 0.0, 'max': 100.0},
-            'Feature5': {'min': 0.0, 'max': 100.0},
-            'Feature6': {'min': 0.0, 'max': 100.0},
-            'Feature7': {'min': 0.0, 'max': 100.0},
-            'Feature8': {'min': 0.0, 'max': 100.0},
-            'Feature9': {'min': 0.0, 'max': 100.0}
+            'pH': {'min': 2.0, 'max': 9.0},
+            'V': {'min': -1.6, 'max': -0.5},
+            'T': {'min': 18.0, 'max': 602.0},
+            'LD': {'min': 8.0, 'max': 23.8},
+            'Ap': {'min': 5.0, 'max': 25.0},
+            'f': {'min': 15.0, 'max': 59.0},
+            'SP': {'min': 4.0, 'max': 5.0}
         }
-        
-        # UI显示的特征映射
-        self.ui_to_model_mapping = {}
+
+        # UI显示的特征映射（根据训练代码的特征名称）
+        self.ui_to_model_mapping = {
+            # 所有特征名称保持一致，无需映射
+        }
         
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
@@ -1484,21 +1487,24 @@ class ModelPredictor:
         """查找模型文件"""
         # 根据训练代码的模型保存路径
         model_file_patterns = {
-            "GBDT": [
+            "Single Target": [
+                "single_Cd_GBDT.joblib",
+                "single_Pb_GBDT.joblib",
+                "single_Hg_GBDT.joblib",
+                "*single*.joblib"
+            ],
+            "Multi Target": [
                 "multi_GBDT.joblib",
-                "ensemble_multi.joblib",
-                "*gbdt*.joblib",
-                "*GBDT*.joblib"
-            ],
-            "RF": [
                 "multi_RF.joblib",
-                "*rf*.joblib",
-                "*RF*.joblib"
-            ],
-            "CAT": [
                 "multi_CAT.joblib",
-                "*cat*.joblib",
-                "*CAT*.joblib"
+                "*multi*.joblib"
+            ],
+            "Ensemble": [
+                "ensemble_multi.joblib",
+                "ensemble_single_Cd.joblib",
+                "ensemble_single_Pb.joblib",
+                "ensemble_single_Hg.joblib",
+                "*ensemble*.joblib"
             ]
         }
         
@@ -1606,17 +1612,17 @@ class ModelPredictor:
                 if ui_feature != model_feature:
                     log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
         
-        # 确保所有特征都存在，缺失的设为默认值
+        # 确保所有特征都存在，缺失的设为默认值（根据训练数据的均值）
         feature_defaults = {
-            'Feature1': 50.0,
-            'Feature2': 50.0,
-            'Feature3': 50.0,
-            'Feature4': 50.0,
-            'Feature5': 50.0,
-            'Feature6': 50.0,
-            'Feature7': 50.0,
-            'Feature8': 50.0,
-            'Feature9': 50.0
+            'M(wt%)': 6.430226,
+            'Ash(wt%)': 4.498340,
+            'VM(wt%)': 75.375509,
+            'O/C': 0.715385,
+            'H/C': 1.534106,
+            'N/C': 0.034083,
+            'FT(℃)': 505.811321,
+            'HR(℃/min)': 29.011321,
+            'FR(mL/min)': 93.962264
         }
         
         for feature in self.feature_names:
@@ -1793,17 +1799,29 @@ elif st.session_state.current_page == "使用指南":
     <h3>操作步骤</h3>
     <ol>
     <li>在左侧导航栏选择"预测模型"</li>
-    <li>选择预测模型（GBDT、RF或CAT）</li>
-    <li>输入特征数据（Feature1-Feature9）</li>
+    <li>选择预测模型（Single Target、Multi Target或Ensemble）</li>
+    <li>输入特征数据（pH、V、T、LD、Ap、f、SP）</li>
+    <li>选择预测目标（All、Cd、Pb或Hg）</li>
     <li>点击"运行预测"按钮获得结果</li>
     <li>查看Cd、Pb、Hg三个重金属的预测浓度</li>
     </ol>
 
     <h3>模型选择</h3>
     <ul>
-    <li><strong>GBDT</strong>: 梯度提升决策树，适合复杂非线性关系</li>
-    <li><strong>RF</strong>: 随机森林，稳定性好，抗过拟合</li>
-    <li><strong>CAT</strong>: CatBoost，处理类别特征能力强</li>
+    <li><strong>Single Target</strong>: 单目标模型，分别预测每个重金属</li>
+    <li><strong>Multi Target</strong>: 多目标模型，同时预测所有重金属</li>
+    <li><strong>Ensemble</strong>: 融合模型，结合多个模型提高精度</li>
+    </ul>
+
+    <h3>输入特征说明</h3>
+    <ul>
+    <li><strong>pH</strong>: pH值 (范围: 2.0-9.0)</li>
+    <li><strong>V</strong>: V值 (范围: -1.6 - -0.5)</li>
+    <li><strong>T</strong>: 温度 (范围: 18.0-602.0)</li>
+    <li><strong>LD</strong>: LD值 (范围: 8.0-23.8)</li>
+    <li><strong>Ap</strong>: Ap值 (范围: 5.0-25.0)</li>
+    <li><strong>f</strong>: f值 (范围: 15.0-59.0)</li>
+    <li><strong>SP</strong>: SP值 (范围: 4.0-5.0)</li>
     </ul>
 
     <h3>数据要求</h3>
@@ -1840,24 +1858,21 @@ elif st.session_state.current_page == "预测模型":
     if 'bottom_button_selected' not in st.session_state:
         st.session_state.bottom_button_selected = "predict"  # "predict" 或 "reset"
 
-    # 根据训练代码定义默认值（需要根据实际数据调整）
+    # 根据训练代码定义默认值（使用训练代码中的特征统计信息的均值）
     default_values = {
-        "Feature1": 50.0,
-        "Feature2": 50.0,
-        "Feature3": 50.0,
-        "Feature4": 50.0,
-        "Feature5": 50.0,
-        "Feature6": 50.0,
-        "Feature7": 50.0,
-        "Feature8": 50.0,
-        "Feature9": 50.0
+        "pH": 4.913793,
+        "V": -1.158621,
+        "T": 264.666667,
+        "LD": 12.579310,
+        "Ap": 19.942529,
+        "f": 30.954023,
+        "SP": 4.252874
     }
 
-    # 重新定义特征分类（根据实际需要调整）
+    # 根据训练代码更新特征分类（这些是实际的输入特征）
     feature_categories = {
-        "Input Features Group 1": ["Feature1", "Feature2", "Feature3"],
-        "Input Features Group 2": ["Feature4", "Feature5", "Feature6"],
-        "Input Features Group 3": ["Feature7", "Feature8", "Feature9"]
+        "Input Features": ["pH", "V", "T"],
+        "Process Conditions": ["LD", "Ap", "f", "SP"]
     }
 
     # 添加新的参数行样式CSS - 修复对齐问题 - 更紧凑
@@ -2043,9 +2058,9 @@ elif st.session_state.current_page == "预测模型":
 
     # 颜色配置 - 根据用户要求的颜色配置
     category_colors = {
-        "Proximate Analysis": "#20b2aa",  # 青绿色 (第一列)
-        "Ultimate Analysis": "#daa520",   # 金黄色 (第二列)
-        "Pyrolysis Conditions": "#cd5c5c" # 橙红色 (第三列)
+        "Input Features": "#20b2aa",      # 青绿色 (第一列)
+        "Process Conditions": "#daa520",  # 金黄色 (第二列)
+        "Target Selection": "#cd5c5c"     # 橙红色 (第三列)
     }
 
     # 创建三列布局
@@ -2054,16 +2069,16 @@ elif st.session_state.current_page == "预测模型":
     # 使用字典存储所有输入值
     features = {}
 
-    # Proximate Analysis - 第一列
+    # Input Features - 第一列
     with col1:
         # 添加列标题
         st.markdown("""
         <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Proximate Analysis</h3>
+            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Input Features</h3>
         </div>
         """, unsafe_allow_html=True)
 
-        category = "Proximate Analysis"
+        category = "Input Features"
         color = category_colors[category]
 
         # 为每个特征创建独立的参数行
@@ -2100,16 +2115,16 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
-    # Ultimate Analysis - 第二列
+    # Process Conditions - 第二列
     with col2:
         # 添加列标题
         st.markdown("""
         <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3 style='margin: 0; color: #daa520; font-weight: bold;'>Ultimate Analysis</h3>
+            <h3 style='margin: 0; color: #daa520; font-weight: bold;'>Process Conditions</h3>
         </div>
         """, unsafe_allow_html=True)
 
-        category = "Ultimate Analysis"
+        category = "Process Conditions"
         color = category_colors[category]
 
         # 为每个特征创建独立的参数行
@@ -2146,51 +2161,34 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
-    # Pyrolysis Conditions - 第三列
+    # Target Selection - 第三列
     with col3:
         # 添加列标题
         st.markdown("""
         <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3 style='margin: 0; color: #cd5c5c; font-weight: bold;'>Pyrolysis Conditions</h3>
+            <h3 style='margin: 0; color: #cd5c5c; font-weight: bold;'>Target Selection</h3>
         </div>
         """, unsafe_allow_html=True)
 
-        category = "Pyrolysis Conditions"
-        color = category_colors[category]
+        # 目标选择按钮
+        target_options = ["All", "Cd", "Pb", "Hg"]
 
-        # 为每个特征创建独立的参数行
-        for feature in feature_categories[category]:
-            if st.session_state.clear_pressed:
-                value = default_values[feature]
-            else:
-                value = st.session_state.feature_values.get(feature, default_values[feature])
+        for target in target_options:
+            if st.button(f"🎯 {target}", key=f"target_{target}", use_container_width=True,
+                        type="primary" if st.session_state.selected_target == target else "secondary"):
+                if st.session_state.selected_target != target:
+                    st.session_state.selected_target = target
+                    st.session_state.prediction_result = None
+                    st.session_state.warnings = []
+                    log(f"切换到目标: {st.session_state.selected_target}")
+                    st.rerun()
 
-            # 创建水平布局：标签和输入框在同一行
-            label_col, input_col = st.columns([1, 1])
-
-            with label_col:
-                # 创建标签
-                st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
-                    {feature}
-                </div>
-                """, unsafe_allow_html=True)
-
-            with input_col:
-                # 使用number_input让用户可以直接输入
-                new_value = st.number_input(
-                    f"{feature}",
-                    value=float(value),
-                    step=0.001,
-                    format="%.3f",
-                    key=f"input_{category}_{feature}",
-                    label_visibility="collapsed"
-                )
-                # 更新会话状态中的值
-                st.session_state.feature_values[feature] = new_value
-
-            # 存储特征值
-            features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
+        # 显示当前选择的目标
+        st.markdown(f"""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 10px; border-radius: 8px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <p style='margin: 0; color: #cd5c5c; font-weight: bold;'>当前目标: {st.session_state.selected_target}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     # 明确结束三列布局 - 添加一个空的容器来确保退出列上下文
     st.empty()
@@ -2398,20 +2396,30 @@ elif st.session_state.current_page == "预测模型":
         st.markdown("<div style='margin-top: 10px; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
         st.markdown("---")
 
-        # 显示主预测结果 - 支持多目标输出
+        # 显示主预测结果 - 支持多目标输出和目标选择
         if isinstance(st.session_state.prediction_result, (list, tuple, np.ndarray)):
             # 多目标预测结果
             target_names = ['Cd', 'Pb', 'Hg']
             results_html = "<div class='yield-result'>"
             results_html += f"<h3>{st.session_state.selected_model} 预测结果：</h3>"
-            for i, (target, value) in enumerate(zip(target_names, st.session_state.prediction_result)):
-                results_html += f"<p><strong>{target}:</strong> {value:.4f}</p>"
+
+            # 根据选择的目标显示结果
+            if st.session_state.selected_target == "All":
+                for i, (target, value) in enumerate(zip(target_names, st.session_state.prediction_result)):
+                    results_html += f"<p><strong>{target}:</strong> {value:.4f}</p>"
+            else:
+                # 显示特定目标
+                target_idx = target_names.index(st.session_state.selected_target)
+                value = st.session_state.prediction_result[target_idx]
+                results_html += f"<p><strong>{st.session_state.selected_target}:</strong> {value:.4f}</p>"
+
             results_html += "</div>"
             result_container.markdown(results_html, unsafe_allow_html=True)
         else:
             # 单目标预测结果
+            target_display = st.session_state.selected_target if st.session_state.selected_target != "All" else "预测值"
             result_container.markdown(
-                f"<div class='yield-result'>预测结果：{st.session_state.selected_model}: {st.session_state.prediction_result:.4f}</div>",
+                f"<div class='yield-result'>{target_display}: {st.session_state.prediction_result:.4f}</div>",
                 unsafe_allow_html=True
             )
 
