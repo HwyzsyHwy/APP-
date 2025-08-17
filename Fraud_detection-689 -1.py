@@ -13,6 +13,8 @@ import glob
 import joblib
 import traceback
 from datetime import datetime
+import requests
+import tempfile
 
 # 清除缓存，强制重新渲染
 st.cache_data.clear()
@@ -1424,6 +1426,33 @@ if st.session_state.current_page == "预测模型":
 
 
 
+def download_model_from_github(model_filename):
+    """从GitHub下载模型文件"""
+    github_base_url = "https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/"
+    model_url = github_base_url + model_filename
+
+    try:
+        log(f"正在从GitHub下载模型: {model_filename}")
+        response = requests.get(model_url, timeout=30)
+        response.raise_for_status()
+
+        # 创建临时文件保存模型
+        temp_dir = tempfile.gettempdir()
+        local_model_path = os.path.join(temp_dir, model_filename)
+
+        with open(local_model_path, 'wb') as f:
+            f.write(response.content)
+
+        log(f"模型下载成功: {local_model_path}")
+        return local_model_path
+
+    except requests.exceptions.RequestException as e:
+        log(f"下载模型失败: {str(e)}")
+        return None
+    except Exception as e:
+        log(f"保存模型文件失败: {str(e)}")
+        return None
+
 class ModelPredictor:
     """重金属预测器类 - 根据训练代码调整"""
 
@@ -1542,7 +1571,25 @@ class ModelPredictor:
             except Exception as e:
                 log(f"搜索目录{directory}时出错: {str(e)}")
         
-        log(f"未找到{self.target_name}模型文件")
+        # 本地未找到模型文件，尝试从GitHub下载
+        log(f"本地未找到{self.target_name}模型文件，尝试从GitHub下载")
+
+        # 根据模型类型选择要下载的文件
+        github_model_files = {
+            "Single Target": ["single_Cd_GBDT.joblib", "single_Pb_GBDT.joblib", "single_Hg_GBDT.joblib"],
+            "Multi Target": ["multi_GBDT.joblib", "multi_RF.joblib", "multi_CAT.joblib"],
+            "Ensemble": ["ensemble_multi.joblib", "ensemble_single_Cd.joblib", "ensemble_single_Pb.joblib", "ensemble_single_Hg.joblib"]
+        }
+
+        files_to_try = github_model_files.get(self.target_name, [])
+
+        for model_file in files_to_try:
+            downloaded_path = download_model_from_github(model_file)
+            if downloaded_path and os.path.exists(downloaded_path):
+                log(f"成功从GitHub下载模型: {downloaded_path}")
+                return downloaded_path
+
+        log(f"从GitHub下载{self.target_name}模型文件也失败")
         return None
     
     def _load_pipeline(self):
@@ -2362,8 +2409,18 @@ elif st.session_state.current_page == "预测模型":
                 # 执行预测
                 result = predictor.predict(features)
                 if result is not None:
-                    st.session_state.prediction_result = float(result)
-                    log(f"预测成功: {st.session_state.prediction_result:.4f}")
+                    # 处理多目标和单目标预测结果
+                    if isinstance(result, (list, tuple, np.ndarray)) and len(result) > 1:
+                        # 多目标预测结果
+                        st.session_state.prediction_result = result
+                        log(f"多目标预测成功: Cd={result[0]:.4f}, Pb={result[1]:.4f}, Hg={result[2]:.4f}")
+                    else:
+                        # 单目标预测结果
+                        if isinstance(result, (list, tuple, np.ndarray)):
+                            st.session_state.prediction_result = float(result[0])
+                        else:
+                            st.session_state.prediction_result = float(result)
+                        log(f"单目标预测成功: {st.session_state.prediction_result:.4f}")
                     st.session_state.prediction_error = None
                 else:
                     log("警告: 预测结果为空")
