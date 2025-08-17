@@ -1453,6 +1453,118 @@ def download_model_from_github(model_filename):
         log(f"保存模型文件失败: {str(e)}")
         return None
 
+class EnsembleModelPredictor:
+    """专门的Ensemble模型预测器"""
+
+    def __init__(self):
+        self.target_name = "Ensemble"
+        self.feature_names = ['pH', 'V', 'T', 'LD', 'Ap', 'f', 'SP']
+        self.target_cols = ['Cd', 'Pb', 'Hg']
+        self.model_loaded = False
+        self.pipeline = None
+        self.model_path = None
+
+        # 尝试加载Ensemble模型
+        self._load_ensemble_model()
+
+    def _load_ensemble_model(self):
+        """加载Ensemble模型"""
+        # 首先尝试从缓存加载
+        if "Ensemble" in st.session_state.model_cache:
+            log("从缓存加载Ensemble模型")
+            self.pipeline = st.session_state.model_cache["Ensemble"]
+            self.model_loaded = True
+            return
+
+        # 尝试下载ensemble_multi.joblib
+        model_file = "ensemble_multi.joblib"
+        downloaded_path = download_model_from_github(model_file)
+
+        if downloaded_path and os.path.exists(downloaded_path):
+            try:
+                log(f"加载Ensemble模型: {downloaded_path}")
+                self.pipeline = joblib.load(downloaded_path)
+                self.model_path = downloaded_path
+
+                # 验证模型结构
+                if hasattr(self.pipeline, 'predict'):
+                    log(f"Ensemble模型加载成功: {type(self.pipeline)}")
+                    # 缓存模型
+                    st.session_state.model_cache["Ensemble"] = self.pipeline
+                    self.model_loaded = True
+                else:
+                    log("Ensemble模型结构验证失败")
+
+            except Exception as e:
+                log(f"Ensemble模型加载失败: {str(e)}")
+                self.model_loaded = False
+        else:
+            log("Ensemble模型下载失败")
+            self.model_loaded = False
+
+    def predict(self, features):
+        """Ensemble模型预测"""
+        if not self.model_loaded or self.pipeline is None:
+            log("Ensemble模型未加载")
+            return None
+
+        try:
+            # 准备特征数据
+            feature_values = [features[name] for name in self.feature_names]
+            features_df = pd.DataFrame([feature_values], columns=self.feature_names)
+
+            log(f"Ensemble预测输入: {features_df.values}")
+
+            # 执行预测
+            prediction = self.pipeline.predict(features_df)
+
+            log(f"Ensemble预测输出: {prediction}")
+            log(f"预测结果形状: {prediction.shape}")
+
+            # Ensemble模型通常返回多目标结果
+            if len(prediction.shape) > 1 and prediction.shape[1] > 1:
+                result = prediction[0]  # 取第一行
+                log(f"Ensemble多目标预测成功: Cd={result[0]:.4f}, Pb={result[1]:.4f}, Hg={result[2]:.4f}")
+                return result
+            else:
+                result = prediction[0] if hasattr(prediction, '__len__') else prediction
+                log(f"Ensemble单目标预测成功: {result:.4f}")
+                return result
+
+        except Exception as e:
+            log(f"Ensemble预测失败: {str(e)}")
+            log(traceback.format_exc())
+            return None
+
+    def get_model_info(self):
+        """获取Ensemble模型信息"""
+        info = {
+            "模型类型": "Ensemble (集成模型)",
+            "目标变量": "Cd, Pb, Hg (多目标)",
+            "特征数量": len(self.feature_names),
+            "特征名称": ", ".join(self.feature_names),
+            "模型状态": "已加载" if self.model_loaded else "未加载"
+        }
+
+        if self.model_loaded and self.pipeline:
+            try:
+                # 获取Ensemble模型的详细信息
+                if hasattr(self.pipeline, 'estimator_'):
+                    estimator = self.pipeline.estimator_
+                    if hasattr(estimator, 'estimators_'):
+                        info["子模型数量"] = len(estimator.estimators_)
+                        estimator_names = []
+                        for name, _ in estimator.estimators_:
+                            estimator_names.append(name)
+                        info["子模型"] = ", ".join(estimator_names)
+
+                info["模型文件"] = self.model_path if self.model_path else "从GitHub下载"
+
+            except Exception as e:
+                info["错误"] = f"获取模型信息失败: {str(e)}"
+
+        return info
+
 class ModelPredictor:
     """重金属预测器类 - 根据训练代码调整"""
 
@@ -1780,7 +1892,10 @@ class ModelPredictor:
         return info
 
 # 初始化预测器 - 使用当前选择的模型
-predictor = ModelPredictor(target_model=st.session_state.selected_model)
+if st.session_state.selected_model == "Ensemble":
+    predictor = EnsembleModelPredictor()
+else:
+    predictor = ModelPredictor(target_model=st.session_state.selected_model)
 
 # 根据当前页面显示不同内容
 if st.session_state.current_page == "模型信息":
@@ -2382,7 +2497,10 @@ elif st.session_state.current_page == "预测模型":
             # 切换模型后需要重新初始化预测器
             if predictor.target_name != st.session_state.selected_model:
                 log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
-                predictor = ModelPredictor(target_model=st.session_state.selected_model)
+                if st.session_state.selected_model == "Ensemble":
+                    predictor = EnsembleModelPredictor()
+                else:
+                    predictor = ModelPredictor(target_model=st.session_state.selected_model)
 
             # 保存当前输入到会话状态
             st.session_state.feature_values = features.copy()
@@ -2398,13 +2516,25 @@ elif st.session_state.current_page == "预测模型":
                 # 确保预测器已正确加载
                 if not predictor.model_loaded:
                     log("模型未加载，尝试重新加载")
-                    if predictor._find_model_file() and predictor._load_pipeline():
-                        log("重新加载模型成功")
+                    if st.session_state.selected_model == "Ensemble":
+                        # Ensemble模型重新加载
+                        predictor._load_ensemble_model()
+                        if predictor.model_loaded:
+                            log("Ensemble模型重新加载成功")
+                        else:
+                            error_msg = f"无法加载Ensemble模型。请检查网络连接。"
+                            st.error(error_msg)
+                            st.session_state.prediction_error = error_msg
+                            st.rerun()
                     else:
-                        error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
-                        st.error(error_msg)
-                        st.session_state.prediction_error = error_msg
-                        st.rerun()
+                        # 其他模型重新加载
+                        if predictor._find_model_file() and predictor._load_pipeline():
+                            log("重新加载模型成功")
+                        else:
+                            error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
+                            st.error(error_msg)
+                            st.session_state.prediction_error = error_msg
+                            st.rerun()
 
                 # 执行预测
                 result = predictor.predict(features)
