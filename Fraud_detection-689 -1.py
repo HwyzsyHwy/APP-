@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Biomass Pyrolysis Yield Forecast using GBDT Ensemble Models
-修复版本 - 根据实际特征统计信息正确调整
-支持Char、Oil和Gas产率预测
+Heavy Metal Prediction using GBDT Ensemble Models
+修复版本 - 根据模型训练代码调整
+支持Cd、Pb和Hg重金属预测
 """
 
 import streamlit as st
@@ -12,7 +12,6 @@ import os
 import glob
 import joblib
 import traceback
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 # 清除缓存，强制重新渲染
@@ -20,8 +19,8 @@ st.cache_data.clear()
 
 # 页面设置
 st.set_page_config(
-    page_title='Biomass Pyrolysis Yield Prediction',
-    page_icon='🔥',
+    page_title='Heavy Metal Prediction',
+    page_icon='⚗️',
     layout='wide',
     initial_sidebar_state='expanded'
 )
@@ -33,6 +32,9 @@ st.markdown(
     /* 全局字体设置和背景图片 */
     html, body, [class*="css"] {
         font-size: 16px !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
     }
 
     /* 主应用背景 */
@@ -44,14 +46,21 @@ st.markdown(
         background-attachment: fixed;
     }
 
-    /* 侧边栏背景 */
+    /* 侧边栏背景和位置修复 */
     .css-1d391kg, .css-1lcbmhc, .css-1outpf7, section[data-testid="stSidebar"] {
         background-color: #f8f9fa !important;
+        top: 0 !important;
+        padding-top: 0 !important;
+        margin-top: 0 !important;
     }
 
     /* 侧边栏内容文字颜色 */
     section[data-testid="stSidebar"] * {
         color: #333333 !important;
+        -webkit-font-smoothing: auto !important;
+        -moz-osx-font-smoothing: auto !important;
+        text-rendering: auto !important;
+        font-weight: 500 !important;
     }
 
     /* 侧边栏标题颜色 */
@@ -134,8 +143,7 @@ st.markdown(
 
     /* 创建统一的整体白色半透明背景 */
     .main .block-container {
-        background-color: rgba(255, 255, 255, 0.85) !important;
-        backdrop-filter: blur(10px) !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
         border-radius: 20px !important;
         padding: 30px !important;
         margin: 20px auto !important;
@@ -177,27 +185,47 @@ st.markdown(
         color: #333 !important;
     }
 
-    /* 标题样式 - 在统一背景上显示 */
+    /* 全局字体大小设置 - 20号字体 */
+    .stApp, .main, .block-container, div, p, span, label,
+    .stMarkdown, .stText, .stButton, .stSelectbox, .stDataFrame,
+    .stMetric, .streamlit-expanderHeader, .streamlit-expanderContent {
+        font-size: 20px !important;
+        line-height: 1.2 !important;
+    }
+
+    /* 标题字体按比例增大 */
+    h1 { font-size: 32px !important; }
+    h2 { font-size: 28px !important; }
+    h3 { font-size: 24px !important; }
+    h4 { font-size: 22px !important; }
+    h5 { font-size: 21px !important; }
+    h6 { font-size: 20px !important; }
+
+    /* 标题样式 - 在统一背景上显示 - 修复间距 */
     .main-title {
         text-align: center;
         font-size: 32px !important;
         font-weight: bold;
-        margin-bottom: 20px;
+        margin-bottom: 15px !important;
+        margin-top: 10px !important;
         color: #333 !important;
         text-shadow: none !important;
         background-color: transparent !important;
-        padding: 15px !important;
+        padding: 8px !important;
+        line-height: 1.2 !important;
     }
 
-    /* 区域标题样式 - 在统一背景上显示 */
+    /* 区域标题样式 - 在统一背景上显示 - 修复间距 */
     .section-header {
         color: #333 !important;
         font-weight: bold;
-        font-size: 22px;
+        font-size: 20px !important;
         text-align: center;
-        padding: 10px;
-        margin-bottom: 15px;
+        padding: 8px !important;
+        margin-bottom: 15px !important;
+        margin-top: 10px !important;
         background-color: transparent !important;
+        line-height: 1.2 !important;
     }
 
     /* 输入标签样式 - 在统一背景上显示 */
@@ -216,12 +244,14 @@ st.markdown(
     div[data-testid="stExpander"] > summary,
     .streamlit-expanderHeader,
     [data-testid="stExpander"] [role="button"] {
-        background: rgba(255,255,255,1.0) !important;
+        background: rgba(255,255,255,0.8) !important;
         border: none !important;
         box-shadow: none !important;
         border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
         padding: 10px !important;
+        color: black !important;
+        font-weight: normal !important;
+        text-shadow: none !important;
     }
 
     /* expander内容部分 - 白色轻微透明背景 */
@@ -231,20 +261,24 @@ st.markdown(
         padding: 15px !important;
         margin-top: 5px !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        color: black !important;
     }
 
     /* 结果显示样式 */
     .yield-result {
         background-color: rgba(255, 255, 255, 0.8) !important;
-        color: white;
-        font-size: 36px;
+        color: #008833 !important;
+        font-size: 60px !important;
         font-weight: bold;
         text-align: center;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 20px;
+        padding: 15px 25px;
+        border-radius: 12px;
+        margin-top: -30px;
         backdrop-filter: blur(5px) !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* 强制应用白色背景到输入框 */
@@ -253,9 +287,12 @@ st.markdown(
         color: black !important;
     }
     
-    /* 增大按钮的字体 */
+    /* 增大按钮的字体 - 更紧凑版 */
     .stButton button {
-        font-size: 18px !important;
+        font-size: 20px !important;
+        padding: 6px 12px !important;
+        line-height: 1.1 !important;
+        margin: 2px 0 !important;
     }
     
     /* 警告样式 */
@@ -420,13 +457,13 @@ st.markdown(
         margin: 0 5px;
     }
     
-    /* 填满屏幕 */
+    /* 填满屏幕 - 优化间距分布 */
     .stApp {
         width: 100%;
         min-width: 100%;
         margin: 0 auto;
     }
-    
+
     .main .block-container {
         padding-top: 1rem;
         padding-bottom: 1rem;
@@ -455,6 +492,52 @@ st.markdown(
         padding: 15px;
         border-radius: 8px;
         margin-top: 20px;
+    }
+
+    /* 强制侧边栏从顶部开始显示 */
+    .css-1lcbmhc.e1fqkh3o0 {
+        top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    .css-1d391kg.e1fqkh3o0 {
+        top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* 修复侧边栏容器位置 */
+    [data-testid="stSidebar"] > div {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+
+    /* 确保侧边栏内容从顶部开始 */
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 1rem !important;
+        margin-top: 0 !important;
+    }
+
+    /* 强制所有文字清晰显示 - 最高优先级 */
+    * {
+        -webkit-font-smoothing: none !important;
+        -moz-osx-font-smoothing: unset !important;
+        text-rendering: geometricPrecision !important;
+        font-smooth: never !important;
+        -webkit-text-stroke: 0.01em transparent !important;
+    }
+
+    /* 特别针对侧边栏文字 */
+    section[data-testid="stSidebar"] *,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] div,
+    section[data-testid="stSidebar"] button {
+        -webkit-font-smoothing: none !important;
+        -moz-osx-font-smoothing: unset !important;
+        text-rendering: geometricPrecision !important;
+        font-smooth: never !important;
+        font-weight: 600 !important;
+        text-shadow: none !important;
     }
     </style>
     """,
@@ -536,12 +619,12 @@ def log(message):
         )
 
 # 记录启动日志
-log("应用启动 - 根据图片特征统计信息正确修复版本")
-log("特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR")
+log("应用启动 - 重金属预测模型")
+log("目标变量：Cd, Pb, Hg")
 
 # 初始化会话状态 - 添加模型选择功能
 if 'selected_model' not in st.session_state:
-    st.session_state.selected_model = "Char Yield"  # 默认选择Char产率模型
+    st.session_state.selected_model = "GBDT"  # 默认选择GBDT模型
     log(f"初始化选定模型: {st.session_state.selected_model}")
 
 # 添加模型缓存 - 避免重复加载相同模型
@@ -550,18 +633,22 @@ if 'model_cache' not in st.session_state:
     
 # 只在预测模型页面显示标题和模型选择器
 if st.session_state.current_page == "预测模型":
-    # 简洁的Streamlit样式标题
+    # 简洁的Streamlit样式标题 - 调整间距平衡
     st.markdown("""
-    <div style="margin-bottom: 30px;">
-        <h1 style="color: white; font-size: 2.5rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+    <div style="margin-bottom: 10px; margin-top: -80px;">
+        <h1 style="color: white; font-size: 2.0rem; font-weight: bold; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); transform: translateY(8px);">
             Streamlit
         </h1>
-        <div style="height: 3px; background: white; margin-top: 5px; border-radius: 2px;"></div>
+        <div style="height: 4px; background: white; margin-top: 6px; border-radius: 2px;"></div>
     </div>
     """, unsafe_allow_html=True)
 
     # 添加模型选择区域 - 修改为可点击卡片样式
-    st.markdown("<h3 style='color: white; text-align: center; margin-bottom: 30px;'>选择预测目标</h3>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align: center; margin-top: 0px; margin-bottom: -10px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+        <h3 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 24px;">选择预测模型</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
     # 添加模型选择卡片的自定义样式
     st.markdown("""
@@ -570,15 +657,15 @@ if st.session_state.current_page == "预测模型":
     .model-card-container {
         display: flex;
         gap: 15px;
-        margin: 20px 0;
+        margin: 0px 0 15px 0;
         justify-content: space-between;
     }
 
-    /* 模型选择卡片样式 */
+    /* 模型选择卡片样式 - 调整间距平衡 */
     .model-card {
         flex: 1;
-        height: 120px;
-        border-radius: 15px;
+        height: 85px;
+        border-radius: 12px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -587,7 +674,7 @@ if st.session_state.current_page == "预测模型":
         transition: all 0.3s ease;
         text-decoration: none;
         position: relative;
-        padding: 20px;
+        padding: 15px;
         box-sizing: border-box;
     }
 
@@ -636,34 +723,34 @@ if st.session_state.current_page == "预测模型":
         position: relative !important;
     }
 
-    /* 模型卡片按钮样式 - secondary按钮（未选中） */
+    /* 模型卡片按钮样式 - secondary按钮（未选中） - 更紧凑 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="secondary"],
     div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
         background: rgba(255,255,255,0.8) !important;
         border: 2px solid rgba(255,255,255,0.3) !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
         height: auto !important;
-        min-height: 120px !important;
+        min-height: 80px !important;
         color: #333 !important;
         font-weight: bold !important;
-        font-size: 16px !important;
+        font-size: 20px !important;
         box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
         transition: all 0.3s ease !important;
     }
 
-    /* 模型卡片按钮样式 - primary按钮（选中） */
+    /* 模型卡片按钮样式 - primary按钮（选中） - 更紧凑 */
     div[data-testid="stHorizontalBlock"] .stButton > button[kind="primary"],
     div[data-testid="stHorizontalBlock"] button[kind="primary"] {
         background: linear-gradient(135deg, #20b2aa, #17a2b8) !important;
         border: 3px solid #20b2aa !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
+        border-radius: 12px !important;
+        padding: 12px !important;
         height: auto !important;
-        min-height: 120px !important;
+        min-height: 80px !important;
         color: white !important;
         font-weight: bold !important;
-        font-size: 16px !important;
+        font-size: 20px !important;
         box-shadow: 0 12px 40px rgba(32, 178, 170, 0.3) !important;
         transform: translateY(-2px) !important;
         transition: all 0.3s ease !important;
@@ -691,30 +778,30 @@ if st.session_state.current_page == "预测模型":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🔥\n\nChar Yield", key="char_card", use_container_width=True,
-                    type="primary" if st.session_state.selected_model == "Char Yield" else "secondary"):
-            if st.session_state.selected_model != "Char Yield":
-                st.session_state.selected_model = "Char Yield"
+        if st.button("🌲\n\nGBDT", key="gbdt_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "GBDT" else "secondary"):
+            if st.session_state.selected_model != "GBDT":
+                st.session_state.selected_model = "GBDT"
                 st.session_state.prediction_result = None
                 st.session_state.warnings = []
                 log(f"切换到模型: {st.session_state.selected_model}")
                 st.rerun()
 
     with col2:
-        if st.button("⚡️\n\nOil Yield", key="oil_card", use_container_width=True,
-                    type="primary" if st.session_state.selected_model == "Oil Yield" else "secondary"):
-            if st.session_state.selected_model != "Oil Yield":
-                st.session_state.selected_model = "Oil Yield"
+        if st.button("🌳\n\nRF", key="rf_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "RF" else "secondary"):
+            if st.session_state.selected_model != "RF":
+                st.session_state.selected_model = "RF"
                 st.session_state.prediction_result = None
                 st.session_state.warnings = []
                 log(f"切换到模型: {st.session_state.selected_model}")
                 st.rerun()
 
     with col3:
-        if st.button("💨\n\nGas Yield", key="gas_card", use_container_width=True,
-                    type="primary" if st.session_state.selected_model == "Gas Yield" else "secondary"):
-            if st.session_state.selected_model != "Gas Yield":
-                st.session_state.selected_model = "Gas Yield"
+        if st.button("🐱\n\nCAT", key="cat_card", use_container_width=True,
+                    type="primary" if st.session_state.selected_model == "CAT" else "secondary"):
+            if st.session_state.selected_model != "CAT":
+                st.session_state.selected_model = "CAT"
                 st.session_state.prediction_result = None
                 st.session_state.warnings = []
                 log(f"切换到模型: {st.session_state.selected_model}")
@@ -773,7 +860,7 @@ if st.session_state.current_page == "预测模型":
     [data-testid="column"]:nth-child(1) button[title="Decrement"],
     [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
     [data-testid="column"]:nth-child(1) button:has(svg) {{
-        background-color: #20b2aa !important;
+        background-color: #20B2AA !important;
     }}
 
     /* 第二列按钮 - 金黄色 (Ultimate Analysis) */
@@ -856,7 +943,7 @@ if st.session_state.current_page == "预测模型":
 
     /* 终极解决方案 - 使用CSS变量和更高优先级 */
     :root {{
-        --col1-color: #20b2aa;
+        --col1-color: #20B2AA;
         --col2-color: #daa520;
         --col3-color: #cd5c5c;
     }}
@@ -890,8 +977,8 @@ if st.session_state.current_page == "预测模型":
 
     /* 通过容器div来定位按钮 */
     div[data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
         color: white !important;
         border: none !important;
         border-radius: 4px !important;
@@ -917,8 +1004,8 @@ if st.session_state.current_page == "预测模型":
     [data-testid="stNumberInput"]:nth-of-type(1) button,
     [data-testid="stNumberInput"]:nth-of-type(2) button,
     [data-testid="stNumberInput"]:nth-of-type(3) button {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
         color: white !important;
     }}
 
@@ -940,7 +1027,7 @@ if st.session_state.current_page == "预测模型":
 
     /* 最强力的覆盖 - 使用CSS动画 */
     @keyframes forceGreen {{
-        0%, 100% {{ background-color: #20b2aa !important; }}
+        0%, 100% {{ background-color: #20B2AA !important; }}
     }}
 
     @keyframes forceGold {{
@@ -969,8 +1056,8 @@ if st.session_state.current_page == "预测模型":
 
     /* 通过自定义属性强制设置 */
     button[data-forced-color="green"] {{
-        background-color: #20b2aa !important;
-        background: #20b2aa !important;
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
         color: white !important;
     }}
 
@@ -1319,10 +1406,10 @@ if st.session_state.current_page == "预测模型":
     </script>
     """, unsafe_allow_html=True)
 
-    # 显示当前选择的模型
+    # 显示当前选择的模型 - 调整间距平衡
     st.markdown(f"""
-    <div style="text-align: center; margin-top: 20px; padding: 10px; background: rgba(255,255,255,0.3) !important; border-radius: 10px; backdrop-filter: blur(3px); box-shadow: none;">
-        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold;">当前模型：{selected_model}</h4>
+    <div style="text-align: center; margin-top: -10px; margin-bottom: -10px; padding: 10px; background: rgba(255,255,255,0.1) !important; border-radius: 8px; backdrop-filter: blur(10px); box-shadow: none; border: 1px solid rgba(255,255,255,0.2);">
+        <h4 style="color: white; margin: 0; text-shadow: none; font-weight: bold; font-size: 20px;">当前模型：{selected_model}</h4>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1333,42 +1420,44 @@ if st.session_state.current_page == "预测模型":
 
 
 class ModelPredictor:
-    """根据图片特征统计信息正确调整的预测器类"""
-    
-    def __init__(self, target_model="Char Yield"):
+    """重金属预测器类 - 根据训练代码调整"""
+
+    def __init__(self, target_model="GBDT"):
         self.target_name = target_model
-        
-        # 根据图片中的特征统计信息，按照正确顺序定义特征名称
+
+        # 根据训练代码，获取除目标变量外的所有特征
+        # 训练代码中：X = df.drop(['Cd','Pb','Hg'], axis=1)
+        # 这里需要根据实际数据集的特征来定义，暂时使用示例特征
         self.feature_names = [
-            'M(wt%)',           # 水分
-            'Ash(wt%)',         # 灰分  
-            'VM(wt%)',          # 挥发分
-            'O/C',              # 氧碳比
-            'H/C',              # 氢碳比
-            'N/C',              # 氮碳比
-            'FT(℃)',           # 热解温度
-            'HR(℃/min)',       # 升温速率
-            'FR(mL/min)'        # 流量
+            'Feature1',         # 特征1
+            'Feature2',         # 特征2
+            'Feature3',         # 特征3
+            'Feature4',         # 特征4
+            'Feature5',         # 特征5
+            'Feature6',         # 特征6
+            'Feature7',         # 特征7
+            'Feature8',         # 特征8
+            'Feature9'          # 特征9
         ]
-        
-        # 根据图片中的统计信息设置训练范围
+
+        # 目标变量（根据训练代码）
+        self.target_cols = ['Cd', 'Pb', 'Hg']
+
+        # 设置特征范围（需要根据实际数据调整）
         self.training_ranges = {
-            'M(wt%)': {'min': 2.750, 'max': 11.630},
-            'Ash(wt%)': {'min': 0.410, 'max': 11.600},
-            'VM(wt%)': {'min': 65.700, 'max': 89.500},
-            'O/C': {'min': 0.301, 'max': 0.988},
-            'H/C': {'min': 1.212, 'max': 1.895},
-            'N/C': {'min': 0.003, 'max': 0.129},
-            'FT(℃)': {'min': 300.000, 'max': 900.000},
-            'HR(℃/min)': {'min': 5.000, 'max': 100.000},
-            'FR(mL/min)': {'min': 0.000, 'max': 600.000}
+            'Feature1': {'min': 0.0, 'max': 100.0},
+            'Feature2': {'min': 0.0, 'max': 100.0},
+            'Feature3': {'min': 0.0, 'max': 100.0},
+            'Feature4': {'min': 0.0, 'max': 100.0},
+            'Feature5': {'min': 0.0, 'max': 100.0},
+            'Feature6': {'min': 0.0, 'max': 100.0},
+            'Feature7': {'min': 0.0, 'max': 100.0},
+            'Feature8': {'min': 0.0, 'max': 100.0},
+            'Feature9': {'min': 0.0, 'max': 100.0}
         }
         
-        # UI显示的特征映射（处理温度符号）
-        self.ui_to_model_mapping = {
-            'FT(°C)': 'FT(℃)',
-            'HR(°C/min)': 'HR(℃/min)'
-        }
+        # UI显示的特征映射
+        self.ui_to_model_mapping = {}
         
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
@@ -1395,31 +1484,29 @@ class ModelPredictor:
         """查找模型文件"""
         # 根据训练代码的模型保存路径
         model_file_patterns = {
-            "Char Yield": [
-                "GBDT-Char Yield-improved.joblib",
-                "GBDT-Char-improved.joblib",
-                "*char*.joblib",
-                "*炭产率*.joblib"
+            "GBDT": [
+                "multi_GBDT.joblib",
+                "ensemble_multi.joblib",
+                "*gbdt*.joblib",
+                "*GBDT*.joblib"
             ],
-            "Oil Yield": [
-                "GBDT-Oil Yield-improved.joblib", 
-                "GBDT-Oil-improved.joblib",
-                "*oil*.joblib",
-                "*油产率*.joblib"
+            "RF": [
+                "multi_RF.joblib",
+                "*rf*.joblib",
+                "*RF*.joblib"
             ],
-            "Gas Yield": [
-                "GBDT-Gas Yield-improved.joblib",
-                "GBDT-Gas-improved.joblib", 
-                "*gas*.joblib",
-                "*气产率*.joblib"
+            "CAT": [
+                "multi_CAT.joblib",
+                "*cat*.joblib",
+                "*CAT*.joblib"
             ]
         }
         
-        # 搜索目录
+        # 搜索目录 - 根据训练代码的保存路径
         search_dirs = [
             ".", "./models", "../models", "/app/models", "/app",
-            "./炭产率", "./油产率", "./气产率",
-            "../炭产率", "../油产率", "../气产率"
+            r"C:\Users\HWY\Desktop\最终版-6.19\炭产率-1",
+            "./炭产率-1", "../炭产率-1"
         ]
         
         patterns = model_file_patterns.get(self.target_name, [])
@@ -1519,17 +1606,17 @@ class ModelPredictor:
                 if ui_feature != model_feature:
                     log(f"特征映射: '{ui_feature}' -> '{model_feature}'")
         
-        # 确保所有特征都存在，缺失的设为均值（根据图片统计信息）
+        # 确保所有特征都存在，缺失的设为默认值
         feature_defaults = {
-            'M(wt%)': 6.430226,
-            'Ash(wt%)': 4.498340,
-            'VM(wt%)': 75.375509,
-            'O/C': 0.715385,
-            'H/C': 1.534106,
-            'N/C': 0.034083,
-            'FT(℃)': 505.811321,
-            'HR(℃/min)': 29.011321,
-            'FR(mL/min)': 93.962264
+            'Feature1': 50.0,
+            'Feature2': 50.0,
+            'Feature3': 50.0,
+            'Feature4': 50.0,
+            'Feature5': 50.0,
+            'Feature6': 50.0,
+            'Feature7': 50.0,
+            'Feature8': 50.0,
+            'Feature9': 50.0
         }
         
         for feature in self.feature_names:
@@ -1574,19 +1661,33 @@ class ModelPredictor:
             try:
                 log("使用Pipeline进行预测（包含RobustScaler预处理）")
                 # Pipeline会自动进行预处理（RobustScaler）然后预测
-                result = float(self.pipeline.predict(features_df)[0])
-                log(f"预测成功: {result:.4f}")
+                prediction = self.pipeline.predict(features_df)
+
+                # 检查是否为多目标输出
+                if len(prediction.shape) > 1 and prediction.shape[1] > 1:
+                    # 多目标输出 (Cd, Pb, Hg)
+                    result = prediction[0]  # 取第一行（单个样本的预测）
+                    log(f"多目标预测成功: Cd={result[0]:.4f}, Pb={result[1]:.4f}, Hg={result[2]:.4f}")
+                else:
+                    # 单目标输出
+                    result = float(prediction[0])
+                    log(f"单目标预测成功: {result:.4f}")
+
                 self.last_result = result
                 return result
             except Exception as e:
                 log(f"Pipeline预测失败: {str(e)}")
                 log(traceback.format_exc())
-                
+
                 # 尝试重新加载模型
                 if self._find_model_file() and self._load_pipeline():
                     try:
-                        result = float(self.pipeline.predict(features_df)[0])
-                        log(f"重新加载后预测成功: {result:.4f}")
+                        prediction = self.pipeline.predict(features_df)
+                        if len(prediction.shape) > 1 and prediction.shape[1] > 1:
+                            result = prediction[0]
+                        else:
+                            result = float(prediction[0])
+                        log(f"重新加载后预测成功")
                         self.last_result = result
                         return result
                     except Exception as new_e:
@@ -1599,8 +1700,8 @@ class ModelPredictor:
     def get_model_info(self):
         """获取模型信息摘要"""
         info = {
-            "模型类型": "GBDT Pipeline (RobustScaler + GradientBoostingRegressor)",
-            "目标变量": self.target_name,
+            "模型类型": f"{self.target_name} Pipeline (RobustScaler + MultiOutputRegressor)",
+            "目标变量": "Cd, Pb, Hg (重金属浓度)",
             "特征数量": len(self.feature_names),
             "模型状态": "已加载" if self.model_loaded else "未加载"
         }
@@ -1658,20 +1759,28 @@ elif st.session_state.current_page == "技术说明":
     tech_content = """
     <div class="page-content">
     <h3>模型架构</h3>
-    <p>本系统采用GBDT（Gradient Boosting Decision Tree）集成学习算法，结合RobustScaler数据预处理技术。</p>
+    <p>本系统采用多种机器学习算法进行重金属浓度预测，包括GBDT、随机森林(RF)和CatBoost，结合RobustScaler数据预处理技术。</p>
 
-    <h3>特征工程</h3>
+    <h3>预测目标</h3>
     <ul>
-    <li><strong>工业分析</strong>: 水分(M)、灰分(Ash)、挥发分(VM)</li>
-    <li><strong>元素分析</strong>: O/C、H/C、N/C原子比</li>
-    <li><strong>热解条件</strong>: 最终温度(FT)、升温速率(HR)、载气流量(FR)</li>
+    <li><strong>Cd</strong>: 镉离子浓度</li>
+    <li><strong>Pb</strong>: 铅离子浓度</li>
+    <li><strong>Hg</strong>: 汞离子浓度</li>
+    </ul>
+
+    <h3>模型特点</h3>
+    <ul>
+    <li>支持多目标同时预测</li>
+    <li>使用集成学习提高预测精度</li>
+    <li>自动特征缩放和预处理</li>
+    <li>模型融合技术提升稳定性</li>
     </ul>
 
     <h3>模型性能</h3>
     <ul>
     <li>训练集R²: > 0.95</li>
     <li>测试集R²: > 0.90</li>
-    <li>平均绝对误差: < 2%</li>
+    <li>交叉验证稳定性良好</li>
     </ul>
     </div>
     """
@@ -1684,25 +1793,31 @@ elif st.session_state.current_page == "使用指南":
     <h3>操作步骤</h3>
     <ol>
     <li>在左侧导航栏选择"预测模型"</li>
-    <li>输入生物质的工业分析数据</li>
-    <li>输入元素分析数据</li>
-    <li>设置热解工艺条件</li>
-    <li>点击"预测"按钮获得结果</li>
+    <li>选择预测模型（GBDT、RF或CAT）</li>
+    <li>输入特征数据（Feature1-Feature9）</li>
+    <li>点击"运行预测"按钮获得结果</li>
+    <li>查看Cd、Pb、Hg三个重金属的预测浓度</li>
     </ol>
+
+    <h3>模型选择</h3>
+    <ul>
+    <li><strong>GBDT</strong>: 梯度提升决策树，适合复杂非线性关系</li>
+    <li><strong>RF</strong>: 随机森林，稳定性好，抗过拟合</li>
+    <li><strong>CAT</strong>: CatBoost，处理类别特征能力强</li>
+    </ul>
 
     <h3>数据要求</h3>
     <ul>
-    <li>所有数值应为正数</li>
-    <li>工业分析数据单位为wt%</li>
-    <li>温度单位为°C</li>
-    <li>流量单位为mL/min</li>
+    <li>所有特征值应在合理范围内</li>
+    <li>建议使用标准化的输入数据</li>
+    <li>缺失值会自动填充为默认值</li>
     </ul>
 
     <h3>注意事项</h3>
     <ul>
-    <li>确保输入数据在合理范围内</li>
-    <li>模型适用于常见生物质原料</li>
-    <li>预测结果仅供参考</li>
+    <li>确保模型文件已正确加载</li>
+    <li>预测结果为重金属浓度值</li>
+    <li>建议结合多个模型的结果进行综合判断</li>
     </ul>
     </div>
     """
@@ -1722,59 +1837,61 @@ elif st.session_state.current_page == "预测模型":
         st.session_state.prediction_error = None
     if 'feature_values' not in st.session_state:
         st.session_state.feature_values = {}
+    if 'bottom_button_selected' not in st.session_state:
+        st.session_state.bottom_button_selected = "predict"  # "predict" 或 "reset"
 
-    # 根据图片特征统计信息定义默认值（使用均值）
+    # 根据训练代码定义默认值（需要根据实际数据调整）
     default_values = {
-        "M(wt%)": 6.430,
-        "Ash(wt%)": 4.498,
-        "VM(wt%)": 75.376,
-        "O/C": 0.715,
-        "H/C": 1.534,
-        "N/C": 0.034,
-        "FT(°C)": 505.811,
-        "HR(°C/min)": 29.011,
-        "FR(mL/min)": 93.962
+        "Feature1": 50.0,
+        "Feature2": 50.0,
+        "Feature3": 50.0,
+        "Feature4": 50.0,
+        "Feature5": 50.0,
+        "Feature6": 50.0,
+        "Feature7": 50.0,
+        "Feature8": 50.0,
+        "Feature9": 50.0
     }
 
-    # 保持原有的特征分类名称
+    # 重新定义特征分类（根据实际需要调整）
     feature_categories = {
-        "Proximate Analysis": ["M(wt%)", "Ash(wt%)", "VM(wt%)"],
-        "Ultimate Analysis": ["O/C", "H/C", "N/C"],
-        "Pyrolysis Conditions": ["FT(°C)", "HR(°C/min)", "FR(mL/min)"]
+        "Input Features Group 1": ["Feature1", "Feature2", "Feature3"],
+        "Input Features Group 2": ["Feature4", "Feature5", "Feature6"],
+        "Input Features Group 3": ["Feature7", "Feature8", "Feature9"]
     }
 
-    # 添加新的参数行样式CSS - 修复对齐问题
+    # 添加新的参数行样式CSS - 修复对齐问题 - 更紧凑
     st.markdown("""
     <style>
-    /* 特征行样式 - 每个特征标签和输入框在一行对齐 */
+    /* 特征行样式 - 每个特征标签和输入框在一行对齐 - 更紧凑 */
     .feature-row {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
         background: rgba(255, 255, 255, 0.85);
-        border-radius: 10px;
-        padding: 8px 12px;
-        margin: 8px 0;
+        border-radius: 8px;
+        padding: 4px 8px;
+        margin: 4px 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         border: 1px solid rgba(255,255,255,0.3);
         backdrop-filter: blur(5px);
-        min-height: 50px;
+        min-height: 40px;
     }
 
-    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 */
+    /* 参数标签样式 - 彩色背景，固定宽度，垂直居中 - 更紧凑 */
     .param-label {
         color: white;
         font-weight: bold;
-        font-size: 14px;
-        padding: 8px 12px;
-        border-radius: 6px;
+        font-size: 20px;
+        padding: 6px 8px;
+        border-radius: 5px;
         text-align: center;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         display: inline-block;
-        width: 80px;
+        width: 70px;
         flex-shrink: 0;
         margin: 0;
-        line-height: 1.2;
+        line-height: 1.1;
     }
 
     /* 隐藏number_input的标签 */
@@ -1792,11 +1909,11 @@ elif st.session_state.current_page == "预测模型":
         background-color: white !important;
         color: #333 !important;
         border: 1px solid #ddd !important;
-        border-radius: 6px !important;
+        border-radius: 5px !important;
         text-align: center !important;
         font-weight: bold !important;
-        font-size: 14px !important;
-        padding: 8px 12px !important;
+        font-size: 20px !important;
+        padding: 6px 8px !important;
         width: 100% !important;
         margin: 0 !important;
     }
@@ -1816,8 +1933,13 @@ elif st.session_state.current_page == "预测模型":
     }
 
     /* 第一列 Proximate Analysis 按钮颜色 - 青绿色 */
+    .stColumn:nth-child(1) .stColumn:nth-child(2) .stNumberInput button {
+        background-color: #20B2AA !important;
+    }
+
+    /* 备用选择器 - 第一列的所有number_input按钮 */
     .stColumn:nth-child(1) .stNumberInput button {
-        background-color: #20b2aa !important;
+        background-color: #20B2AA !important;
     }
 
     /* 第二列 Ultimate Analysis 按钮颜色 - 金黄色 */
@@ -1828,6 +1950,15 @@ elif st.session_state.current_page == "预测模型":
     /* 第三列 Pyrolysis Conditions 按钮颜色 - 橙红色 */
     .stColumn:nth-child(3) .stNumberInput button {
         background-color: #cd5c5c !important;
+    }
+
+    /* 强力选择器 - 针对嵌套列结构 */
+    /* 第一列的所有按钮（包括嵌套列中的） */
+    [data-testid="column"]:nth-child(1) [data-testid="stNumberInput"] button,
+    [data-testid="column"]:nth-child(1) [data-testid="column"] [data-testid="stNumberInput"] button {
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
+        border-color: #20B2AA !important;
     }
 
     /* 确保主要按钮可见且样式正常 */
@@ -1893,6 +2024,20 @@ elif st.session_state.current_page == "预测模型":
         align-items: center !important;
         margin: 0 !important;
     }
+
+    /* 最终解决方案 - 针对嵌套列结构的强力选择器 */
+    /* 选择第一个主列中的所有number_input按钮，无论嵌套多深 */
+    div[data-testid="column"]:nth-child(1) * [data-testid="stNumberInput"] button {
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
+        border: 1px solid #20B2AA !important;
+    }
+
+    /* 使用更高优先级的选择器 */
+    body div[data-testid="column"]:nth-child(1) button[aria-label*="crement"] {
+        background-color: #20B2AA !important;
+        background: #20B2AA !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1913,7 +2058,7 @@ elif st.session_state.current_page == "预测模型":
     with col1:
         # 添加列标题
         st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
             <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Proximate Analysis</h3>
         </div>
         """, unsafe_allow_html=True)
@@ -1934,7 +2079,7 @@ elif st.session_state.current_page == "预测模型":
             with label_col:
                 # 创建标签
                 st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
                     {feature}
                 </div>
                 """, unsafe_allow_html=True)
@@ -1959,8 +2104,8 @@ elif st.session_state.current_page == "预测模型":
     with col2:
         # 添加列标题
         st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3 style='margin: 0; color: #20b2aa; font-weight: bold;'>Ultimate Analysis</h3>
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #daa520; font-weight: bold;'>Ultimate Analysis</h3>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1980,7 +2125,7 @@ elif st.session_state.current_page == "预测模型":
             with label_col:
                 # 创建标签
                 st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
                     {feature}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2005,7 +2150,7 @@ elif st.session_state.current_page == "预测模型":
     with col3:
         # 添加列标题
         st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
             <h3 style='margin: 0; color: #cd5c5c; font-weight: bold;'>Pyrolysis Conditions</h3>
         </div>
         """, unsafe_allow_html=True)
@@ -2026,7 +2171,7 @@ elif st.session_state.current_page == "预测模型":
             with label_col:
                 # 创建标签
                 st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 12px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 10px;'>
+                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
                     {feature}
                 </div>
                 """, unsafe_allow_html=True)
@@ -2047,54 +2192,125 @@ elif st.session_state.current_page == "预测模型":
             # 存储特征值
             features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
 
+    # 明确结束三列布局 - 添加一个空的容器来确保退出列上下文
+    st.empty()
 
+    # 立即显示当前输入值 - 紧贴特征输入区域
+    with st.expander("📊 显示当前输入值", expanded=False):
+        debug_info = """
+        <div style='
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            margin: 10px 0;
+            columns: 3;
+            column-gap: 20px;
+        '>
+        """
+        for feature, value in features.items():
+            debug_info += f"<p style='color: #000 !important; margin: 5px 0;'><b>{feature}</b>: {value:.3f}</p>"
+        debug_info += "</div>"
+        st.markdown(debug_info, unsafe_allow_html=True)
 
-    # 调试信息：显示所有当前输入值
+    # 添加expander标题的自定义样式 - 使用所有可能的Streamlit expander选择器
     st.markdown("""
     <style>
-    /* 强制修改所有expander的样式 */
-    div[data-testid="stExpander"] {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
-    }
+    /* 尝试所有可能的expander标题选择器 */
 
-    div[data-testid="stExpander"] summary {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
+    /* 方法1: 使用data-testid */
+    [data-testid="stExpander"] {
+        background: rgba(255,255,255,0.1) !important;
         border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
+        backdrop-filter: blur(5px) !important;
         padding: 10px !important;
+        margin: 0px 0 !important;
     }
 
-    div[data-testid="stExpander"] details {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
-        border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
+    /* 使用更具体的选择器来覆盖全局的 .main .block-container * 规则 */
+    .main .block-container [data-testid="stExpander"] summary {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        font-weight: bold !important;
     }
 
-    div[data-testid="stExpander"] details summary {
-        background: rgba(255,255,255,0.3) !important;
-        border: none !important;
-        box-shadow: none !important;
+    .main .block-container [data-testid="stExpander"] summary * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    }
+
+    /* 方法2: 使用details元素 */
+    details {
+        background: rgba(255,255,255,0.1) !important;
         border-radius: 10px !important;
-        backdrop-filter: blur(3px) !important;
+        backdrop-filter: blur(5px) !important;
         padding: 10px !important;
+        margin: 0px 0 !important;
+    }
+
+    .main .block-container details summary {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        font-weight: bold !important;
+    }
+
+    .main .block-container details summary * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    }
+
+    /* 方法3: 使用streamlit类名 */
+    .streamlit-expanderHeader,
+    .stExpanderHeader {
+        background: rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(5px) !important;
+        padding: 10px !important;
+        margin: 0px 0 !important;
+    }
+
+    .main .block-container .streamlit-expanderHeader *,
+    .main .block-container .stExpanderHeader * {
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+    }
+
+    /* 方法4: expander标题样式 */
+    [data-testid="stExpander"] summary,
+    details summary {
+        background: rgba(255,255,255,0.1) !important;
+        border-radius: 10px !important;
+        backdrop-filter: blur(5px) !important;
+        padding: 10px !important;
+        margin: 10px 0 !important;
+        color: white !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8) !important;
+        font-weight: bold !important;
+    }
+
+    /* expander内容样式 */
+    [data-testid="stExpander"] div[data-testid="stExpanderDetails"],
+    details > div:not(summary) {
+        background: rgba(255,255,255,0.05) !important;
+        border-radius: 0 0 10px 10px !important;
+        padding: 15px !important;
+        margin-top: -10px !important;
+    }
+
+    /* expander内容文本样式 */
+    [data-testid="stExpander"] div[data-testid="stExpanderDetails"] p,
+    [data-testid="stExpander"] div[data-testid="stExpanderDetails"] div,
+    details > div:not(summary) p,
+    details > div:not(summary) div {
+        color: #333 !important;
+        padding: 2px 5px !important;
+        border-radius: 3px !important;
+        margin: 2px 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-    with st.expander("📊 显示当前输入值", expanded=False):
-        debug_info = "<div style='columns: 3; column-gap: 20px;'>"
-        for feature, value in features.items():
-            debug_info += f"<p><b>{feature}</b>: {value:.3f}</p>"
-        debug_info += "</div>"
-        st.markdown(debug_info, unsafe_allow_html=True)
+
 
     # 重置状态
     if st.session_state.clear_pressed:
@@ -2104,13 +2320,18 @@ elif st.session_state.current_page == "预测模型":
     # 预测结果显示区域
     result_container = st.container()
 
+    # 添加间距
+    st.markdown("<div style='margin-top: 20px; margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+
     # 预测按钮区域
     st.markdown('<div class="main-buttons">', unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        predict_clicked = st.button("🔮 运行预测", use_container_width=True, type="primary")
+        predict_clicked = st.button("🔮 运行预测", use_container_width=True,
+                                   type="primary" if st.session_state.bottom_button_selected == "predict" else "secondary")
         if predict_clicked:
+            st.session_state.bottom_button_selected = "predict"
             log("开始预测流程...")
 
             # 切换模型后需要重新初始化预测器
@@ -2156,9 +2377,13 @@ elif st.session_state.current_page == "预测模型":
                 log(f"预测错误: {str(e)}")
                 log(traceback.format_exc())
                 st.error(error_msg)
+            st.rerun()
 
     with col2:
-        if st.button("🔄 重置输入", use_container_width=True):
+        reset_clicked = st.button("🔄 重置输入", use_container_width=True,
+                                 type="primary" if st.session_state.bottom_button_selected == "reset" else "secondary")
+        if reset_clicked:
+            st.session_state.bottom_button_selected = "reset"
             log("重置所有输入值")
             st.session_state.clear_pressed = True
             st.session_state.prediction_result = None
@@ -2170,13 +2395,25 @@ elif st.session_state.current_page == "预测模型":
 
     # 显示预测结果
     if st.session_state.prediction_result is not None:
+        st.markdown("<div style='margin-top: 10px; margin-bottom: 10px;'></div>", unsafe_allow_html=True)
         st.markdown("---")
 
-        # 显示主预测结果
-        result_container.markdown(
-            f"<div class='yield-result'>{st.session_state.selected_model}: {st.session_state.prediction_result:.2f} wt%</div>",
-            unsafe_allow_html=True
-        )
+        # 显示主预测结果 - 支持多目标输出
+        if isinstance(st.session_state.prediction_result, (list, tuple, np.ndarray)):
+            # 多目标预测结果
+            target_names = ['Cd', 'Pb', 'Hg']
+            results_html = "<div class='yield-result'>"
+            results_html += f"<h3>{st.session_state.selected_model} 预测结果：</h3>"
+            for i, (target, value) in enumerate(zip(target_names, st.session_state.prediction_result)):
+                results_html += f"<p><strong>{target}:</strong> {value:.4f}</p>"
+            results_html += "</div>"
+            result_container.markdown(results_html, unsafe_allow_html=True)
+        else:
+            # 单目标预测结果
+            result_container.markdown(
+                f"<div class='yield-result'>预测结果：{st.session_state.selected_model}: {st.session_state.prediction_result:.4f}</div>",
+                unsafe_allow_html=True
+            )
 
         # 显示模型状态
         if not predictor.model_loaded:
@@ -2193,24 +2430,7 @@ elif st.session_state.current_page == "预测模型":
             warnings_html += "</ul><p><i>建议调整输入值以获得更准确的预测结果。</i></p></div>"
             result_container.markdown(warnings_html, unsafe_allow_html=True)
 
-        # 显示预测详情
-        with st.expander("📈 预测详情", expanded=False):
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown(f"""
-                **预测信息:**
-                - 目标变量: {st.session_state.selected_model}
-                - 预测结果: {st.session_state.prediction_result:.4f} wt%
-                - 模型类型: GBDT Pipeline
-                - 预处理: RobustScaler
-                """)
-            with col2:
-                st.markdown(f"""
-                **模型状态:**
-                - 加载状态: {'✅ 正常' if predictor.model_loaded else '❌ 失败'}
-                - 特征数量: {len(predictor.feature_names)}
-                - 警告数量: {len(st.session_state.warnings)}
-                """)
+
 
     elif st.session_state.prediction_error is not None:
         st.markdown("---")
@@ -2221,9 +2441,10 @@ elif st.session_state.current_page == "预测模型":
             <p><b>可能的解决方案:</b></p>
             <ul>
                 <li>确保模型文件 (.joblib) 存在于应用目录中</li>
-                <li>检查模型文件名是否包含对应的关键词 (char/oil/gas)</li>
+                <li>检查模型文件名是否包含对应的关键词 (gbdt/rf/cat)</li>
                 <li>验证输入数据格式是否正确</li>
-                <li>确认特征顺序：M, Ash, VM, O/C, H/C, N/C, FT, HR, FR</li>
+                <li>确认特征顺序：Feature1-Feature9</li>
+                <li>检查模型是否支持多目标输出 (Cd, Pb, Hg)</li>
             </ul>
         </div>
         """
