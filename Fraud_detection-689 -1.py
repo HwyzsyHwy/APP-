@@ -1565,6 +1565,32 @@ class EnsembleModelPredictor:
 
         return info
 
+    def check_input_range(self, features):
+        """检查输入值是否在训练数据范围内"""
+        warnings = []
+
+        # 定义训练数据范围（与ModelPredictor保持一致）
+        training_ranges = {
+            'pH': {'min': 2.0, 'max': 9.0},
+            'V': {'min': -1.6, 'max': -0.5},
+            'T': {'min': 18.0, 'max': 602.0},
+            'LD': {'min': 8.0, 'max': 23.8},
+            'Ap': {'min': 5.0, 'max': 25.0},
+            'f': {'min': 15.0, 'max': 59.0},
+            'SP': {'min': 4.0, 'max': 5.0}
+        }
+
+        for feature, value in features.items():
+            range_info = training_ranges.get(feature)
+
+            if range_info:
+                if value < range_info['min'] or value > range_info['max']:
+                    warning = f"{feature}: {value:.3f} (超出训练范围 {range_info['min']:.3f} - {range_info['max']:.3f})"
+                    warnings.append(warning)
+                    log(f"警告: {warning}")
+
+        return warnings
+
 class ModelPredictor:
     """重金属预测器类 - 根据训练代码调整"""
 
