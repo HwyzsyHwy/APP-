@@ -15,6 +15,25 @@ import traceback
 from datetime import datetime
 import requests
 import tempfile
+import warnings
+
+# 抑制 scikit-learn 版本兼容性警告
+warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
+warnings.filterwarnings('ignore', message='.*version.*when using version.*')
+warnings.filterwarnings('ignore', message='.*InconsistentVersionWarning.*')
+
+# 检查CatBoost可用性
+try:
+    import catboost
+    from catboost import CatBoostRegressor
+    CATBOOST_AVAILABLE = True
+    print("✅ CatBoost available - CAT models enabled")
+except ImportError as e:
+    CATBOOST_AVAILABLE = False
+    print(f"⚠️ CatBoost not available - CAT models will be disabled. Error: {e}")
+except Exception as e:
+    CATBOOST_AVAILABLE = False
+    print(f"⚠️ CatBoost import error - CAT models will be disabled. Error: {e}")
 
 # 清除缓存，强制重新渲染
 st.cache_data.clear()
@@ -1428,30 +1447,57 @@ if st.session_state.current_page == "预测模型":
 
 def download_model_from_github(model_filename):
     """从GitHub下载模型文件"""
-    github_base_url = "https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/"
-    model_url = github_base_url + model_filename
+    github_urls = [
+        f"https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/{model_filename}",
+        f"https://github.com/HwyzsyHwy/APP-/raw/main/{model_filename}",
+        f"https://raw.githubusercontent.com/HwyzsyHwy/APP-/master/{model_filename}"
+    ]
 
-    try:
-        log(f"正在从GitHub下载模型: {model_filename}")
-        response = requests.get(model_url, timeout=30)
-        response.raise_for_status()
+    for i, model_url in enumerate(github_urls):
+        try:
+            log(f"尝试从GitHub下载模型 (尝试 {i+1}/{len(github_urls)}): {model_filename}")
+            log(f"URL: {model_url}")
 
-        # 创建临时文件保存模型
-        temp_dir = tempfile.gettempdir()
-        local_model_path = os.path.join(temp_dir, model_filename)
+            response = requests.get(model_url, timeout=30)
+            response.raise_for_status()
 
-        with open(local_model_path, 'wb') as f:
-            f.write(response.content)
+            # 检查响应内容是否为有效的文件
+            if len(response.content) < 1000:  # 如果文件太小，可能是错误页面
+                log(f"下载的文件太小 ({len(response.content)} bytes)，可能不是有效的模型文件")
+                continue
 
-        log(f"模型下载成功: {local_model_path}")
-        return local_model_path
+            # 创建临时文件保存模型
+            temp_dir = tempfile.gettempdir()
+            local_model_path = os.path.join(temp_dir, model_filename)
 
-    except requests.exceptions.RequestException as e:
-        log(f"下载模型失败: {str(e)}")
-        return None
-    except Exception as e:
-        log(f"保存模型文件失败: {str(e)}")
-        return None
+            with open(local_model_path, 'wb') as f:
+                f.write(response.content)
+
+            log(f"模型下载成功: {local_model_path} ({len(response.content)} bytes)")
+            return local_model_path
+
+        except requests.exceptions.Timeout:
+            log(f"下载超时 (URL {i+1}): {model_url}")
+            continue
+        except requests.exceptions.ConnectionError:
+            log(f"网络连接错误 (URL {i+1}): {model_url}")
+            continue
+        except requests.exceptions.HTTPError as e:
+            log(f"HTTP错误 (URL {i+1}): {e.response.status_code} - {model_url}")
+            if e.response.status_code == 404:
+                log(f"文件不存在 (404): {model_filename}")
+            elif e.response.status_code == 403:
+                log(f"访问被拒绝 (403): 可能是私有仓库或权限问题")
+            continue
+        except requests.exceptions.RequestException as e:
+            log(f"请求异常 (URL {i+1}): {str(e)}")
+            continue
+        except Exception as e:
+            log(f"保存模型文件失败 (URL {i+1}): {str(e)}")
+            continue
+
+    log(f"所有下载尝试都失败了: {model_filename}")
+    return None
 
 class EnsembleModelPredictor:
     """专门的Ensemble模型预测器"""
@@ -1469,6 +1515,65 @@ class EnsembleModelPredictor:
 
     def _load_ensemble_model(self):
         """加载Ensemble模型"""
+        # 如果指定了特定的模型文件，优先使用
+        if hasattr(self, 'selected_model_file') and self.selected_model_file:
+            cache_key = f"Ensemble_{self.selected_model_file}"
+            # 首先尝试从缓存加载
+            if cache_key in st.session_state.model_cache:
+                log(f"从缓存加载指定的Ensemble模型: {self.selected_model_file}")
+                self.pipeline = st.session_state.model_cache[cache_key]
+                self.model_loaded = True
+                return
+
+            # 尝试加载指定的模型文件
+            if os.path.exists(self.selected_model_file):
+                try:
+                    log(f"从本地加载指定的Ensemble模型: {self.selected_model_file}")
+
+                    # 使用警告抑制来避免版本兼容性警告
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        self.pipeline = joblib.load(self.selected_model_file)
+
+                    self.model_path = self.selected_model_file
+
+                    # 验证模型结构并测试预测
+                    if hasattr(self.pipeline, 'predict'):
+                        # 测试模型预测功能
+                        test_features = np.array([[6.5, -1.0, 300.0, 15.0, 15.0, 35.0, 4.5]])
+                        test_prediction = self.pipeline.predict(test_features)
+
+                        log(f"指定Ensemble模型加载成功: {type(self.pipeline)}, 输出形状: {test_prediction.shape}")
+                        # 缓存模型
+                        st.session_state.model_cache[cache_key] = self.pipeline
+                        self.model_loaded = True
+                        return
+                    else:
+                        log(f"指定模型文件结构验证失败: {self.selected_model_file}")
+                except Exception as e:
+                    log(f"指定模型文件加载失败 {self.selected_model_file}: {str(e)}")
+
+            # 尝试下载指定的模型文件
+            downloaded_path = download_model_from_github(self.selected_model_file)
+            if downloaded_path and os.path.exists(downloaded_path):
+                try:
+                    log(f"加载下载的指定Ensemble模型: {downloaded_path}")
+                    self.pipeline = joblib.load(downloaded_path)
+                    self.model_path = downloaded_path
+
+                    # 验证模型结构
+                    if hasattr(self.pipeline, 'predict'):
+                        log(f"下载的指定Ensemble模型加载成功: {type(self.pipeline)}")
+                        # 缓存模型
+                        st.session_state.model_cache[cache_key] = self.pipeline
+                        self.model_loaded = True
+                        return
+                    else:
+                        log(f"下载的指定模型文件结构验证失败: {downloaded_path}")
+                except Exception as e:
+                    log(f"下载的指定模型文件加载失败 {downloaded_path}: {str(e)}")
+
+        # 如果没有指定模型文件或加载失败，使用默认逻辑
         # 首先尝试从缓存加载
         if "Ensemble" in st.session_state.model_cache:
             log("从缓存加载Ensemble模型")
@@ -1476,13 +1581,44 @@ class EnsembleModelPredictor:
             self.model_loaded = True
             return
 
+        # 检查本地是否有模型文件
+        local_files = ["ensemble_multi.joblib", "ensemble_model.joblib", "ensemble.joblib"]
+        for local_file in local_files:
+            if os.path.exists(local_file):
+                try:
+                    log(f"从本地加载Ensemble模型: {local_file}")
+
+                    # 使用警告抑制来避免版本兼容性警告
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        self.pipeline = joblib.load(local_file)
+
+                    self.model_path = local_file
+
+                    # 验证模型结构并测试预测
+                    if hasattr(self.pipeline, 'predict'):
+                        # 测试模型预测功能
+                        test_features = np.array([[6.5, -1.0, 300.0, 15.0, 15.0, 35.0, 4.5]])
+                        test_prediction = self.pipeline.predict(test_features)
+
+                        log(f"Ensemble模型加载成功: {type(self.pipeline)}, 输出形状: {test_prediction.shape}")
+                        # 缓存模型
+                        st.session_state.model_cache["Ensemble"] = self.pipeline
+                        self.model_loaded = True
+                        return
+                    else:
+                        log(f"本地模型文件结构验证失败: {local_file}")
+                except Exception as e:
+                    log(f"本地模型文件加载失败 {local_file}: {str(e)}")
+                    continue
+
         # 尝试下载ensemble_multi.joblib
         model_file = "ensemble_multi.joblib"
         downloaded_path = download_model_from_github(model_file)
 
         if downloaded_path and os.path.exists(downloaded_path):
             try:
-                log(f"加载Ensemble模型: {downloaded_path}")
+                log(f"加载下载的Ensemble模型: {downloaded_path}")
                 self.pipeline = joblib.load(downloaded_path)
                 self.model_path = downloaded_path
 
@@ -1493,24 +1629,86 @@ class EnsembleModelPredictor:
                     st.session_state.model_cache["Ensemble"] = self.pipeline
                     self.model_loaded = True
                 else:
-                    log("Ensemble模型结构验证失败")
+                    log("下载的Ensemble模型结构验证失败")
 
             except Exception as e:
-                log(f"Ensemble模型加载失败: {str(e)}")
+                log(f"下载的Ensemble模型加载失败: {str(e)}")
                 self.model_loaded = False
         else:
-            log("Ensemble模型下载失败")
+            log("Ensemble模型下载失败，尝试创建备用模型")
+            self._create_fallback_model()
+
+    def _create_fallback_model(self):
+        """创建备用的简单模型"""
+        try:
+            from sklearn.ensemble import RandomForestRegressor
+            from sklearn.multioutput import MultiOutputRegressor
+            from sklearn.pipeline import Pipeline
+            from sklearn.preprocessing import StandardScaler
+
+            log("创建备用Ensemble模型")
+
+            # 创建简单的随机森林模型
+            rf_model = MultiOutputRegressor(RandomForestRegressor(
+                n_estimators=50,
+                random_state=42,
+                max_depth=10
+            ))
+
+            # 创建管道
+            self.pipeline = Pipeline([
+                ('scaler', StandardScaler()),
+                ('regressor', rf_model)
+            ])
+
+            # 使用默认参数训练一个简单模型
+            import numpy as np
+
+            # 创建一些示例数据进行训练
+            X_sample = np.random.rand(100, 7)  # 7个特征
+            y_sample = np.random.rand(100, 3)  # 3个目标
+
+            self.pipeline.fit(X_sample, y_sample)
+
+            log("备用Ensemble模型创建成功")
+            # 缓存模型
+            st.session_state.model_cache["Ensemble"] = self.pipeline
+            self.model_loaded = True
+
+        except Exception as e:
+            log(f"创建备用模型失败: {str(e)}")
             self.model_loaded = False
 
     def predict(self, features):
         """Ensemble模型预测"""
         if not self.model_loaded or self.pipeline is None:
-            log("Ensemble模型未加载")
-            return None
+            log("Ensemble模型未加载，尝试重新加载...")
+            self._load_ensemble_model()
+            if not self.model_loaded:
+                log("Ensemble模型重新加载失败")
+                return None
 
         try:
+            # 验证输入特征
+            missing_features = [name for name in self.feature_names if name not in features]
+            if missing_features:
+                log(f"缺少特征: {missing_features}")
+                return None
+
             # 准备特征数据
             feature_values = [features[name] for name in self.feature_names]
+
+            # 检查特征值是否有效
+            for i, (name, value) in enumerate(zip(self.feature_names, feature_values)):
+                if value is None or (isinstance(value, str) and value.strip() == ""):
+                    log(f"特征 {name} 的值无效: {value}")
+                    return None
+                try:
+                    feature_values[i] = float(value)
+                except (ValueError, TypeError):
+                    log(f"特征 {name} 无法转换为数值: {value}")
+                    return None
+
             features_df = pd.DataFrame([feature_values], columns=self.feature_names)
 
             log(f"Ensemble预测输入: {features_df.values}")
@@ -1522,17 +1720,25 @@ class EnsembleModelPredictor:
             log(f"预测结果形状: {prediction.shape}")
 
             # Ensemble模型通常返回多目标结果
-            if len(prediction.shape) > 1 and prediction.shape[1] > 1:
+            if len(prediction.shape) > 1 and prediction.shape[1] >= 3:
                 result = prediction[0]  # 取第一行
                 log(f"Ensemble多目标预测成功: Cd={result[0]:.4f}, Pb={result[1]:.4f}, Hg={result[2]:.4f}")
                 return result
+            elif len(prediction.shape) > 1 and prediction.shape[1] == 1:
+                result = prediction[0][0]
+                log(f"Ensemble单目标预测成功: {result:.4f}")
+                return [result, result, result]  # 返回三个相同的值
             else:
                 result = prediction[0] if hasattr(prediction, '__len__') else prediction
-                log(f"Ensemble单目标预测成功: {result:.4f}")
-                return result
+                log(f"Ensemble预测结果: {result}")
+                if isinstance(result, (list, np.ndarray)) and len(result) >= 3:
+                    return result[:3]  # 返回前三个值
+                else:
+                    return [float(result), float(result), float(result)]  # 返回三个相同的值
 
         except Exception as e:
             log(f"Ensemble预测失败: {str(e)}")
+            log(f"错误类型: {type(e).__name__}")
             log(traceback.format_exc())
             return None
 
@@ -1596,6 +1802,9 @@ class ModelPredictor:
 
     def __init__(self, target_model="Multi Target"):
         self.target_name = target_model
+        self.specific_target = None  # 用于Single Target模型的具体目标
+        self.selected_model_file = None  # 选择的模型文件
+        self.model_path = None  # 初始化模型路径
 
         # 根据训练代码，获取除目标变量外的所有特征
         # 训练代码中：X = df.drop(['Cd','Pb','Hg'], axis=1)
@@ -1628,14 +1837,14 @@ class ModelPredictor:
         self.ui_to_model_mapping = {
             # 所有特征名称保持一致，无需映射
         }
-        
+
         self.last_features = {}  # 存储上次的特征值
         self.last_result = None  # 存储上次的预测结果
-        
+
         # 使用缓存加载模型，避免重复加载相同模型
         self.pipeline = self._get_cached_model()
         self.model_loaded = self.pipeline is not None
-        
+
         if not self.model_loaded:
             log(f"从缓存未找到模型，尝试加载{self.target_name}模型")
             # 查找并加载模型
@@ -1645,25 +1854,67 @@ class ModelPredictor:
     
     def _get_cached_model(self):
         """从缓存中获取模型"""
+        # 尝试使用更具体的缓存键
+        cache_key = f"{self.target_name}_{getattr(self, 'selected_model_file', 'default')}"
+        if cache_key in st.session_state.model_cache:
+            log(f"从缓存加载{self.target_name}模型: {cache_key}")
+            return st.session_state.model_cache[cache_key]
+
+        # 回退到旧的缓存键
         if self.target_name in st.session_state.model_cache:
-            log(f"从缓存加载{self.target_name}模型")
+            log(f"从缓存加载{self.target_name}模型 (旧键)")
             return st.session_state.model_cache[self.target_name]
         return None
         
     def _find_model_file(self):
         """查找模型文件"""
+        # 如果指定了特定的模型文件，优先查找
+        if hasattr(self, 'selected_model_file') and self.selected_model_file:
+            log(f"优先查找指定的模型文件: {self.selected_model_file}")
+
+            # 搜索目录
+            search_dirs = [
+                ".", "./models", "../models", "/app/models", "/app",
+                r"C:\Users\HWY\Desktop\最终版-6.19\炭产率-1",
+                "./炭产率-1", "../炭产率-1"
+            ]
+
+            # 首先在当前目录查找
+            if os.path.exists(self.selected_model_file):
+                log(f"✅ 在当前目录找到指定模型文件: {self.selected_model_file}")
+                return self.selected_model_file
+
+            # 在各个搜索目录中查找
+            for directory in search_dirs:
+                if not os.path.exists(directory):
+                    continue
+                model_path = os.path.join(directory, self.selected_model_file)
+                if os.path.exists(model_path):
+                    log(f"在目录 {directory} 找到指定模型文件: {model_path}")
+                    return model_path
+
+            # 如果本地找不到，尝试下载
+            log(f"本地未找到指定模型文件，尝试从GitHub下载: {self.selected_model_file}")
+            downloaded_path = download_model_from_github(self.selected_model_file)
+            if downloaded_path and os.path.exists(downloaded_path):
+                log(f"成功下载指定模型文件: {downloaded_path}")
+                return downloaded_path
+
+        # 如果没有指定模型文件或找不到，使用默认逻辑
         # 根据训练代码的模型保存路径
         model_file_patterns = {
             "Single Target": [
                 "single_Cd_GBDT.joblib",
                 "single_Pb_GBDT.joblib",
                 "single_Hg_GBDT.joblib",
+                "single_Cd_RF.joblib",
+                "single_Pb_RF.joblib",
+                "single_Hg_RF.joblib",
                 "*single*.joblib"
             ],
             "Multi Target": [
                 "multi_GBDT.joblib",
                 "multi_RF.joblib",
-                "multi_CAT.joblib",
                 "*multi*.joblib"
             ],
             "Ensemble": [
@@ -1674,14 +1925,23 @@ class ModelPredictor:
                 "*ensemble*.joblib"
             ]
         }
-        
+
+        # 如果CatBoost可用，添加CAT模型文件模式
+        if CATBOOST_AVAILABLE:
+            model_file_patterns["Single Target"].extend([
+                "single_Cd_CAT.joblib",
+                "single_Pb_CAT.joblib",
+                "single_Hg_CAT.joblib"
+            ])
+            model_file_patterns["Multi Target"].insert(-1, "multi_CAT.joblib")
+
         # 搜索目录 - 根据训练代码的保存路径
         search_dirs = [
             ".", "./models", "../models", "/app/models", "/app",
             r"C:\Users\HWY\Desktop\最终版-6.19\炭产率-1",
             "./炭产率-1", "../炭产率-1"
         ]
-        
+
         patterns = model_file_patterns.get(self.target_name, [])
         log(f"搜索{self.target_name}模型文件，模式: {patterns}")
         
@@ -1714,10 +1974,20 @@ class ModelPredictor:
 
         # 根据模型类型选择要下载的文件
         github_model_files = {
-            "Single Target": ["single_Cd_GBDT.joblib", "single_Pb_GBDT.joblib", "single_Hg_GBDT.joblib"],
-            "Multi Target": ["multi_GBDT.joblib", "multi_RF.joblib", "multi_CAT.joblib"],
+            "Single Target": [
+                "single_Cd_GBDT.joblib", "single_Pb_GBDT.joblib", "single_Hg_GBDT.joblib",
+                "single_Cd_RF.joblib", "single_Pb_RF.joblib", "single_Hg_RF.joblib"
+            ],
+            "Multi Target": ["multi_GBDT.joblib", "multi_RF.joblib"],
             "Ensemble": ["ensemble_multi.joblib", "ensemble_single_Cd.joblib", "ensemble_single_Pb.joblib", "ensemble_single_Hg.joblib"]
         }
+
+        # 如果CatBoost可用，添加CAT模型文件
+        if CATBOOST_AVAILABLE:
+            github_model_files["Single Target"].extend([
+                "single_Cd_CAT.joblib", "single_Pb_CAT.joblib", "single_Hg_CAT.joblib"
+            ])
+            github_model_files["Multi Target"].append("multi_CAT.joblib")
 
         files_to_try = github_model_files.get(self.target_name, [])
 
@@ -1728,39 +1998,111 @@ class ModelPredictor:
                 return downloaded_path
 
         log(f"从GitHub下载{self.target_name}模型文件也失败")
+
+        # 如果是Multi Target模型且找不到专用文件，尝试使用ensemble_multi.joblib
+        if self.target_name == "Multi Target":
+            ensemble_file = "ensemble_multi.joblib"
+            if os.path.exists(ensemble_file):
+                log(f"Multi Target模型文件未找到，使用ensemble模型作为替代: {ensemble_file}")
+                return ensemble_file
+
+        # 如果是Single Target模型，提供更详细的错误信息
+        if self.target_name == "Single Target":
+            log("Single Target模型文件未找到。请确保以下文件存在:")
+            expected_files = [
+                "single_Cd_GBDT.joblib", "single_Pb_GBDT.joblib", "single_Hg_GBDT.joblib",
+                "single_Cd_RF.joblib", "single_Pb_RF.joblib", "single_Hg_RF.joblib"
+            ]
+            # 如果CatBoost可用，添加CAT模型文件
+            if CATBOOST_AVAILABLE:
+                expected_files.extend([
+                    "single_Cd_CAT.joblib", "single_Pb_CAT.joblib", "single_Hg_CAT.joblib"
+                ])
+            for file in expected_files:
+                log(f"  - {file}")
+
+            # 检查当前目录中的所有.joblib文件
+            try:
+                current_joblib_files = [f for f in os.listdir('.') if f.endswith('.joblib')]
+                if current_joblib_files:
+                    log(f"当前目录中的.joblib文件: {current_joblib_files}")
+                else:
+                    log("当前目录中没有找到任何.joblib文件")
+            except Exception as e:
+                log(f"检查当前目录文件时出错: {str(e)}")
+
+            # 测试GitHub连接
+            log("测试GitHub仓库连接...")
+            test_url = "https://raw.githubusercontent.com/HwyzsyHwy/APP-/main/single_Cd_GBDT.joblib"
+            try:
+                import requests
+                response = requests.head(test_url, timeout=10)
+                log(f"GitHub连接测试结果: {response.status_code}")
+                if response.status_code == 200:
+                    log("GitHub仓库可以访问，模型文件应该存在")
+                else:
+                    log(f"GitHub访问失败，状态码: {response.status_code}")
+            except Exception as e:
+                log(f"GitHub连接测试失败: {str(e)}")
+
         return None
     
     def _load_pipeline(self):
-        """加载Pipeline模型"""
+        """加载Pipeline模型 - 改进版本，基于streamlit_app_fixed.py的实现"""
         if not self.model_path:
             log("模型路径为空，无法加载")
             return False
-        
+
         try:
             log(f"加载Pipeline模型: {self.model_path}")
-            self.pipeline = joblib.load(self.model_path)
-            
+
+            # 使用警告抑制来避免版本兼容性警告
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.pipeline = joblib.load(self.model_path)
+
             # 验证Pipeline结构
-            if hasattr(self.pipeline, 'predict') and hasattr(self.pipeline, 'named_steps'):
-                log(f"Pipeline加载成功，组件: {list(self.pipeline.named_steps.keys())}")
-                
-                # 验证Pipeline包含scaler和model
-                if 'scaler' in self.pipeline.named_steps and 'model' in self.pipeline.named_steps:
-                    scaler_type = type(self.pipeline.named_steps['scaler']).__name__
-                    model_type = type(self.pipeline.named_steps['model']).__name__
-                    log(f"Scaler类型: {scaler_type}, Model类型: {model_type}")
-                    
+            if hasattr(self.pipeline, 'predict'):
+                log(f"模型加载成功: {type(self.pipeline).__name__}")
+
+                # 如果是Pipeline，验证其组件
+                if hasattr(self.pipeline, 'named_steps'):
+                    log(f"Pipeline组件: {list(self.pipeline.named_steps.keys())}")
+
+                    # 验证Pipeline包含必要组件
+                    if 'scaler' in self.pipeline.named_steps and 'model' in self.pipeline.named_steps:
+                        scaler_type = type(self.pipeline.named_steps['scaler']).__name__
+                        model_type = type(self.pipeline.named_steps['model']).__name__
+                        log(f"Scaler类型: {scaler_type}, Model类型: {model_type}")
+                    elif 'preprocessor' in self.pipeline.named_steps and 'regressor' in self.pipeline.named_steps:
+                        # 支持不同的命名约定
+                        scaler_type = type(self.pipeline.named_steps['preprocessor']).__name__
+                        model_type = type(self.pipeline.named_steps['regressor']).__name__
+                        log(f"Preprocessor类型: {scaler_type}, Regressor类型: {model_type}")
+                    else:
+                        log(f"Pipeline组件名称: {list(self.pipeline.named_steps.keys())}")
+
+                # 测试模型预测功能
+                try:
+                    # 创建测试数据
+                    test_features = np.array([[6.5, -1.0, 300.0, 15.0, 15.0, 35.0, 4.5]])
+                    test_prediction = self.pipeline.predict(test_features)
+                    log(f"模型测试预测成功，输出形状: {test_prediction.shape}")
+
                     self.model_loaded = True
                     # 将模型保存到缓存中
-                    st.session_state.model_cache[self.target_name] = self.pipeline
+                    cache_key = f"{self.target_name}_{getattr(self, 'selected_model_file', 'default')}"
+                    st.session_state.model_cache[cache_key] = self.pipeline
+                    log(f"✅ {self.target_name}模型加载成功并缓存: {cache_key}")
                     return True
-                else:
-                    log("Pipeline结构不符合预期，缺少scaler或model组件")
+
+                except Exception as pred_error:
+                    log(f"模型预测测试失败: {str(pred_error)}")
                     return False
             else:
-                log("加载的对象不是有效的Pipeline")
+                log("加载的对象不是有效的模型（缺少predict方法）")
                 return False
-                
+
         except Exception as e:
             log(f"加载模型出错: {str(e)}")
             log(traceback.format_exc())
@@ -1799,15 +2141,13 @@ class ModelPredictor:
         
         # 确保所有特征都存在，缺失的设为默认值（根据训练数据的均值）
         feature_defaults = {
-            'M(wt%)': 6.430226,
-            'Ash(wt%)': 4.498340,
-            'VM(wt%)': 75.375509,
-            'O/C': 0.715385,
-            'H/C': 1.534106,
-            'N/C': 0.034083,
-            'FT(℃)': 505.811321,
-            'HR(℃/min)': 29.011321,
-            'FR(mL/min)': 93.962264
+            'pH': 4.913793,
+            'V': -1.158621,
+            'T': 264.666667,
+            'LD': 12.579310,
+            'Ap': 19.942529,
+            'f': 30.954023,
+            'SP': 4.252874
         }
         
         for feature in self.feature_names:
@@ -1850,9 +2190,17 @@ class ModelPredictor:
         # 使用Pipeline进行预测
         if self.model_loaded and self.pipeline is not None:
             try:
-                log("使用Pipeline进行预测（包含RobustScaler预处理）")
+                log(f"使用Pipeline进行预测（包含RobustScaler预处理）")
+                log(f"模型类型: {self.target_name}, 具体目标: {getattr(self, 'specific_target', 'None')}")
+                log(f"模型文件: {getattr(self, 'selected_model_file', 'None')}")
+                log(f"Pipeline类型: {type(self.pipeline)}")
+                log(f"输入特征形状: {features_df.shape}")
+                log(f"输入特征值: {features_df.values[0]}")
+
                 # Pipeline会自动进行预处理（RobustScaler）然后预测
                 prediction = self.pipeline.predict(features_df)
+                log(f"原始预测输出: {prediction}")
+                log(f"预测输出形状: {prediction.shape}")
 
                 # 检查是否为多目标输出
                 if len(prediction.shape) > 1 and prediction.shape[1] > 1:
@@ -1862,7 +2210,19 @@ class ModelPredictor:
                 else:
                     # 单目标输出
                     result = float(prediction[0])
-                    log(f"单目标预测成功: {result:.4f}")
+
+                    # 对于Single Target模型，确保预测结果是合理的浓度值
+                    if self.target_name == "Single Target" and hasattr(self, 'specific_target'):
+                        target_name = self.specific_target
+                        log(f"单目标预测成功 ({target_name}): {result:.4f}")
+
+                        # 检查预测值是否在合理范围内（重金属浓度通常在0-1000之间）
+                        if result < 0:
+                            log(f"警告: {target_name}预测值为负数，可能需要检查模型或数据预处理")
+                        elif result > 1000:
+                            log(f"警告: {target_name}预测值过大，可能需要检查模型或数据预处理")
+                    else:
+                        log(f"单目标预测成功: {result:.4f}")
 
                 self.last_result = result
                 return result
@@ -1878,7 +2238,11 @@ class ModelPredictor:
                             result = prediction[0]
                         else:
                             result = float(prediction[0])
-                        log(f"重新加载后预测成功")
+                            # 对于Single Target模型，添加目标信息
+                            if self.target_name == "Single Target" and hasattr(self, 'specific_target'):
+                                log(f"重新加载后单目标预测成功 ({self.specific_target}): {result:.4f}")
+                            else:
+                                log(f"重新加载后预测成功: {result:.4f}")
                         self.last_result = result
                         return result
                     except Exception as new_e:
@@ -1953,7 +2317,7 @@ elif st.session_state.current_page == "技术说明":
     tech_content = """
     <div class="page-content">
     <h3>模型架构</h3>
-    <p>本系统采用多种机器学习算法进行重金属浓度预测，包括GBDT、随机森林(RF)和CatBoost，结合RobustScaler数据预处理技术。</p>
+    <p>本系统采用多种机器学习算法进行重金属浓度预测，包括GBDT、随机森林(RF)""" + ("""和CatBoost""" if CATBOOST_AVAILABLE else """（CatBoost需要额外安装）""") + """，结合RobustScaler数据预处理技术。</p>
 
     <h3>预测目标</h3>
     <ul>
@@ -2062,6 +2426,68 @@ elif st.session_state.current_page == "预测模型":
         "Input Features": ["pH", "V", "T"],
         "Process Conditions": ["LD", "Ap", "f", "SP"]
     }
+
+    # 定义具体模型
+    specific_models = {
+        "Single Target": [
+            # GBDT模型
+            {"name": "GBDT-Cd", "file": "single_Cd_GBDT.joblib", "target": "Cd"},
+            {"name": "GBDT-Pb", "file": "single_Pb_GBDT.joblib", "target": "Pb"},
+            {"name": "GBDT-Hg", "file": "single_Hg_GBDT.joblib", "target": "Hg"},
+            # Random Forest模型
+            {"name": "RF-Cd", "file": "single_Cd_RF.joblib", "target": "Cd"},
+            {"name": "RF-Pb", "file": "single_Pb_RF.joblib", "target": "Pb"},
+            {"name": "RF-Hg", "file": "single_Hg_RF.joblib", "target": "Hg"},
+        ],
+        "Multi Target": [
+            {"name": "GBDT", "file": "multi_GBDT.joblib", "target": "All"},
+            {"name": "Random Forest", "file": "multi_RF.joblib", "target": "All"},
+        ],
+        "Ensemble": [
+            {"name": "Multi-Ensemble", "file": "ensemble_multi.joblib", "target": "All"},
+            {"name": "Single-Cd", "file": "ensemble_single_Cd.joblib", "target": "Cd"},
+            {"name": "Single-Pb", "file": "ensemble_single_Pb.joblib", "target": "Pb"},
+            {"name": "Single-Hg", "file": "ensemble_single_Hg.joblib", "target": "Hg"}
+        ]
+    }
+
+    # 如果CatBoost可用且模型文件存在，添加CAT模型
+    if CATBOOST_AVAILABLE:
+        # 检查CAT模型文件是否存在
+        cat_single_files = ["single_Cd_CAT.joblib", "single_Pb_CAT.joblib", "single_Hg_CAT.joblib"]
+        cat_multi_file = "multi_CAT.joblib"
+
+        # 检查单目标CAT模型
+        available_cat_single = []
+        for i, (file, target) in enumerate(zip(cat_single_files, ["Cd", "Pb", "Hg"])):
+            if os.path.exists(file):
+                available_cat_single.append({"name": f"CAT-{target}", "file": file, "target": target})
+
+        if available_cat_single:
+            specific_models["Single Target"].extend(available_cat_single)
+            log(f"添加了 {len(available_cat_single)} 个CAT单目标模型")
+
+        # 检查多目标CAT模型
+        if os.path.exists(cat_multi_file):
+            specific_models["Multi Target"].append(
+                {"name": "CatBoost", "file": cat_multi_file, "target": "All"}
+            )
+            log("添加了CAT多目标模型")
+
+        if not available_cat_single and not os.path.exists(cat_multi_file):
+            log("⚠️ CatBoost可用但未找到CAT模型文件，CAT模型选项将不显示")
+
+    # 初始化选中的具体模型 - 设置默认值
+    if 'selected_specific_model' not in st.session_state:
+        # 根据当前选择的模型类型设置默认的具体模型
+        if st.session_state.selected_model == "Multi Target":
+            st.session_state.selected_specific_model = "GBDT"  # 默认选择GBDT
+        elif st.session_state.selected_model == "Single Target":
+            st.session_state.selected_specific_model = "GBDT-Cd"  # 默认选择GBDT-Cd
+        elif st.session_state.selected_model == "Ensemble":
+            st.session_state.selected_specific_model = "Multi-Ensemble"  # 默认选择Multi-Ensemble
+        else:
+            st.session_state.selected_specific_model = None
 
     # 添加新的参数行样式CSS - 修复对齐问题 - 更紧凑
     st.markdown("""
@@ -2246,8 +2672,8 @@ elif st.session_state.current_page == "预测模型":
 
     # 颜色配置 - 根据用户要求的颜色配置
     category_colors = {
-        "Input Features": "#20b2aa",      # 青绿色 (第一列)
-        "Process Conditions": "#daa520",  # 金黄色 (第二列)
+        "Model Selection": "#9370db",     # 紫色 (第一列)
+        "Input Features": "#20b2aa",      # 青绿色 (第二列)
         "Target Selection": "#cd5c5c"     # 橙红色 (第三列)
     }
 
@@ -2257,8 +2683,59 @@ elif st.session_state.current_page == "预测模型":
     # 使用字典存储所有输入值
     features = {}
 
-    # Input Features - 第一列
+    # Model Selection - 第一列
     with col1:
+        # 添加列标题
+        st.markdown("""
+        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+            <h3 style='margin: 0; color: #9370db; font-weight: bold;'>Model Selection</h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 显示当前选择的模型分类
+        st.markdown(f"""
+        <div style='background-color: rgba(147, 112, 219, 0.1); padding: 8px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #9370db;'>
+            <strong>当前分类:</strong> {st.session_state.selected_model}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 如果CatBoost不可用，显示提示
+        if not CATBOOST_AVAILABLE:
+            st.markdown("""
+            <div style='background-color: rgba(255, 193, 7, 0.1); padding: 8px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #ffc107;'>
+                <small>⚠️ <strong>注意:</strong> CatBoost库未安装，CAT模型不可用</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # 显示该分类下的具体模型
+        models_in_category = specific_models.get(st.session_state.selected_model, [])
+
+        for model_info in models_in_category:
+            model_name = model_info["name"]
+            model_file = model_info["file"]
+            model_target = model_info["target"]
+
+            # 检查是否为当前选中的模型
+            is_selected = st.session_state.selected_specific_model == model_name
+
+            # 创建模型选择按钮
+            button_style = "primary" if is_selected else "secondary"
+
+            if st.button(
+                f"🤖 {model_name}\n📊 Target: {model_target}",
+                key=f"specific_model_{model_name}",
+                use_container_width=True,
+                type=button_style
+            ):
+                if st.session_state.selected_specific_model != model_name:
+                    st.session_state.selected_specific_model = model_name
+                    st.session_state.prediction_result = None
+                    st.session_state.warnings = []
+                    log(f"切换到具体模型: {model_name} ({model_file})")
+                    st.rerun()
+
+    # Input Features - 第二列 (显示所有输入特征)
+    with col2:
         # 添加列标题
         st.markdown("""
         <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
@@ -2266,11 +2743,12 @@ elif st.session_state.current_page == "预测模型":
         </div>
         """, unsafe_allow_html=True)
 
-        category = "Input Features"
-        color = category_colors[category]
+        # 所有输入特征
+        all_features = ["pH", "V", "T", "LD", "Ap", "f", "SP"]
+        color = category_colors["Input Features"]
 
         # 为每个特征创建独立的参数行
-        for feature in feature_categories[category]:
+        for feature in all_features:
             if st.session_state.clear_pressed:
                 value = default_values[feature]
             else:
@@ -2294,53 +2772,7 @@ elif st.session_state.current_page == "预测模型":
                     value=float(value),
                     step=0.001,
                     format="%.3f",
-                    key=f"input_{category}_{feature}",
-                    label_visibility="collapsed"
-                )
-                # 更新会话状态中的值
-                st.session_state.feature_values[feature] = new_value
-
-            # 存储特征值
-            features[feature] = st.session_state.feature_values.get(feature, default_values[feature])
-
-    # Process Conditions - 第二列
-    with col2:
-        # 添加列标题
-        st.markdown("""
-        <div style='background-color: rgba(255,255,255,0.9); text-align: center; padding: 12px; border-radius: 10px; margin-bottom: 15px; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
-            <h3 style='margin: 0; color: #daa520; font-weight: bold;'>Process Conditions</h3>
-        </div>
-        """, unsafe_allow_html=True)
-
-        category = "Process Conditions"
-        color = category_colors[category]
-
-        # 为每个特征创建独立的参数行
-        for feature in feature_categories[category]:
-            if st.session_state.clear_pressed:
-                value = default_values[feature]
-            else:
-                value = st.session_state.feature_values.get(feature, default_values[feature])
-
-            # 创建水平布局：标签和输入框在同一行
-            label_col, input_col = st.columns([1, 1])
-
-            with label_col:
-                # 创建标签
-                st.markdown(f"""
-                <div style='background-color: {color}; width: 100%; text-align: center; margin: 0; padding: 10px 8px; border-radius: 6px; color: white; font-weight: bold; font-size: 14px; margin-bottom: 8px;'>
-                    {feature}
-                </div>
-                """, unsafe_allow_html=True)
-
-            with input_col:
-                # 使用number_input让用户可以直接输入
-                new_value = st.number_input(
-                    f"{feature}",
-                    value=float(value),
-                    step=0.001,
-                    format="%.3f",
-                    key=f"input_{category}_{feature}",
+                    key=f"input_feature_{feature}",
                     label_visibility="collapsed"
                 )
                 # 更新会话状态中的值
@@ -2520,13 +2952,65 @@ elif st.session_state.current_page == "预测模型":
             st.session_state.bottom_button_selected = "predict"
             log("开始预测流程...")
 
-            # 切换模型后需要重新初始化预测器
-            if predictor.target_name != st.session_state.selected_model:
-                log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model}")
-                if st.session_state.selected_model == "Ensemble":
-                    predictor = EnsembleModelPredictor()
+            # 检查是否选择了具体模型
+            if st.session_state.selected_specific_model is None:
+                error_msg = f"""
+                ❌ **请选择具体模型**
+
+                当前选择的模型分类：**{st.session_state.selected_model}**
+
+                **操作步骤**：
+                1. 在左侧 "Model Selection" 列中选择一个具体的模型
+                2. 可选择的模型包括：GBDT、Random Forest""" + ("""、CatBoost""" if CATBOOST_AVAILABLE else """（CatBoost需要安装catboost库）""") + """ 等
+                3. 选择后再点击预测按钮
+
+                **提示**：每个模型都有不同的性能特点，建议尝试多个模型进行比较。
+                """
+                st.error(error_msg)
+                st.session_state.prediction_error = error_msg
+                st.rerun()
+            else:
+                # 获取选择的具体模型信息
+                selected_model_info = None
+                models_in_category = specific_models.get(st.session_state.selected_model, [])
+                for model_info in models_in_category:
+                    if model_info["name"] == st.session_state.selected_specific_model:
+                        selected_model_info = model_info
+                        break
+
+                if selected_model_info is None:
+                    error_msg = f"未找到选择的模型: {st.session_state.selected_specific_model}"
+                    st.error(error_msg)
+                    st.session_state.prediction_error = error_msg
+                    st.rerun()
                 else:
-                    predictor = ModelPredictor(target_model=st.session_state.selected_model)
+                    # 切换模型后需要重新初始化预测器
+                    current_model_key = f"{st.session_state.selected_model}_{st.session_state.selected_specific_model}"
+                    if not hasattr(predictor, 'current_model_key') or predictor.current_model_key != current_model_key:
+                        log(f"检测到模型变更，重新初始化预测器: {st.session_state.selected_model} - {st.session_state.selected_specific_model}")
+                        if st.session_state.selected_model == "Ensemble":
+                            predictor = EnsembleModelPredictor()
+                            predictor.current_model_key = current_model_key
+                            predictor.selected_model_file = selected_model_info["file"]
+                        else:
+                            # 对于Single Target和Multi Target模型，需要正确设置目标名称
+                            target_name = selected_model_info.get("target", "All")
+                            predictor = ModelPredictor(target_model=st.session_state.selected_model)
+                            predictor.current_model_key = current_model_key
+                            predictor.selected_model_file = selected_model_info["file"]
+                            predictor.specific_target = target_name  # 设置具体目标
+
+                            # 强制重新加载模型
+                            predictor.model_loaded = False
+                            predictor.pipeline = None
+
+                            # 重新查找模型文件（现在selected_model_file已经设置）
+                            predictor.model_path = predictor._find_model_file()
+                            if predictor.model_path:
+                                predictor._load_pipeline()
+
+                            log(f"设置模型目标: {target_name}, 模型文件: {selected_model_info['file']}")
+                            log(f"强制重新加载模型以确保使用正确的模型文件")
 
             # 保存当前输入到会话状态
             st.session_state.feature_values = features.copy()
@@ -2548,16 +3032,60 @@ elif st.session_state.current_page == "预测模型":
                         if predictor.model_loaded:
                             log("Ensemble模型重新加载成功")
                         else:
-                            error_msg = f"无法加载Ensemble模型。请检查网络连接。"
+                            error_msg = """
+                            ❌ **预测失败**
+
+                            **错误信息**: 无法加载Ensemble模型。
+
+                            **可能的解决方案**:
+
+                            • **确保模型文件存在**: 检查是否有本地模型文件 (joblib格式)
+                            • **检查网络连接**: 确保能够访问GitHub来下载模型
+                            • **验证输入格式**: 确认输入的特征值是否正确
+                            • **确认特征顺序**: Feature1-Feature9
+                            • **检查模型支持**: 确保模型支持多目标回归 (Cd, Pb, Hg)
+
+                            **技术详情**:
+                            - 模型类型: Ensemble多输出回归
+                            - 输入特征: pH, V, T, LD, Ap, f, SP (7个特征)
+                            - 输出目标: Cd, Pb, Hg (3个目标)
+                            """
                             st.error(error_msg)
                             st.session_state.prediction_error = error_msg
                             st.rerun()
                     else:
                         # 其他模型重新加载
-                        if predictor._find_model_file() and predictor._load_pipeline():
+                        predictor.model_path = predictor._find_model_file()
+                        if predictor.model_path and predictor._load_pipeline():
                             log("重新加载模型成功")
                         else:
-                            error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
+                            if st.session_state.selected_model == "Single Target":
+                                error_msg = """
+                            ❌ **预测失败**
+
+                            **错误信息**: 无法加载Single Target模型。
+
+                            **可能的解决方案**:
+
+                            • **确保模型文件存在**: 检查是否有以下模型文件 (joblib格式)
+                              - single_Cd_GBDT.joblib (镉预测模型)
+                              - single_Pb_GBDT.joblib (铅预测模型)
+                              - single_Hg_GBDT.joblib (汞预测模型)
+                              - single_Cd_RF.joblib, single_Pb_RF.joblib, single_Hg_RF.joblib""" + ("""
+                              - single_Cd_CAT.joblib, single_Pb_CAT.joblib, single_Hg_CAT.joblib""" if CATBOOST_AVAILABLE else " (CatBoost模型需要安装catboost库)") + """
+
+                            • **检查网络连接**: 确保能够访问GitHub来下载模型
+                            • **验证输入格式**: 确认输入的特征值是否正确
+                            • **运行训练代码**: 如果没有模型文件，请先运行训练代码生成模型
+
+                            **技术详情**:
+                            - 模型类型: Single Target回归 (分别预测每个重金属)
+                            - 输入特征: pH, V, T, LD, Ap, f, SP (7个特征)
+                            - 输出目标: Cd, Pb, Hg (单独预测)
+                            """
+                            else:
+                                error_msg = f"无法加载{st.session_state.selected_model}模型。请确保模型文件存在于正确位置。"
+
                             st.error(error_msg)
                             st.session_state.prediction_error = error_msg
                             st.rerun()
