@@ -52,7 +52,7 @@ st.markdown(
     
     /* 区域样式 */
     .section-header {
-        color: black;
+        color: white;
         font-weight: bold;
         font-size: 22px;
         text-align: center;
@@ -60,14 +60,14 @@ st.markdown(
         border-radius: 8px;
         margin-bottom: 15px;
     }
-    
+
     /* 输入标签样式 */
     .input-label {
         padding: 5px;
         border-radius: 5px;
         margin-bottom: 5px;
         font-size: 18px;
-        color: black;
+        color: white;
     }
     
     /* 结果显示样式 */
