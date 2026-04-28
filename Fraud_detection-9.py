@@ -124,7 +124,7 @@ st.markdown(
     .log-container {
         height: 300px;
         overflow-y: auto;
-        background-color: #1E1E1E;
+        background-color: white;
         color: black;
         font-family: 'Courier New', monospace;
         padding: 10px;
