@@ -620,7 +620,7 @@ class CorrectedEnsemblePredictor:
                         # 如果没有对应的标准化器，使用最终标准化器
                         if self.final_scaler:
                             X_scaled = self.final_scaler.transform(input_ordered)
-                        log(f"Model {i} using final scaler")
+                            log(f"Model {i} using final scaler")
                         else:
                             # 如果没有任何标准化器可用，则使用原始特征
                             log(f"WARNING: Model {i} has no available scaler, using raw features")
