@@ -72,7 +72,7 @@ st.markdown(
     
     /* 结果显示样式 */
     .yield-result {
-        background-color: #1E1E1E;
+        background-color: white;
         color: black;
         font-size: 36px;
         font-weight: bold;
