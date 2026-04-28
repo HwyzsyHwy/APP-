@@ -161,7 +161,8 @@ st.markdown(
     
     /* 侧边栏模型信息样式 */
     .sidebar-model-info {
-        background-color: #2E2E2E;
+        background-color: white;
+        color: black;
         padding: 10px;
         border-radius: 5px;
         margin-top: 20px;
@@ -177,7 +178,8 @@ st.markdown(
     
     /* 技术说明样式 */
     .tech-info {
-        background-color: #2E2E2E;
+        background-color: white;
+        color: black;
         padding: 15px;
         border-radius: 8px;
         margin-top: 20px;
